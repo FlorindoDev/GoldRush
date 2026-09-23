@@ -6,21 +6,29 @@ import {
   PLOT_SPACING_Z,
   RIG_PLOT_DEPTH,
   RIG_PLOT_WIDTH,
+  TOOL_AREA_POSITION,
+  TOOL_AREA_WIDTH,
   rigPlotCenter,
   rigPosition,
 } from './scene-layout';
 
 describe('scene plot layout', () => {
-  it('arranges each group of nine plots in a compact three-by-three grid', () => {
+  it('spaces plots in a three-by-three grid to the left of the tools', () => {
     const positions = Array.from({ length: 9 }, (_, index) => rigPlotCenter(index + 1));
+    const firstPlot = positions[0];
+    const rightmostPlotEdge = positions[2].x + RIG_PLOT_WIDTH / 2;
+    const toolAreaLeftEdge = TOOL_AREA_POSITION.x - TOOL_AREA_WIDTH / 2;
 
     expect(PLOT_GRID_COLUMNS).toBe(3);
+    expect(PLOT_GAP).toBeGreaterThanOrEqual(5);
     expect(PLOT_SPACING_X - RIG_PLOT_WIDTH).toBeCloseTo(PLOT_GAP);
     expect(PLOT_SPACING_Z - RIG_PLOT_DEPTH).toBeCloseTo(PLOT_GAP);
+    expect(firstPlot.x).toBeLessThan(0);
+    expect(toolAreaLeftEdge - rightmostPlotEdge).toBeGreaterThanOrEqual(5);
     for (let index = 0; index < positions.length; index++) {
       const row = Math.floor(index / PLOT_GRID_COLUMNS);
       const column = index % PLOT_GRID_COLUMNS;
-      expect(positions[index].x).toBeCloseTo(column * PLOT_SPACING_X);
+      expect(positions[index].x).toBeCloseTo(firstPlot.x + column * PLOT_SPACING_X);
       expect(positions[index].z).toBeCloseTo(positions[0].z - row * PLOT_SPACING_Z);
     }
   });

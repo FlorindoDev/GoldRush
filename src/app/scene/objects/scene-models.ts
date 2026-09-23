@@ -11,20 +11,30 @@ export function fitBitcoinModel(model: THREE.Group): void {
 }
 
 export function fitGpuModel(model: THREE.Group, width: number): void {
+  orientGpuModel(model);
+
   const bounds = new THREE.Box3().setFromObject(model);
-  const size = bounds.getSize(new THREE.Vector3());
-  if (size.z < size.x && size.z < size.y) {
+  const dimensions = bounds.getSize(new THREE.Vector3());
+  model.scale.multiplyScalar(width / Math.max(dimensions.x, dimensions.z));
+  centerModelAtGround(model);
+}
+
+function orientGpuModel(model: THREE.Group): void {
+  const initialSize = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+  if (initialSize.z < initialSize.x && initialSize.z < initialSize.y) {
     model.rotation.x -= Math.PI / 2;
-  } else if (size.x < size.y && size.x < size.z) {
+  } else if (initialSize.x < initialSize.y && initialSize.x < initialSize.z) {
     model.rotation.z += Math.PI / 2;
   }
-  bounds.setFromObject(model).getSize(size);
-  if (size.z > size.x) {
+
+  const rotatedSize = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+  if (rotatedSize.z > rotatedSize.x) {
     model.rotation.y += Math.PI / 2;
   }
-  bounds.setFromObject(model).getSize(size);
-  model.scale.multiplyScalar(width / Math.max(size.x, size.z));
-  bounds.setFromObject(model);
+}
+
+function centerModelAtGround(model: THREE.Group): void {
+  const bounds = new THREE.Box3().setFromObject(model);
   const center = bounds.getCenter(new THREE.Vector3());
   model.position.sub(new THREE.Vector3(center.x, bounds.min.y, center.z));
 }

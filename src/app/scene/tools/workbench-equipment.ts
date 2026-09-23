@@ -1,5 +1,10 @@
 import * as THREE from 'three';
-import { createBox, createCanvasTexture, createRod } from '../objects/mesh-primitives';
+import {
+  createBox,
+  createCanvasTexture,
+  createRod,
+  GAME_FONT_FAMILY,
+} from '../objects/mesh-primitives';
 import { WORKBENCH_COLORS } from './workbench-palette';
 
 export function addWorkbenchEquipment(desktop: THREE.Group): void {
@@ -75,37 +80,43 @@ function addOscilloscope(desktop: THREE.Group): void {
 }
 
 function createOscilloscopeTexture(): THREE.CanvasTexture {
-  return createCanvasTexture(256, 128, (context) => {
-    context.fillStyle = '#102f2b';
-    context.fillRect(0, 0, 256, 128);
-    context.strokeStyle = '#28534a';
-    context.lineWidth = 1;
-    context.beginPath();
-    for (let x = 16; x < 256; x += 24) {
-      context.moveTo(x, 0);
-      context.lineTo(x, 128);
-    }
-    for (let y = 16; y < 128; y += 24) {
-      context.moveTo(0, y);
-      context.lineTo(256, y);
-    }
-    context.stroke();
-    context.strokeStyle = '#b8f575';
-    context.lineWidth = 3;
-    context.beginPath();
-    for (let x = 0; x < 256; x++) {
-      const y = 65 - Math.sin(x * 0.065) * 30;
-      if (x === 0) {
-        context.moveTo(x, y);
-      } else {
-        context.lineTo(x, y);
+  const screenFont = `12px ${GAME_FONT_FAMILY}`;
+  return createCanvasTexture(
+    256,
+    128,
+    (context) => {
+      context.fillStyle = '#102f2b';
+      context.fillRect(0, 0, 256, 128);
+      context.strokeStyle = '#28534a';
+      context.lineWidth = 1;
+      context.beginPath();
+      for (let x = 16; x < 256; x += 24) {
+        context.moveTo(x, 0);
+        context.lineTo(x, 128);
       }
-    }
-    context.stroke();
-    context.fillStyle = '#b8f575';
-    context.font = '12px monospace';
-    context.fillText('CH1  2.0V', 12, 16);
-  });
+      for (let y = 16; y < 128; y += 24) {
+        context.moveTo(0, y);
+        context.lineTo(256, y);
+      }
+      context.stroke();
+      context.strokeStyle = '#b8f575';
+      context.lineWidth = 3;
+      context.beginPath();
+      for (let x = 0; x < 256; x++) {
+        const y = 65 - Math.sin(x * 0.065) * 30;
+        if (x === 0) {
+          context.moveTo(x, y);
+        } else {
+          context.lineTo(x, y);
+        }
+      }
+      context.stroke();
+      context.fillStyle = '#b8f575';
+      context.font = screenFont;
+      context.fillText('CH1  2.0V', 12, 16);
+    },
+    screenFont,
+  );
 }
 
 function addSolderingStation(desktop: THREE.Group): void {

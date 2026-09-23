@@ -17,6 +17,14 @@ export interface GpuMiningRig {
   readonly fans: readonly THREE.Group[];
 }
 
+interface DashedOutlineOptions {
+  readonly size: [width: number, height: number, depth: number];
+  readonly color: number;
+  readonly dashSize: number;
+  readonly gapSize: number;
+  readonly opacity: number;
+}
+
 const FRAME = 0x526560;
 const DARK = 0x202b2b;
 const STEEL = 0x9cac9f;
@@ -55,19 +63,13 @@ export function createLockedRigTile(id: number): THREE.Group {
   base.castShadow = false;
   tile.add(base);
 
-  const outlineBox = new THREE.BoxGeometry(RIG_WIDTH, 0.07, 3.36);
-  const outline = new THREE.LineSegments(
-    new THREE.EdgesGeometry(outlineBox),
-    new THREE.LineDashedMaterial({
-      color: 0x88aa7b,
-      dashSize: 0.2,
-      gapSize: 0.13,
-      transparent: true,
-      opacity: 0.68,
-    }),
-  );
-  outlineBox.dispose();
-  outline.computeLineDistances();
+  const outline = createDashedBoxOutline({
+    size: [RIG_WIDTH, 0.07, 3.36],
+    color: 0x88aa7b,
+    dashSize: 0.2,
+    gapSize: 0.13,
+    opacity: 0.68,
+  });
   tile.add(outline);
 
   const label = new THREE.Mesh(
@@ -111,19 +113,13 @@ export function createRigPlot(id: number): THREE.Group {
   surface.receiveShadow = true;
   plot.add(surface);
 
-  const outlineGeometry = new THREE.BoxGeometry(RIG_PLOT_WIDTH, 0.04, RIG_PLOT_DEPTH);
-  const outline = new THREE.LineSegments(
-    new THREE.EdgesGeometry(outlineGeometry),
-    new THREE.LineDashedMaterial({
-      color: 0x76906f,
-      dashSize: 0.28,
-      gapSize: 0.16,
-      transparent: true,
-      opacity: 0.7,
-    }),
-  );
-  outlineGeometry.dispose();
-  outline.computeLineDistances();
+  const outline = createDashedBoxOutline({
+    size: [RIG_PLOT_WIDTH, 0.04, RIG_PLOT_DEPTH],
+    color: 0x76906f,
+    dashSize: 0.28,
+    gapSize: 0.16,
+    opacity: 0.7,
+  });
   outline.position.y = -0.44;
   plot.add(outline);
 
@@ -261,4 +257,21 @@ function createSlot(root: THREE.Group, rigId: number, index: number): RigSlot {
     indicator,
     cable,
   };
+}
+
+function createDashedBoxOutline({
+  size,
+  color,
+  dashSize,
+  gapSize,
+  opacity,
+}: DashedOutlineOptions): THREE.LineSegments {
+  const geometry = new THREE.BoxGeometry(...size);
+  const outline = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geometry),
+    new THREE.LineDashedMaterial({ color, dashSize, gapSize, transparent: true, opacity }),
+  );
+  geometry.dispose();
+  outline.computeLineDistances();
+  return outline;
 }

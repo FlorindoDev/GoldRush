@@ -1,7 +1,14 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { delay, execute } from '../language/interpreter';
-import { EXAMPLES } from '../language/examples';
 import { ScriptError } from '../language/syntax';
+import {
+  loadActiveFileId,
+  loadLineEffectsEnabled,
+  loadScriptFiles,
+  persistLineEffectsEnabled,
+  persistScriptFiles,
+  type ScriptFile,
+} from './script-storage';
 import {
   canExpand,
   createWorld,
@@ -15,19 +22,11 @@ import {
   rigIdForGpu,
 } from './mining-world';
 
-const CODE_STORAGE_KEY = 'blockcraft-code';
-const FILES_STORAGE_KEY = 'blockcraft-files';
-const ACTIVE_FILE_STORAGE_KEY = 'blockcraft-active-file';
-const LINE_EFFECTS_STORAGE_KEY = 'blockcraft-line-effects';
 const LINE_EFFECT_DURATION_MS = 620;
 const MINING_DURATION_MS = 850;
 const MAX_LOG_ENTRIES = 100;
 
-export interface ScriptFile {
-  id: string;
-  name: string;
-  code: string;
-}
+export type { ScriptFile } from './script-storage';
 
 export interface LogEntry {
   id: number;
@@ -52,10 +51,10 @@ export class GameService {
   readonly errorLine = signal(0);
   readonly stepMode = signal(false);
   readonly waitingForStep = signal(false);
-  readonly lineEffectsEnabled = signal(this.readLineEffectsEnabled());
+  readonly lineEffectsEnabled = signal(loadLineEffectsEnabled());
   readonly speed = signal(1);
-  readonly files = signal(this.readFiles());
-  readonly activeFileId = signal(this.readActiveFileId());
+  readonly files = signal(loadScriptFiles());
+  readonly activeFileId = signal(loadActiveFileId(this.files()));
   readonly activeFile = computed(
     () => this.files().find((file) => file.id === this.activeFileId()) ?? this.files()[0]!,
   );
@@ -214,11 +213,7 @@ export class GameService {
     if (!enabled) {
       this.clearLineEffects();
     }
-    try {
-      localStorage.setItem(LINE_EFFECTS_STORAGE_KEY, String(enabled));
-    } catch {
-      // The preference remains usable for this session without storage.
-    }
+    persistLineEffectsEnabled(enabled);
   }
 
   private async waitForStepPermit(signal: AbortSignal): Promise<void> {
@@ -418,76 +413,7 @@ export class GameService {
     ]);
   }
 
-  private readFiles(): ScriptFile[] {
-    try {
-      const stored = localStorage.getItem(FILES_STORAGE_KEY);
-      if (stored) {
-        const parsed: unknown = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          const files = parsed.filter(isScriptFile);
-          const ids = new Set(files.map((file) => file.id));
-          if (files.length && ids.size === files.length) {
-            return files;
-          }
-        }
-      }
-    } catch {
-      // Fall through to the legacy single-file save.
-    }
-    return [
-      {
-        id: 'main',
-        name: 'main.mine',
-        code: this.readLegacyCode(),
-      },
-    ];
-  }
-
-  private readActiveFileId(): string {
-    const firstFileId = this.files()[0].id;
-    try {
-      const storedId = localStorage.getItem(ACTIVE_FILE_STORAGE_KEY);
-      return this.files().some((file) => file.id === storedId) ? storedId! : firstFileId;
-    } catch {
-      return firstFileId;
-    }
-  }
-
-  private readLegacyCode(): string {
-    try {
-      return localStorage.getItem(CODE_STORAGE_KEY) ?? EXAMPLES[0].code;
-    } catch {
-      return EXAMPLES[0].code;
-    }
-  }
-
-  private readLineEffectsEnabled(): boolean {
-    try {
-      return localStorage.getItem(LINE_EFFECTS_STORAGE_KEY) !== 'false';
-    } catch {
-      return true;
-    }
-  }
-
   private persistFiles(): void {
-    const files = this.files();
-    try {
-      localStorage.setItem(FILES_STORAGE_KEY, JSON.stringify(files));
-      localStorage.setItem(ACTIVE_FILE_STORAGE_KEY, this.activeFileId());
-      const mainFile = files.find((file) => file.id === 'main');
-      localStorage.setItem(CODE_STORAGE_KEY, mainFile?.code ?? this.code());
-    } catch {
-      /* Editing remains available without storage. */
-    }
+    persistScriptFiles(this.files(), this.activeFileId(), this.code());
   }
-}
-
-function isScriptFile(value: unknown): value is ScriptFile {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-  const file = value as Partial<ScriptFile>;
-  return (
-    typeof file.id === 'string' && typeof file.name === 'string' && typeof file.code === 'string'
-  );
 }

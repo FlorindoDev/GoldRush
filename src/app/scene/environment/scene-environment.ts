@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+const GROUND_SIZE = 120;
+
 export function createSceneEnvironment(): THREE.Scene {
   const scene = new THREE.Scene();
   addLighting(scene);
@@ -29,7 +31,7 @@ function addLighting(scene: THREE.Scene): void {
 
 function addGround(scene: THREE.Scene): void {
   const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(120, 120),
+    new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
     new THREE.MeshStandardMaterial({ color: 0x19241e, roughness: 1 }),
   );
   floor.rotation.x = -Math.PI / 2;
@@ -37,7 +39,7 @@ function addGround(scene: THREE.Scene): void {
   floor.receiveShadow = true;
   scene.add(floor);
 
-  const grid = new THREE.GridHelper(70, 70, 0x35473b, 0x2c3c32);
+  const grid = new THREE.GridHelper(GROUND_SIZE, GROUND_SIZE, 0x35473b, 0x2c3c32);
   grid.position.y = -0.49;
   (grid.material as THREE.Material).transparent = true;
   (grid.material as THREE.Material).opacity = 0.45;

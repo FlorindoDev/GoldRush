@@ -14,6 +14,11 @@ import { highlight } from './highlight';
 
 const INDENTATION = '  ';
 
+interface CursorPosition {
+  line: number;
+  column: number;
+}
+
 @Component({
   selector: 'app-editor',
   imports: [IconComponent],
@@ -39,8 +44,8 @@ export class EditorComponent {
   );
   readonly editor = viewChild.required<ElementRef<HTMLTextAreaElement>>('editor');
   readonly overlay = viewChild.required<ElementRef<HTMLElement>>('overlay');
-  readonly cursor = signal({ line: 1, column: 1 });
-  private captureTab = true;
+  readonly cursor = signal<CursorPosition>({ line: 1, column: 1 });
+  private capturesTabKey = true;
 
   onInput(event: Event): void {
     this.game.updateCode((event.target as HTMLTextAreaElement).value);
@@ -49,9 +54,13 @@ export class EditorComponent {
 
   updateCursor(): void {
     const textarea = this.editor().nativeElement;
-    const linesBeforeCursor = textarea.value.slice(0, textarea.selectionStart).split('\n');
-    const currentLine = linesBeforeCursor[linesBeforeCursor.length - 1];
-    this.cursor.set({ line: linesBeforeCursor.length, column: currentLine.length + 1 });
+    const textBeforeCursor = textarea.value.slice(0, textarea.selectionStart);
+    const linesBeforeCursor = textBeforeCursor.split('\n');
+    const currentLine = linesBeforeCursor.at(-1)!;
+    this.cursor.set({
+      line: linesBeforeCursor.length,
+      column: currentLine.length + 1,
+    });
   }
 
   syncScroll(): void {
@@ -67,10 +76,10 @@ export class EditorComponent {
       return;
     }
     if (event.key === 'Escape') {
-      this.captureTab = false;
+      this.capturesTabKey = false;
       return;
     }
-    if (event.key === 'Tab' && this.captureTab && !event.shiftKey) {
+    if (event.key === 'Tab' && this.capturesTabKey && !event.shiftKey) {
       event.preventDefault();
       this.insert(INDENTATION);
     }
@@ -81,7 +90,7 @@ export class EditorComponent {
   }
 
   focus(): void {
-    this.captureTab = true;
+    this.capturesTabKey = true;
   }
 
   insert(text: string): void {
@@ -129,9 +138,9 @@ export class EditorComponent {
     const beforeCursor = textarea.value.slice(0, textarea.selectionStart);
     const currentLine = beforeCursor.split('\n').at(-1) ?? '';
     const indentation = currentLine.match(/^\s*/)?.[0] ?? '';
-    const opensBlock = currentLine.trimEnd().endsWith('{');
-    const extraIndentation = opensBlock ? INDENTATION : '';
+    const continuesBlock = currentLine.trimEnd().endsWith('{');
+    const extraIndentation = continuesBlock ? INDENTATION : '';
 
-    this.insert('\n' + indentation + extraIndentation);
+    this.insert(`\n${indentation}${extraIndentation}`);
   }
 }

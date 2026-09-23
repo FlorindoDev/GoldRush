@@ -11,6 +11,13 @@ import {
 import { GameService, LogEntry } from '../game/game.service';
 import { IconComponent } from '../shared/icon.component';
 
+const LOG_MARKERS: Record<LogEntry['kind'], string> = {
+  info: '›',
+  output: '›',
+  success: '✓',
+  error: '!',
+};
+
 @Component({
   selector: 'app-console',
   imports: [IconComponent],
@@ -23,12 +30,7 @@ export class ConsoleComponent {
   readonly docked = input(false);
   readonly toggleDock = output<void>();
   readonly scroll = viewChild<ElementRef<HTMLElement>>('scroll');
-  readonly logMarkers: Record<LogEntry['kind'], string> = {
-    info: '›',
-    output: '›',
-    success: '✓',
-    error: '!',
-  };
+  readonly logMarkers = LOG_MARKERS;
 
   constructor() {
     effect(() => {
@@ -38,9 +40,11 @@ export class ConsoleComponent {
   }
 
   private scrollToLatestEntry(): void {
-    const output = this.scroll()?.nativeElement;
-    if (output) {
-      output.scrollTop = output.scrollHeight;
+    const logContainer = this.scroll()?.nativeElement;
+    if (!logContainer) {
+      return;
     }
+
+    logContainer.scrollTop = logContainer.scrollHeight;
   }
 }

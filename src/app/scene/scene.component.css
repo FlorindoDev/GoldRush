@@ -56,7 +56,7 @@ canvas:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font: 12px var(--sans);
+  font: 12px var(--mono);
   color: #a8b1a1;
 }
 .section-title {
@@ -75,7 +75,7 @@ canvas:active {
 }
 .section-meta {
   color: #95a18c;
-  font: 11px var(--sans);
+  font: 11px var(--mono);
 }
 .gpu-heading {
   margin-top: 6px;
@@ -101,7 +101,7 @@ canvas:active {
   border-radius: 2px;
   background: transparent;
   color: #c5cebd;
-  font: 14px var(--sans);
+  font: 14px var(--mono);
   cursor: pointer;
 }
 .scene-hud .rig-choice,
@@ -175,7 +175,7 @@ canvas:active {
   align-items: center;
   gap: 5px;
   color: #8f9b87;
-  font: 11px var(--sans);
+  font: 11px var(--mono);
 }
 .next-rig app-icon {
   width: 12px;
