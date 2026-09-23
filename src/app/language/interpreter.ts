@@ -38,7 +38,7 @@ export async function execute(
   source: string,
   host: ScriptHost,
   signal: AbortSignal,
-  onLine: (line: number) => void = () => {},
+  onLine: (line: number) => void | Promise<void> = () => {},
 ): Promise<void> {
   const program = parse(source);
   await new Interpreter(host, signal, onLine).run(program);
@@ -51,7 +51,7 @@ class Interpreter {
   constructor(
     private readonly host: ScriptHost,
     private readonly signal: AbortSignal,
-    private readonly onLine: (line: number) => void,
+    private readonly onLine: (line: number) => void | Promise<void>,
   ) {}
 
   private async checkExecutionLimit(line: number): Promise<void> {
@@ -73,7 +73,7 @@ class Interpreter {
 
   private async executeStatement(statement: Statement): Promise<void> {
     await this.checkExecutionLimit(statement.line);
-    this.onLine(statement.line);
+    await this.onLine(statement.line);
     switch (statement.kind) {
       case 'expression':
         await this.evaluateExpression(statement.expression);

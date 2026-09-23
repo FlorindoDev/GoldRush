@@ -2,11 +2,24 @@ import { computed, Injectable, signal } from '@angular/core';
 import { delay, execute } from '../language/interpreter';
 import { EXAMPLES } from '../language/examples';
 import { ScriptError } from '../language/syntax';
-import { canExpand, createWorld, expandWorld, MAX_BLOCKS, mineSelected } from './mining-world';
+import {
+  canExpand,
+  createWorld,
+  expandWorld,
+  mineSelected,
+  plotCount as worldPlotCount,
+  plotIdForGpu,
+  plotIdForRig,
+  RIGS_PER_PLOT,
+  rigCount,
+  rigIdForGpu,
+} from './mining-world';
 
 const CODE_STORAGE_KEY = 'blockcraft-code';
 const FILES_STORAGE_KEY = 'blockcraft-files';
 const ACTIVE_FILE_STORAGE_KEY = 'blockcraft-active-file';
+const LINE_EFFECTS_STORAGE_KEY = 'blockcraft-line-effects';
+const LINE_EFFECT_DURATION_MS = 620;
 const MINING_DURATION_MS = 850;
 const MAX_LOG_ENTRIES = 100;
 
@@ -29,8 +42,17 @@ export class GameService {
   readonly started = signal(false);
   readonly running = signal(false);
   readonly mining = signal(false);
+  readonly inspectedGpuId = signal<number | null>(null);
+  readonly viewedRigId = signal(1);
+  readonly viewedPlotId = signal(1);
+  readonly rigCount = computed(() => rigCount(this.world()));
+  readonly plotCount = computed(() => worldPlotCount(this.world()));
   readonly activeLine = signal(0);
+  readonly executedLineEffects = signal<ReadonlyMap<number, number>>(new Map());
   readonly errorLine = signal(0);
+  readonly stepMode = signal(false);
+  readonly waitingForStep = signal(false);
+  readonly lineEffectsEnabled = signal(this.readLineEffectsEnabled());
   readonly speed = signal(1);
   readonly files = signal(this.readFiles());
   readonly activeFileId = signal(this.readActiveFileId());
@@ -47,9 +69,13 @@ export class GameService {
   readonly completed = computed(
     () => this.world().blocks.filter((block) => block.progress === 100).length,
   );
-  readonly won = computed(() => this.completed() === MAX_BLOCKS);
   readonly balance = computed(() => (this.world().satoshis / 100_000_000).toFixed(4));
   private controller?: AbortController;
+  private lineExecutionId = 0;
+  private lineEffectTimers = new Map<number, ReturnType<typeof setTimeout>>();
+  private queuedSteps = 0;
+  private releaseStepWaiter?: () => void;
+  private executionMode: 'continuous' | 'step' = 'continuous';
   private logId = 0;
 
   start(): void {
@@ -62,6 +88,7 @@ export class GameService {
   }
 
   updateCode(code: string): void {
+    this.clearLineEffects();
     const activeFileId = this.activeFileId();
     this.files.update((files) =>
       files.map((file) => (file.id === activeFileId ? { ...file, code } : file)),
@@ -75,6 +102,7 @@ export class GameService {
       return;
     }
     this.activeFileId.set(id);
+    this.clearLineEffects();
     this.errorLine.set(0);
     this.activeLine.set(0);
     this.persistFiles();
@@ -95,6 +123,7 @@ export class GameService {
     };
     this.files.update((files) => [...files, file]);
     this.activeFileId.set(file.id);
+    this.clearLineEffects();
     this.errorLine.set(0);
     this.activeLine.set(0);
     this.persistFiles();
@@ -112,17 +141,24 @@ export class GameService {
       this.activeFileId.set(remaining[Math.max(0, index - 1)].id);
     }
     this.files.set(remaining);
+    this.clearLineEffects();
     this.errorLine.set(0);
     this.activeLine.set(0);
     this.persistFiles();
   }
 
   async run(): Promise<void> {
-    if (!this.started() || this.running()) {
+    if (!this.started()) {
+      return;
+    }
+    if (this.running()) {
+      this.resumeContinuousExecution();
       return;
     }
     const controller = new AbortController();
+    this.clearLineEffects();
     this.controller = controller;
+    this.stepMode.set(this.executionMode === 'step');
     this.running.set(true);
     this.errorLine.set(0);
     this.log(`Esecuzione di ${this.activeFile().name}…`);
@@ -135,7 +171,11 @@ export class GameService {
           progress: () => this.selected().progress,
         },
         controller.signal,
-        (line) => this.activeLine.set(line),
+        async (line) => {
+          await this.waitForStepPermit(controller.signal);
+          this.activeLine.set(line);
+          this.markLineExecuted(line);
+        },
       );
       this.log('Programma terminato.', 'success');
     } catch (error) {
@@ -144,8 +184,124 @@ export class GameService {
       this.activeLine.set(0);
       this.running.set(false);
       this.mining.set(false);
+      this.waitingForStep.set(false);
+      this.stepMode.set(false);
+      this.executionMode = 'continuous';
+      this.queuedSteps = 0;
+      this.releaseStepWaiter?.();
       this.controller = undefined;
     }
+  }
+
+  async step(): Promise<void> {
+    if (!this.started()) {
+      return;
+    }
+    if (this.running()) {
+      if (this.executionMode === 'step') {
+        this.releaseNextStep();
+      }
+      return;
+    }
+
+    this.executionMode = 'step';
+    this.queuedSteps = 1;
+    await this.run();
+  }
+
+  setLineEffectsEnabled(enabled: boolean): void {
+    this.lineEffectsEnabled.set(enabled);
+    if (!enabled) {
+      this.clearLineEffects();
+    }
+    try {
+      localStorage.setItem(LINE_EFFECTS_STORAGE_KEY, String(enabled));
+    } catch {
+      // The preference remains usable for this session without storage.
+    }
+  }
+
+  private async waitForStepPermit(signal: AbortSignal): Promise<void> {
+    signal.throwIfAborted();
+    if (this.executionMode !== 'step') {
+      return;
+    }
+    if (this.queuedSteps > 0) {
+      this.queuedSteps--;
+      return;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const abort = () => {
+        this.releaseStepWaiter = undefined;
+        this.waitingForStep.set(false);
+        reject(signal.reason);
+      };
+      this.releaseStepWaiter = () => {
+        signal.removeEventListener('abort', abort);
+        this.releaseStepWaiter = undefined;
+        this.waitingForStep.set(false);
+        resolve();
+      };
+      this.waitingForStep.set(true);
+      signal.addEventListener('abort', abort, { once: true });
+    });
+  }
+
+  private releaseNextStep(): void {
+    if (this.releaseStepWaiter) {
+      this.releaseStepWaiter();
+      return;
+    }
+    this.queuedSteps++;
+  }
+
+  private resumeContinuousExecution(): void {
+    if (this.executionMode !== 'step') {
+      return;
+    }
+    this.executionMode = 'continuous';
+    this.stepMode.set(false);
+    this.waitingForStep.set(false);
+    this.queuedSteps = 0;
+    this.releaseStepWaiter?.();
+  }
+
+  private markLineExecuted(line: number): void {
+    if (!this.lineEffectsEnabled()) {
+      return;
+    }
+
+    const executionId = ++this.lineExecutionId;
+    this.executedLineEffects.update((lines) => new Map(lines).set(line, executionId));
+    const previousTimer = this.lineEffectTimers.get(line);
+    if (previousTimer) {
+      clearTimeout(previousTimer);
+    }
+    const timer = setTimeout(() => {
+      let expired = false;
+      this.executedLineEffects.update((lines) => {
+        if (lines.get(line) !== executionId) {
+          return lines;
+        }
+        expired = true;
+        const remaining = new Map(lines);
+        remaining.delete(line);
+        return remaining;
+      });
+      if (expired) {
+        this.lineEffectTimers.delete(line);
+      }
+    }, LINE_EFFECT_DURATION_MS);
+    this.lineEffectTimers.set(line, timer);
+  }
+
+  private clearLineEffects(): void {
+    for (const timer of this.lineEffectTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.lineEffectTimers.clear();
+    this.executedLineEffects.set(new Map());
   }
 
   stop(): void {
@@ -155,7 +311,33 @@ export class GameService {
   select(id: number): void {
     if (!this.running() && this.world().blocks.some((block) => block.id === id)) {
       this.world.update((world) => ({ ...world, selectedId: id }));
+      this.viewedRigId.set(rigIdForGpu(id));
+      this.viewedPlotId.set(plotIdForGpu(id));
+      this.inspectedGpuId.set(id);
     }
+  }
+
+  returnToRig(): void {
+    this.inspectedGpuId.set(null);
+  }
+
+  viewRig(id: number): void {
+    if (!Number.isInteger(id) || id < 1 || id > this.rigCount()) {
+      return;
+    }
+    this.viewedRigId.set(id);
+    this.viewedPlotId.set(plotIdForRig(id));
+    this.inspectedGpuId.set(null);
+  }
+
+  viewPlot(id: number): void {
+    if (!Number.isInteger(id) || id < 1 || id > this.plotCount()) {
+      return;
+    }
+    const firstRigId = (id - 1) * RIGS_PER_PLOT + 1;
+    this.viewedPlotId.set(id);
+    this.viewedRigId.set(firstRigId);
+    this.inspectedGpuId.set(null);
   }
 
   reset(): void {
@@ -163,6 +345,10 @@ export class GameService {
       return;
     }
     this.world.set(createWorld());
+    this.clearLineEffects();
+    this.inspectedGpuId.set(null);
+    this.viewedRigId.set(1);
+    this.viewedPlotId.set(1);
     this.started.set(false);
     this.logs.set([]);
     this.errorLine.set(0);
@@ -195,8 +381,20 @@ export class GameService {
     if (block.progress === 100) {
       this.log('Blocco estratto! +0.0100 BTC al saldo simulato.', 'success');
       if (this.expandable()) {
+        const previousRigCount = this.rigCount();
         this.world.update(expandWorld);
-        this.log(`Blocco #00${this.selected().id} sbloccato. Nuova GPU pronta.`, 'success');
+        const id = this.selected().id;
+        this.log(`Blocco #${String(id).padStart(3, '0')} sbloccato. Nuova GPU pronta.`, 'success');
+        if (this.rigCount() > previousRigCount) {
+          this.log(
+            `Rig ${this.rigCount()} sbloccato. Continua a minare per espandere la farm.`,
+            'success',
+          );
+          if (this.inspectedGpuId() === null) {
+            this.viewedRigId.set(this.rigCount());
+            this.viewedPlotId.set(plotIdForRig(this.rigCount()));
+          }
+        }
       }
     }
   }
@@ -260,6 +458,14 @@ export class GameService {
       return localStorage.getItem(CODE_STORAGE_KEY) ?? EXAMPLES[0].code;
     } catch {
       return EXAMPLES[0].code;
+    }
+  }
+
+  private readLineEffectsEnabled(): boolean {
+    try {
+      return localStorage.getItem(LINE_EFFECTS_STORAGE_KEY) !== 'false';
+    } catch {
+      return true;
     }
   }
 

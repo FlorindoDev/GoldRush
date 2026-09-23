@@ -7,7 +7,8 @@ export interface MiningWorld {
   readonly selectedId: number;
   readonly satoshis: number;
 }
-export const MAX_BLOCKS = 4;
+export const GPUS_PER_RIG = 4;
+export const RIGS_PER_PLOT = 6;
 export const MINE_PROGRESS = 20;
 export const BLOCK_REWARD = 1_000_000;
 
@@ -29,7 +30,27 @@ export function mineSelected(world: MiningWorld): MiningWorld {
 }
 
 export function canExpand(world: MiningWorld): boolean {
-  return world.blocks.length < MAX_BLOCKS && world.blocks.every((block) => block.progress === 100);
+  return world.blocks.every((block) => block.progress === 100);
+}
+
+export function rigIdForGpu(gpuId: number): number {
+  return Math.floor((gpuId - 1) / GPUS_PER_RIG) + 1;
+}
+
+export function rigCount(world: MiningWorld): number {
+  return Math.ceil(world.blocks.length / GPUS_PER_RIG);
+}
+
+export function plotIdForRig(rigId: number): number {
+  return Math.floor((rigId - 1) / RIGS_PER_PLOT) + 1;
+}
+
+export function plotIdForGpu(gpuId: number): number {
+  return plotIdForRig(rigIdForGpu(gpuId));
+}
+
+export function plotCount(world: MiningWorld): number {
+  return Math.ceil(rigCount(world) / RIGS_PER_PLOT);
 }
 
 export function expandWorld(world: MiningWorld): MiningWorld {
