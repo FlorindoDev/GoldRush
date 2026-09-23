@@ -4,9 +4,189 @@
 >
   <canvas
     #canvas
-    aria-label="Mondo 3D. Clicca un blocco per selezionarlo, trascina per ruotare, usa la rotella per lo zoom."
+    aria-label="Laboratorio 3D. Clicca una GPU nel mining rig per portarla al banco. Trascina per ruotare, tasto destro e trascina per spostare la visuale, rotella per zoom."
     tabindex="0"
   ></canvas>
+
+  <nav
+    class="scene-hud"
+    aria-label="Controlli scena"
+  >
+    <div
+      class="hud-group rig-controls"
+      role="group"
+      aria-label="GPU del mining rig"
+    >
+      <div class="hud-heading">
+        <span class="section-title"><app-icon name="rack" /> Rig</span>
+        <span
+          class="next-rig"
+          [title]="
+            'Completa le quattro GPU del rig ' +
+            game.rigCount() +
+            ' per sbloccare il rig successivo'
+          "
+          [attr.aria-label]="'Prossimo sblocco: Rig ' + (game.rigCount() + 1)"
+        >
+          <app-icon name="lock" />
+          Rig {{ game.rigCount() + 1 }}
+        </span>
+      </div>
+      <div
+        class="rig-options"
+        role="group"
+        aria-label="Rig nel plot"
+      >
+        @for (id of rigIds(); track id) {
+          <button
+            type="button"
+            class="rig-choice"
+            [attr.aria-label]="'Visualizza Rig ' + id"
+            [attr.aria-pressed]="game.viewedRigId() === id"
+            [disabled]="game.running()"
+            [title]="'Visualizza Rig ' + id"
+            (click)="selectRig(id)"
+          >
+            {{ id }}
+          </button>
+        }
+      </div>
+      <div class="hud-heading gpu-heading">
+        <span class="section-title">GPU</span>
+        <span class="section-meta">{{ availableGpuCount() }}/{{ slots().length }} disponibili</span>
+      </div>
+      <div class="gpu-slots">
+        @for (slot of slots(); track slot.id) {
+          <button
+            type="button"
+            class="gpu-slot"
+            [class.available]="slot.id <= game.world().blocks.length"
+            [disabled]="slot.id > game.world().blocks.length || game.running()"
+            [attr.aria-label]="
+              slot.id > game.world().blocks.length
+                ? 'Slot GPU ' + gpuNumber(slot.id) + ' bloccato'
+                : 'Seleziona GPU ' + gpuNumber(slot.id)
+            "
+            [attr.aria-pressed]="game.inspectedGpuId() === slot.id"
+            [title]="
+              slot.id > game.world().blocks.length
+                ? 'Completa il blocco precedente per sbloccare questa GPU'
+                : 'Porta GPU ' + gpuNumber(slot.id) + ' al banco'
+            "
+            (click)="game.select(slot.id)"
+          >
+            <span
+              class="slot-light"
+              aria-hidden="true"
+            ></span>
+            {{ slot.label }}
+          </button>
+        }
+      </div>
+      @if (game.inspectedGpuId() !== null) {
+        <button
+          type="button"
+          class="back-to-rig"
+          (click)="returnToRig()"
+          aria-label="Torna al mining rig"
+          title="Torna al mining rig"
+        >
+          <app-icon name="arrow" />
+          Torna al rig
+        </button>
+      }
+      <span
+        class="scene-status"
+        aria-live="polite"
+      >
+        {{
+          game.inspectedGpuId() === null
+            ? 'Banco vuoto. Plot ' + game.viewedPlotId() + ' · Rig ' + game.viewedRigId()
+            : 'GPU ' + gpuNumber(game.inspectedGpuId()!) + ' sul banco'
+        }}
+      </span>
+    </div>
+
+    <div
+      class="hud-group view-controls"
+      role="group"
+      aria-label="Plot e visuale"
+    >
+      <div class="hud-heading">
+        <span class="section-title"><app-icon name="layers" /> Area</span>
+        <span class="section-meta">{{ plotIds().length }} plot</span>
+      </div>
+      <div
+        class="plot-options"
+        role="group"
+        aria-label="Plot disponibili"
+      >
+        @for (id of plotIds(); track id) {
+          <button
+            type="button"
+            class="plot-choice"
+            [attr.aria-label]="'Vai a Plot ' + id"
+            [attr.aria-pressed]="focusedToolStationId() === null && game.viewedPlotId() === id"
+            [disabled]="game.running()"
+            (click)="selectPlot(id)"
+          >
+            <span>Plot</span><span class="plot-number">{{ id }}</span>
+          </button>
+        }
+      </div>
+      @for (station of toolStations; track station.id) {
+        <button
+          type="button"
+          class="station-choice"
+          [attr.aria-label]="'Vai a ' + station.label"
+          [attr.aria-pressed]="focusedToolStationId() === station.id"
+          [disabled]="game.running()"
+          (click)="selectToolStation(station.id)"
+        >
+          <app-icon name="tool" />
+          <span>{{ station.label }}</span>
+          <app-icon
+            class="station-arrow"
+            name="arrow"
+          />
+        </button>
+      }
+    </div>
+    <div
+      class="hud-group"
+      role="group"
+      aria-label="Visuale"
+    >
+      <div class="hud-heading"><span class="section-title">Visuale</span></div>
+      <div class="camera-options">
+        <button
+          type="button"
+          class="view-preset"
+          [attr.aria-pressed]="cameraPreset() === 'front'"
+          aria-label="Vista frontale"
+          title="Vista frontale"
+          (click)="setCameraPreset('front')"
+        >
+          <app-icon name="camcorder" />
+          Frontale
+        </button>
+        <button
+          type="button"
+          class="view-preset"
+          [attr.aria-pressed]="cameraPreset() === 'top'"
+          aria-label="Vista dall'alto"
+          title="Vista dall'alto"
+          (click)="setCameraPreset('top')"
+        >
+          <app-icon
+            class="overhead-camera"
+            name="camcorder"
+          />
+          Sopra
+        </button>
+      </div>
+    </div>
+  </nav>
 
   @if (unavailable()) {
     <div
