@@ -1,44 +1,82 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { MiningBlock, MiningWorld } from '../game/mining-world';
+import {
+  GPUS_PER_RIG,
+  MiningWorld,
+  plotCount,
+  RIGS_PER_PLOT,
+  rigCount,
+  rigIdForGpu,
+} from '../game/mining-world';
 import { BITCOIN_MODEL_PATH } from '../shared/bitcoin-asset';
-import { BlockMesh, createBlock, createFallbackGpu, createLockedTile } from './block-mesh';
-import { WORKBENCH_SURFACE_Y } from './electronics-workbench';
+import { createFallbackGpu } from './objects/fallback-gpu';
+import {
+  createGpuMiningRig,
+  createLockedRigTile,
+  createRigPlot,
+  GpuMiningRig,
+  RigSlot,
+} from './objects/gpu-mining-rig';
+import { SceneCameraController } from './camera/scene-camera-controller';
+import { createSceneEnvironment } from './environment/scene-environment';
+import {
+  addBitcoinStack,
+  fitBitcoinModel,
+  fitGpuModel,
+  styleGpuModel,
+} from './objects/scene-models';
+import { rigPlotCenter, rigPosition, TOOL_AREA_POSITION } from './environment/scene-layout';
+import { easeTransition, transitionProgress } from './camera/scene-transition';
+import { createToolArea } from './tools/tool-area';
+import { createWorkbench, WorkbenchMesh } from './tools/workbench-mesh';
+import { toolStationCamera, toolStationPosition, type ToolStationId } from './tools/tool-stations';
 
-const BLOCK_POSITIONS = [
-  [0, 0],
-  [5.6, 0],
-  [0, -5.6],
-  [5.6, -5.6],
-] as const;
-
-const MIN_CAMERA_DISTANCE = 8;
-const MAX_CAMERA_DISTANCE = 32;
 const PARTICLE_COUNT = 28;
 const PARTICLE_HEIGHT = 3;
 const GPU_MODEL_PATH = 'models/modello-gpu/scene.gltf';
 const GPU_MODEL_WIDTH = 2.4;
-const MAX_CLICK_MOVEMENT = 5;
+const VISIBLE_LOCKED_RIGS = 3;
+const RIG_TARGET = new THREE.Vector3(0, 1, -1.5);
+const RIG_CAMERA_OFFSET = new THREE.Vector3(12, 10, 23);
+const PLOT_TOP_CAMERA_OFFSET = new THREE.Vector3(0, 35, 8.4);
+const TOOL_TOP_CAMERA_OFFSET = new THREE.Vector3(0, 18, 3.8);
+
+export type CameraPreset = 'front' | 'top';
+
+interface GpuTransfer {
+  readonly from: THREE.Vector3;
+  readonly to: THREE.Vector3;
+  readonly fromRotation: THREE.Quaternion;
+  readonly toRotation: THREE.Quaternion;
+  elapsed: number;
+}
 
 export class MiningScene {
-  private readonly scene = new THREE.Scene();
+  private readonly scene = createSceneEnvironment();
   private readonly camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
   private readonly renderer: THREE.WebGLRenderer;
-  private readonly controls: OrbitControls;
+  private readonly cameraController: SceneCameraController;
   private readonly observer: ResizeObserver;
-  private readonly blocks = new Map<number, BlockMesh>();
-  private readonly locked = new Map<number, THREE.Group>();
+  private readonly rigs = new Map<number, GpuMiningRig>();
+  private readonly plots = new Map<number, THREE.Group>();
+  private readonly lockedRigTiles = new Map<number, THREE.Group>();
+  private readonly workbench: WorkbenchMesh;
+  private readonly gpus = new Map<number, THREE.Group>();
+  private readonly transfers = new Map<number, GpuTransfer>();
   private readonly mixers = new Map<number, THREE.AnimationMixer>();
   private readonly particles: THREE.Points;
-  private gpu?: THREE.Group;
+  private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  private gpu = createFallbackGpu(GPU_MODEL_WIDTH);
   private bitcoin?: THREE.Group;
   private clips: THREE.AnimationClip[] = [];
   private selectedId = 1;
+  private viewedPlotId = 1;
+  private selectedToolStationId: ToolStationId | null = null;
+  private cameraPreset: CameraPreset = 'front';
+  private inspectedGpuId: number | null = null;
   private isMining = false;
   private disposed = false;
   private lastFrame = 0;
-  private readonly pointerDown = new THREE.Vector2();
   private readonly pointer = new THREE.Vector2();
   private readonly raycaster = new THREE.Raycaster();
 
@@ -47,71 +85,86 @@ export class MiningScene {
     private readonly onSelect: (id: number) => void,
   ) {
     this.renderer = this.createRenderer();
-    this.addLighting();
-    this.addGround();
-    this.addLockedTiles();
-
+    this.cameraController = new SceneCameraController(canvas, this.camera, this.reducedMotion);
+    const toolArea = createToolArea();
+    toolArea.position.copy(TOOL_AREA_POSITION);
+    this.scene.add(toolArea);
+    this.workbench = createWorkbench();
+    this.workbench.root.position.copy(toolStationPosition('workbench'));
+    this.scene.add(this.workbench.root);
     this.particles = this.createParticles();
     this.scene.add(this.particles);
-
-    this.controls = this.createCameraControls();
     this.resetCamera();
-
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(canvas);
-    canvas.addEventListener('pointerdown', this.handlePointerDown);
     canvas.addEventListener('pointerup', this.handlePointerUp);
-
     this.resize();
     void this.loadGpu();
     void this.loadBitcoin();
     this.renderer.setAnimationLoop((time) => this.animate(time));
   }
 
-  update(world: MiningWorld, mining: boolean): void {
+  update(
+    world: MiningWorld,
+    mining: boolean,
+    inspectedGpuId: number | null,
+    viewedPlotId: number,
+    cameraPreset: CameraPreset,
+    selectedToolStationId: ToolStationId | null,
+  ): void {
+    const inspection = world.blocks.some((block) => block.id === inspectedGpuId)
+      ? inspectedGpuId
+      : null;
+    const inspectionChanged = inspection !== this.inspectedGpuId;
+    const plotChanged = viewedPlotId !== this.viewedPlotId;
+    const cameraPresetChanged = cameraPreset !== this.cameraPreset;
+    const toolStationChanged = selectedToolStationId !== this.selectedToolStationId;
     this.selectedId = world.selectedId;
+    this.inspectedGpuId = inspection;
     this.isMining = mining;
-    this.removeMissingBlocks(world);
-
-    for (const block of world.blocks) {
-      const visual = this.blocks.get(block.id) ?? this.addBlock(block.id);
-      this.updateBlockAppearance(block, visual);
+    this.viewedPlotId = viewedPlotId;
+    this.cameraPreset = cameraPreset;
+    this.selectedToolStationId = selectedToolStationId;
+    this.syncPlots(world);
+    this.syncRigs(world);
+    this.syncGpus(world);
+    this.updateAppearance(world);
+    if (inspectionChanged) {
+      for (const [id, gpu] of this.gpus) {
+        this.transferGpu(id, gpu);
+      }
     }
-
-    const returnedToFirstBlock = world.blocks.length === 1 && this.controls.target.x > 1;
-    if (returnedToFirstBlock) {
-      this.resetCamera();
+    if (inspectionChanged || plotChanged || cameraPresetChanged || toolStationChanged) {
+      this.focusInspection();
     }
   }
 
   resetCamera(): void {
-    const expanded = this.blocks.size > 1;
-    const target = expanded ? new THREE.Vector3(2.5, 1, -2.5) : new THREE.Vector3(0.7, 1, -0.7);
-    const offset = expanded ? new THREE.Vector3(15, 12, 18) : new THREE.Vector3(9, 7, 12);
-
-    this.controls.target.copy(target);
-    this.camera.position.copy(target).add(offset);
-    this.controls.update();
+    this.cameraController.reset(
+      rigPlotCenter(this.viewedPlotId).add(RIG_TARGET),
+      RIG_CAMERA_OFFSET,
+    );
   }
 
   dispose(): void {
     this.disposed = true;
     this.renderer.setAnimationLoop(null);
     this.observer.disconnect();
-    this.controls.dispose();
-    this.canvas.removeEventListener('pointerdown', this.handlePointerDown);
+    this.cameraController.dispose();
     this.canvas.removeEventListener('pointerup', this.handlePointerUp);
-
-    // I cloni delle GPU condividono geometrie e materiali con il modello originale.
+    this.mixers.forEach((mixer) => mixer.stopAllAction());
+    // Clones share their model's geometry and materials; only the template owns them.
     this.disposeObject(this.scene, true);
-    if (this.gpu) {
-      this.disposeObject(this.gpu);
-    }
+    this.disposeObject(this.gpu);
     if (this.bitcoin) {
       this.disposeObject(this.bitcoin);
     }
-
+    this.gpus.clear();
+    this.rigs.clear();
+    this.plots.clear();
+    this.lockedRigTiles.clear();
     this.mixers.clear();
+    this.transfers.clear();
     this.renderer.dispose();
   }
 
@@ -125,99 +178,182 @@ export class MiningScene {
     return renderer;
   }
 
-  private addLighting(): void {
-    this.scene.fog = new THREE.FogExp2(0x141c19, 0.024);
-    this.scene.add(new THREE.HemisphereLight(0xe8ffe1, 0x344738, 2.7));
-    const sun = new THREE.DirectionalLight(0xffefd5, 4.5);
-    sun.position.set(-3, 12, 6);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -12;
-    sun.shadow.camera.right = 12;
-    sun.shadow.camera.top = 12;
-    sun.shadow.camera.bottom = -12;
-    sun.shadow.normalBias = 0.04;
-    this.scene.add(sun);
-    const rim = new THREE.DirectionalLight(0x9ad4ac, 2.3);
-    rim.position.set(5, 7, -8);
-    this.scene.add(rim);
-  }
-
-  private addGround(): void {
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(120, 120),
-      new THREE.MeshStandardMaterial({ color: 0x19241e, roughness: 1 }),
+  private syncPlots(world: MiningWorld): void {
+    const count = Math.max(
+      plotCount(world),
+      Math.ceil((rigCount(world) + VISIBLE_LOCKED_RIGS) / RIGS_PER_PLOT),
     );
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -0.5;
-    floor.receiveShadow = true;
-    this.scene.add(floor);
-    const grid = new THREE.GridHelper(70, 70, 0x35473b, 0x2c3c32);
-    grid.position.y = -0.49;
-    (grid.material as THREE.Material).transparent = true;
-    (grid.material as THREE.Material).opacity = 0.45;
-    this.scene.add(grid);
+    for (const [id, plot] of this.plots) {
+      if (id > count) {
+        this.scene.remove(plot);
+        this.disposeObject(plot);
+        this.plots.delete(id);
+      }
+    }
+    for (let id = 1; id <= count; id++) {
+      if (this.plots.has(id)) {
+        continue;
+      }
+      const plot = createRigPlot(id);
+      plot.position.copy(rigPlotCenter(id));
+      this.plots.set(id, plot);
+      this.scene.add(plot);
+    }
   }
 
-  private addLockedTiles(): void {
-    BLOCK_POSITIONS.forEach(([x, z], index) => {
-      const tile = createLockedTile();
-      tile.position.set(x, -0.4, z);
+  private syncRigs(world: MiningWorld): void {
+    const count = rigCount(world);
+    for (const [id, tile] of this.lockedRigTiles) {
+      if (id <= count || id > count + VISIBLE_LOCKED_RIGS) {
+        this.scene.remove(tile);
+        this.disposeObject(tile);
+        this.lockedRigTiles.delete(id);
+      }
+    }
+    for (const [id, rig] of this.rigs) {
+      if (id > count) {
+        this.scene.remove(rig.root);
+        this.disposeObject(rig.root);
+        this.rigs.delete(id);
+      }
+    }
+    for (let id = 1; id <= count; id++) {
+      if (this.rigs.has(id)) {
+        continue;
+      }
+      const rig = createGpuMiningRig(id);
+      rig.root.position.copy(rigPosition(id));
+      this.rigs.set(id, rig);
+      this.scene.add(rig.root);
+    }
+    for (let id = count + 1; id <= count + VISIBLE_LOCKED_RIGS; id++) {
+      if (this.lockedRigTiles.has(id)) {
+        continue;
+      }
+      const tile = createLockedRigTile(id);
+      tile.position.copy(rigPosition(id));
+      tile.position.y = -0.42;
+      this.lockedRigTiles.set(id, tile);
       this.scene.add(tile);
-      this.locked.set(index + 1, tile);
+    }
+  }
+
+  private gpuSlot(id: number): RigSlot {
+    return this.rigs.get(rigIdForGpu(id))!.slots[(id - 1) % GPUS_PER_RIG];
+  }
+
+  private gpuHomePosition(id: number): THREE.Vector3 {
+    const rig = this.rigs.get(rigIdForGpu(id))!;
+    return rig.root.localToWorld(this.gpuSlot(id).position.clone());
+  }
+
+  private syncGpus(world: MiningWorld): void {
+    const ids = new Set(world.blocks.map((block) => block.id));
+    for (const [id, gpu] of this.gpus) {
+      if (!ids.has(id)) {
+        this.scene.remove(gpu);
+        this.mixers.get(id)?.stopAllAction();
+        this.mixers.delete(id);
+        this.transfers.delete(id);
+        this.gpus.delete(id);
+      }
+    }
+    for (const block of world.blocks) {
+      if (this.gpus.has(block.id)) {
+        continue;
+      }
+      const gpu = new THREE.Group();
+      gpu.name = `gpu-${block.id}`;
+      gpu.userData['blockId'] = block.id;
+      const slot = this.gpuSlot(block.id);
+      gpu.position.copy(this.gpuHomePosition(block.id));
+      gpu.quaternion.copy(slot.orientation);
+      this.attachGpu(block.id, gpu);
+      this.gpus.set(block.id, gpu);
+      this.scene.add(gpu);
+    }
+  }
+
+  private updateAppearance(world: MiningWorld): void {
+    const blocks = new Map(world.blocks.map((block) => [block.id, block]));
+    for (const [rigId, rig] of this.rigs) {
+      for (const [index, slot] of rig.slots.entries()) {
+        const id = (rigId - 1) * GPUS_PER_RIG + index + 1;
+        const block = blocks.get(id);
+        const inspecting = id === this.inspectedGpuId;
+        const mining = this.isMining && id === this.selectedId;
+        const color = !block ? 0x283630 : inspecting ? 0xe7c77e : 0xb8f575;
+        slot.indicator.material.color.set(color);
+        slot.indicator.material.emissive.set(color);
+        slot.indicator.material.emissiveIntensity = mining ? 2 : block ? 0.45 : 0;
+        slot.outline.visible = inspecting || mining;
+        slot.cable.visible = !!block && !inspecting;
+      }
+    }
+    const inspected = world.blocks.find((block) => block.id === this.inspectedGpuId);
+    const miningOnBench = this.isMining && this.selectedId === this.inspectedGpuId;
+    this.workbench.outline.visible = !!inspected;
+    this.workbench.beam.visible = miningOnBench;
+    this.workbench.light.intensity = miningOnBench ? 5 : 0;
+  }
+
+  private transferGpu(id: number, gpu: THREE.Group): void {
+    const slot = this.gpuSlot(id);
+    const inspecting = id === this.inspectedGpuId;
+    const to = inspecting
+      ? this.workbench.gpuMount.getWorldPosition(new THREE.Vector3())
+      : this.gpuHomePosition(id);
+    const toRotation = inspecting
+      ? this.workbench.gpuMount.getWorldQuaternion(new THREE.Quaternion())
+      : slot.orientation.clone();
+    if (gpu.position.distanceToSquared(to) < 0.0001 && gpu.quaternion.angleTo(toRotation) < 0.001) {
+      this.transfers.delete(id);
+      return;
+    }
+    this.transfers.set(id, {
+      from: gpu.position.clone(),
+      to,
+      fromRotation: gpu.quaternion.clone(),
+      toRotation,
+      elapsed: 0,
     });
   }
 
-  private createCameraControls(): OrbitControls {
-    const controls = new OrbitControls(this.camera, this.canvas);
-    controls.enableDamping = true;
-    controls.enablePan = false;
-    controls.minDistance = MIN_CAMERA_DISTANCE;
-    controls.maxDistance = MAX_CAMERA_DISTANCE;
-    controls.minPolarAngle = 0.3;
-    controls.maxPolarAngle = Math.PI / 2.3;
-    return controls;
+  private focusInspection(): void {
+    if (this.inspectedGpuId !== null) {
+      const camera = toolStationCamera('workbench');
+      this.cameraController.focus(camera.target, this.toolCameraOffset(camera.offset));
+      return;
+    }
+
+    if (this.selectedToolStationId !== null) {
+      const camera = toolStationCamera(this.selectedToolStationId);
+      this.cameraController.focus(camera.target, this.toolCameraOffset(camera.offset));
+      return;
+    }
+
+    const target = rigPlotCenter(this.viewedPlotId).add(RIG_TARGET);
+    const offset = this.cameraPreset === 'top' ? PLOT_TOP_CAMERA_OFFSET : RIG_CAMERA_OFFSET;
+    this.cameraController.focus(target, offset);
   }
 
-  private removeMissingBlocks(world: MiningWorld): void {
-    for (const [id, block] of this.blocks) {
-      if (!world.blocks.some((item) => item.id === id)) {
-        this.scene.remove(block.root);
-        this.disposeObject(block.root, true);
-        this.blocks.delete(id);
-        this.mixers.delete(id);
-        this.locked.get(id)!.visible = true;
+  private toolCameraOffset(frontOffset: THREE.Vector3): THREE.Vector3 {
+    return this.cameraPreset === 'top' ? TOOL_TOP_CAMERA_OFFSET : frontOffset;
+  }
+
+  private animateTransfers(delta: number): void {
+    for (const [id, transfer] of this.transfers) {
+      const gpu = this.gpus.get(id)!;
+      transfer.elapsed += delta;
+      const progress = transitionProgress(transfer.elapsed, this.reducedMotion.matches);
+      const eased = easeTransition(progress);
+      gpu.position.lerpVectors(transfer.from, transfer.to, eased);
+      gpu.position.y += Math.sin(progress * Math.PI) * 1.4;
+      gpu.quaternion.slerpQuaternions(transfer.fromRotation, transfer.toRotation, eased);
+      if (progress === 1) {
+        this.transfers.delete(id);
       }
     }
-  }
-
-  private addBlock(id: number): BlockMesh {
-    const visual = createBlock(id);
-    const [x, z] = BLOCK_POSITIONS[id - 1];
-    visual.root.position.set(x, 0, z);
-    this.blocks.set(id, visual);
-    this.scene.add(visual.root);
-    this.locked.get(id)!.visible = false;
-
-    if (this.gpu) {
-      this.attachGpu(id, visual);
-    }
-    if (this.bitcoin) {
-      this.attachBitcoin(visual);
-    }
-
-    return visual;
-  }
-
-  private updateBlockAppearance(block: MiningBlock, visual: BlockMesh): void {
-    const selected = block.id === this.selectedId;
-    const activelyMining = this.isMining && selected;
-    const oreScale = block.progress === 100 ? 0.45 : 1 - block.progress * 0.004;
-
-    visual.outline.visible = selected;
-    visual.ore.scale.setScalar(oreScale);
-    visual.beam.visible = activelyMining;
-    visual.light.intensity = activelyMining ? 5 : 0;
   }
 
   private async loadGpu(): Promise<void> {
@@ -227,20 +363,19 @@ export class MiningScene {
         this.disposeObject(gltf.scene);
         return;
       }
-      const model = gltf.scene;
-      this.fitGpuToBlock(model);
-      this.styleGpuMaterials(model);
+      const previous = this.gpu;
+      fitGpuModel(gltf.scene, GPU_MODEL_WIDTH);
+      styleGpuModel(gltf.scene);
       this.gpu = new THREE.Group();
-      this.gpu.add(model);
+      this.gpu.add(gltf.scene);
       this.clips = gltf.animations;
-    } catch {
-      if (this.disposed) {
-        return;
+      for (const [id, gpu] of this.gpus) {
+        gpu.clear();
+        this.attachGpu(id, gpu);
       }
-      this.gpu = createFallbackGpu(GPU_MODEL_WIDTH);
-    }
-    for (const [id, block] of this.blocks) {
-      this.attachGpu(id, block);
+      this.disposeObject(previous);
+    } catch {
+      // The procedural GPU is already mounted and remains selectable offline.
     }
   }
 
@@ -251,106 +386,18 @@ export class MiningScene {
         this.disposeObject(gltf.scene);
         return;
       }
-      this.fitBitcoinToBlock(gltf.scene);
+      fitBitcoinModel(gltf.scene);
       this.bitcoin = gltf.scene;
+      addBitcoinStack(this.bitcoin, this.workbench.ore);
     } catch {
-      return;
-    }
-
-    for (const block of this.blocks.values()) {
-      this.attachBitcoin(block);
+      // The workbench remains usable without the decorative coin model.
     }
   }
 
-  private fitBitcoinToBlock(model: THREE.Group): void {
-    model.updateMatrixWorld(true);
-    const bounds = new THREE.Box3().setFromObject(model);
-    const size = bounds.getSize(new THREE.Vector3());
-    const center = bounds.getCenter(new THREE.Vector3());
-    const scale = 0.9 / Math.max(size.x, size.y);
-    model.scale.setScalar(scale);
-    model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
-  }
-
-  private attachBitcoin(block: BlockMesh): void {
-    if (!this.bitcoin) {
-      return;
-    }
-
-    for (let index = 0; index < 5; index++) {
-      const coin = this.cloneBitcoin();
-      coin.rotation.x = Math.PI / 2;
-      coin.rotation.z = (index % 2) * 0.04;
-      coin.position.set((index % 2) * 0.035, 0.04 + index * 0.09, 0);
-      block.ore.add(coin);
-    }
-  }
-
-  private cloneBitcoin(): THREE.Group {
-    const clone = this.bitcoin!.clone(true);
-    clone.userData['sharedModel'] = true;
-    clone.traverse((object) => {
-      if (object instanceof THREE.Mesh) {
-        object.castShadow = true;
-        object.receiveShadow = true;
-      }
-    });
-    return clone;
-  }
-
-  private fitGpuToBlock(model: THREE.Group): void {
-    const bounds = new THREE.Box3().setFromObject(model);
-    const size = bounds.getSize(new THREE.Vector3());
-
-    // Il lato più sottile diventa l'altezza della scheda sul supporto.
-    if (size.z < size.x && size.z < size.y) {
-      model.rotation.x -= Math.PI / 2;
-    } else if (size.x < size.y && size.x < size.z) {
-      model.rotation.z += Math.PI / 2;
-    }
-
-    bounds.setFromObject(model).getSize(size);
-    if (size.z > size.x) {
-      model.rotation.y += Math.PI / 2;
-    }
-
-    bounds.setFromObject(model).getSize(size);
-    model.scale.multiplyScalar(GPU_MODEL_WIDTH / Math.max(size.x, size.z));
-
-    bounds.setFromObject(model);
-    const center = bounds.getCenter(new THREE.Vector3());
-    model.position.sub(new THREE.Vector3(center.x, bounds.min.y, center.z));
-  }
-
-  private styleGpuMaterials(model: THREE.Group): void {
-    model.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) {
-        return;
-      }
-
-      object.castShadow = true;
-      object.receiveShadow = true;
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
-
-      for (const material of materials) {
-        if (!(material instanceof THREE.MeshStandardMaterial)) {
-          continue;
-        }
-
-        material.flatShading = true;
-        // ".002" è il materiale arancione nel modello originale.
-        if (material.name === '.002') {
-          material.color.set(0xb8f575);
-        }
-        material.needsUpdate = true;
-      }
-    });
-  }
-
-  private attachGpu(id: number, block: BlockMesh): void {
-    const clone = this.gpu!.clone(true);
+  private attachGpu(id: number, root: THREE.Group): void {
+    const clone = this.gpu.clone(true);
     clone.userData['sharedGpu'] = true;
-    block.gpuMount.add(clone);
+    root.add(clone);
     if (this.clips.length) {
       const mixer = new THREE.AnimationMixer(clone);
       this.clips.forEach((clip) => mixer.clipAction(clip).play());
@@ -362,37 +409,47 @@ export class MiningScene {
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(PARTICLE_COUNT * 3);
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      positions[i * 3] = Math.sin(i * 17.3) * 1.7;
+      positions[i * 3] = Math.sin(i * 17.3) * 0.9;
       positions[i * 3 + 1] = (i / PARTICLE_COUNT) * PARTICLE_HEIGHT;
-      positions[i * 3 + 2] = Math.cos(i * 8.1) * 1.7;
+      positions[i * 3 + 2] = Math.cos(i * 8.1) * 0.9;
     }
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    return new THREE.Points(
+    const particles = new THREE.Points(
       geometry,
       new THREE.PointsMaterial({ color: 0xd6ff9d, size: 0.075, transparent: true, opacity: 0.85 }),
     );
+    particles.visible = false;
+    return particles;
   }
 
   private animate(time: number): void {
     const delta = Math.min((time - this.lastFrame) / 1000, 0.05);
     this.lastFrame = time;
-    this.controls.update();
+    this.animateTransfers(delta);
+    this.cameraController.update(delta);
     this.particles.visible = this.isMining;
     if (this.isMining) {
       this.animateParticles(delta);
       this.mixers.get(this.selectedId)?.update(delta * 3);
+      if (!this.reducedMotion.matches) {
+        this.rigs.get(rigIdForGpu(this.selectedId))?.fans.forEach((fan) => {
+          fan.rotation.z -= delta * 7;
+        });
+      }
     }
     this.renderer.render(this.scene, this.camera);
   }
 
   private animateParticles(delta: number): void {
-    const [x, z] = BLOCK_POSITIONS[this.selectedId - 1];
-    this.particles.position.set(x, WORKBENCH_SURFACE_Y + 0.15, z);
-
+    const gpu = this.gpus.get(this.selectedId);
+    if (!gpu) {
+      return;
+    }
+    this.particles.position.copy(gpu.position);
+    this.particles.position.y += 0.3;
     const positions = this.particles.geometry.getAttribute('position');
     for (let i = 0; i < positions.count; i++) {
-      const height = (positions.getY(i) + delta * 1.3) % PARTICLE_HEIGHT;
-      positions.setY(i, height);
+      positions.setY(i, (positions.getY(i) + delta * 1.3) % PARTICLE_HEIGHT);
     }
     positions.needsUpdate = true;
   }
@@ -403,21 +460,14 @@ export class MiningScene {
     if (!width || !height) {
       return;
     }
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
+    this.cameraController.resize(width, height);
     this.renderer.setSize(width, height, false);
   }
 
-  private readonly handlePointerDown = (event: PointerEvent): void => {
-    this.pointerDown.set(event.clientX, event.clientY);
-  };
   private readonly handlePointerUp = (event: PointerEvent): void => {
-    const pointerEnd = new THREE.Vector2(event.clientX, event.clientY);
-    const dragged = this.pointerDown.distanceTo(pointerEnd) > MAX_CLICK_MOVEMENT;
-    if (dragged) {
+    if (!this.cameraController.finishPointer(event)) {
       return;
     }
-
     const blockId = this.findBlockAtPointer(event);
     if (blockId !== undefined) {
       this.onSelect(blockId);
@@ -432,21 +482,23 @@ export class MiningScene {
     );
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const hits = this.raycaster.intersectObjects(
-      [...this.blocks.values()].map((block) => block.root),
+      [
+        ...this.gpus.values(),
+        ...[...this.rigs.values()].map((rig) => rig.root),
+        this.workbench.root,
+      ],
       true,
     );
-    if (!hits.length) {
-      return;
-    }
-    let object: THREE.Object3D | null = hits[0].object;
+    let object: THREE.Object3D | null =
+      hits.find((hit) => hit.object instanceof THREE.Mesh)?.object ?? null;
     while (object && !object.userData['blockId']) {
       object = object.parent;
     }
     return object?.userData['blockId'];
   }
 
-  private disposeObject(object: THREE.Object3D, preserveGpu = false): void {
-    if (preserveGpu && (object.userData['sharedGpu'] || object.userData['sharedModel'])) {
+  private disposeObject(object: THREE.Object3D, preserveShared = false): void {
+    if (preserveShared && (object.userData['sharedGpu'] || object.userData['sharedModel'])) {
       return;
     }
     if (
@@ -463,7 +515,7 @@ export class MiningScene {
       }
     }
     for (const child of object.children) {
-      this.disposeObject(child, preserveGpu);
+      this.disposeObject(child, preserveShared);
     }
   }
 }
