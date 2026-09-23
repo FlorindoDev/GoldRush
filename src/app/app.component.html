@@ -189,7 +189,10 @@
             </li>
             <li>
               <strong>Avvia il programma</strong>
-              <span>Premi l'icona verde nell'editor oppure Ctrl + Invio.</span>
+              <span
+                >Usa il pulsante a passo singolo o avvia tutto con il pulsante verde o Ctrl +
+                Invio.</span
+              >
             </li>
             <li>
               <strong>Segui i risultati</strong>
@@ -217,11 +220,14 @@
           </p>
           <h3>Controlli del laboratorio</h3>
           <p class="guide-note">
-            Trascina la scena per ruotarla e usa la rotella per ingrandire. Clicca un banco per
-            selezionarlo. Trascina la barra del titolo per spostare editor e console. Puoi
-            agganciare la console sotto l'editor o sganciarla per spostarla da sola. Ridimensiona le
-            finestre dal manico nell'angolo; la console agganciata usa il manico sul bordo
-            inferiore.
+            Trascina la scena per ruotarla e usa la rotella per ingrandire. Clicca una GPU nel
+            mining rig, oppure il suo pulsante numerato, per portarla al banco con un'animazione. I
+            rettangoli tratteggiati a terra mostrano i rig futuri. Usa il menu Rig per visitare
+            quelli sbloccati: ogni quattro GPU completate, un rettangolo diventa un nuovo rig. Usa
+            “Torna al mining rig” per rimettere la scheda nello slot. Trascina la barra del titolo
+            per spostare editor e console. Puoi agganciare la console sotto l'editor o sganciarla
+            per spostarla da sola. Ridimensiona le finestre dal manico nell'angolo; la console
+            agganciata usa il manico sul bordo inferiore.
           </p>
           <p class="guide-note">
             Il codice resta salvato in questo browser quando disponibile. La partita è una
@@ -393,4 +399,15 @@ print("Progresso: " + progress());</pre>
       <app-icon name="close" />
     </button>
   </div>
+  <label class="setting-option">
+    <span>
+      <strong>Animazione riga eseguita</strong>
+      <small>Pulse e vibrazione sulla riga attiva</small>
+    </span>
+    <input
+      type="checkbox"
+      [checked]="game.lineEffectsEnabled()"
+      (change)="updateLineEffects($event)"
+    />
+  </label>
 </dialog>

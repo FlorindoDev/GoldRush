@@ -12,7 +12,6 @@ import { GameService } from '../game/game.service';
 import { IconComponent } from '../shared/icon.component';
 import { highlight } from './highlight';
 
-const MIN_VISIBLE_LINES = 14;
 const INDENTATION = '  ';
 
 @Component({
@@ -25,15 +24,21 @@ const INDENTATION = '  ';
 export class EditorComponent {
   readonly game = inject(GameService);
   readonly openGuide = output<void>();
-  readonly highlighted = computed(() => highlight(this.game.code()));
-  readonly lines = computed(() => {
+  readonly gutterWidth = computed(() => {
     const lineCount = this.game.code().split('\n').length;
-    const visibleLineCount = Math.max(MIN_VISIBLE_LINES, lineCount);
-    return Array.from({ length: visibleLineCount }, (_, index) => index + 1);
+    return Math.max(44, String(lineCount).length * 8 + 16);
   });
+  readonly highlighted = computed(() =>
+    highlight(this.game.code(), {
+      executedLines: this.game.executedLineEffects(),
+      effectsEnabled: this.game.lineEffectsEnabled(),
+      activeLine: this.game.activeLine(),
+      errorLine: this.game.errorLine(),
+      cursorLine: this.cursor().line,
+    }),
+  );
   readonly editor = viewChild.required<ElementRef<HTMLTextAreaElement>>('editor');
   readonly overlay = viewChild.required<ElementRef<HTMLElement>>('overlay');
-  readonly gutter = viewChild.required<ElementRef<HTMLElement>>('gutter');
   readonly cursor = signal({ line: 1, column: 1 });
   private captureTab = true;
 
@@ -53,7 +58,6 @@ export class EditorComponent {
     const editor = this.editor().nativeElement;
     this.overlay().nativeElement.scrollTop = editor.scrollTop;
     this.overlay().nativeElement.scrollLeft = editor.scrollLeft;
-    this.gutter().nativeElement.scrollTop = editor.scrollTop;
   }
 
   keydown(event: KeyboardEvent): void {

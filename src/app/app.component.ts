@@ -96,6 +96,13 @@ export class AppComponent {
     this.settings().nativeElement.close();
   }
 
+  updateLineEffects(event: Event): void {
+    const checkbox = event.target;
+    if (checkbox instanceof HTMLInputElement) {
+      this.game.setLineEffectsEnabled(checkbox.checked);
+    }
+  }
+
   openGuide(): void {
     this.guideSection.set('examples');
     this.guide().nativeElement.showModal();

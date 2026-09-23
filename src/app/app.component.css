@@ -24,8 +24,8 @@ app-scene.world-scene {
   left: 24px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 13px;
+  gap: 11px;
+  padding: 11px 15px;
   border: 1px solid #b8f57528;
   border-radius: 9px;
   background: #131b16d9;
@@ -33,8 +33,8 @@ app-scene.world-scene {
   pointer-events: none;
 }
 .bitcoin-icon {
-  width: 27px;
-  height: 27px;
+  width: 34px;
+  height: 34px;
 }
 .bitcoin-counter > div {
   display: grid;
@@ -47,7 +47,7 @@ app-scene.world-scene {
 }
 .bitcoin-counter strong {
   color: #e1ebd9;
-  font: 13px var(--mono);
+  font: 15px var(--mono);
 }
 .utility-actions {
   position: absolute;
@@ -469,12 +469,42 @@ dialog h3 {
   font: 11px var(--mono);
 }
 .settings-dialog {
-  width: min(300px, calc(100vw - 32px));
-  min-height: 90px;
-  padding: 14px 18px;
+  width: min(360px, calc(100vw - 32px));
+  padding: 16px 18px 18px;
 }
 .settings-heading .icon-button {
   margin: -4px -7px -4px 0;
+}
+.setting-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 10px;
+  padding: 14px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #141b15;
+  cursor: pointer;
+}
+.setting-option span {
+  display: grid;
+  gap: 5px;
+}
+.setting-option strong {
+  color: #dce8d2;
+  font-size: 12px;
+  font-weight: 500;
+}
+.setting-option small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.setting-option input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
 }
 @media (max-width: 900px) {
   .bitcoin-counter {
@@ -501,11 +531,11 @@ dialog h3 {
     padding: 7px 9px;
   }
   .bitcoin-icon {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
   }
   .bitcoin-counter strong {
-    font-size: 11px;
+    font-size: 12px;
   }
   .utility-actions {
     top: 10px;

@@ -8,10 +8,27 @@
       <span>Editor del codice</span>
     </div>
     <div class="editor-actions">
-      <span class="language-tag mono">
-        MineScript
-        <span>v0.1</span>
-      </span>
+      <button
+        class="editor-action step-button"
+        aria-label="Esegui una riga"
+        [attr.aria-pressed]="game.stepMode()"
+        [title]="game.running() ? 'Esegui la riga successiva' : 'Esegui una riga'"
+        [disabled]="!game.started() || (game.running() && !game.stepMode())"
+        (click)="game.step()"
+      >
+        <app-icon name="step" />
+      </button>
+      @if (!game.running() || game.stepMode()) {
+        <button
+          class="editor-action run-button"
+          [attr.aria-label]="game.stepMode() ? 'Continua esecuzione' : 'Avvia codice'"
+          [title]="game.stepMode() ? 'Continua esecuzione' : 'Avvia tutto (Ctrl + Invio)'"
+          [disabled]="!game.started()"
+          (click)="game.run()"
+        >
+          <app-icon name="start" />
+        </button>
+      }
       @if (game.running()) {
         <button
           class="editor-action stop-button"
@@ -20,16 +37,6 @@
           (click)="game.stop()"
         >
           <app-icon name="stop" />
-        </button>
-      } @else {
-        <button
-          class="editor-action run-button"
-          aria-label="Avvia codice"
-          title="Avvia codice (Ctrl + Invio)"
-          [disabled]="!game.started()"
-          (click)="game.run()"
-        >
-          <app-icon name="start" />
         </button>
       }
     </div>
@@ -76,21 +83,10 @@
       </button>
     </div>
   </div>
-  <div class="code-area">
-    <div
-      #gutter
-      class="line-numbers"
-      aria-hidden="true"
-    >
-      @for (line of lines(); track line) {
-        <span
-          [class.active-line]="game.activeLine() === line"
-          [class.error-line]="game.errorLine() === line"
-        >
-          {{ line }}
-        </span>
-      }
-    </div>
+  <div
+    class="code-area"
+    [style.--editor-gutter-width]="gutterWidth() + 'px'"
+  >
     <div class="code-content">
       <pre
         #overlay
@@ -106,7 +102,7 @@
         autocapitalize="off"
         autocomplete="off"
         autocorrect="off"
-        wrap="off"
+        wrap="soft"
         [value]="game.code()"
         [readOnly]="game.running()"
         (input)="onInput($event)"
@@ -121,13 +117,22 @@
   <div class="editor-status mono">
     <span> Ln {{ cursor().line }}, Col {{ cursor().column }} </span>
     <span>UTF-8</span>
+    <span class="status-language">MineScript</span>
     @if (game.errorLine() || game.running()) {
       <span>
         <i
           class="status-dot"
           [class.error-dot]="game.errorLine()"
         ></i>
-        {{ game.errorLine() ? 'Errore alla riga ' + game.errorLine() : 'In esecuzione' }}
+        {{
+          game.errorLine()
+            ? 'Errore alla riga ' + game.errorLine()
+            : game.waitingForStep()
+              ? 'In pausa dopo riga ' + game.activeLine()
+              : game.activeLine()
+                ? 'Riga ' + game.activeLine() + ' in esecuzione'
+                : 'In esecuzione'
+        }}
       </span>
     }
   </div>
