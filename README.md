@@ -11,7 +11,7 @@ npm install
 npm start
 ```
 
-Apri **http://localhost:4200**. Premi **Inizia a minare**, poi **Esegui codice**. Cinque `mine()` completano il blocco e assegnano 0.0100 BTC. Sblocca il successivo con il pulsante sulla mappa. Il prototipo termina dopo quattro blocchi, ognuno con una GPU.
+Apri **http://localhost:4200**. Il laboratorio parte con una GPU nel mining rig. I plot si dispongono su tre colonne, con distanze ridotte; superati i primi nove, la griglia aggiunge righe. A destra c'è una sezione strumenti con la workbench e spazi riservati per nuove postazioni. Usa l'HUD per passare tra plot e strumenti. Clicca una GPU o il pulsante numerato per trasferirla alla workbench con un movimento della camera; la freccia la rimette nello slot. Premi **Avvia codice** nell'editor per minare. Cinque `mine()` completano il blocco, assegnano 0.0100 BTC e sbloccano automaticamente la GPU successiva. Ogni rig ha quattro slot; completata la quarta GPU, il rig successivo diventa disponibile.
 
 ```sh
 npm run build       # Produzione in dist/blockcraft/browser
@@ -30,7 +30,7 @@ npm run format        # Formatta i sorgenti e la configurazione
 npm run format:check  # Controlla la formattazione senza modificare file
 ```
 
-Per orientarti nella scena, parti da `scene.component.ts` (collegamento con Angular), poi `mining-scene.ts` (rendering e interazione), `block-mesh.ts` (GPU, bitcoin ed effetti) ed `electronics-workbench.ts` (banco da elettronico e strumenti low poly). Le primitive condivise sono in `mesh-primitives.ts`. I costruttori delegano a metodi con nomi espliciti; gli esempi MineScript si trovano in `language/examples.ts`.
+Per orientarti nella scena, parti da `src/app/scene/scene.component.ts` (collegamento con Angular) e `src/app/scene/mining-scene.ts` (rendering e interazioni). I controlli camera e le transizioni sono in `src/app/scene/camera/`; ambiente e disposizione dei plot in `src/app/scene/environment/`; rig, modelli e primitive in `src/app/scene/objects/`; postazioni e workbench in `src/app/scene/tools/`. Gli esempi MineScript si trovano in `src/app/language/examples.ts`.
 
 ## Moduli
 
@@ -70,7 +70,8 @@ L'interprete analizza il programma prima di eseguirlo. Non usa `eval`, `Function
 
 ## Interazione e limiti del prototipo
 
-- Trascina per ruotare, rotella o pulsanti per zoomare; selezione con clic sulla scena o schede accessibili. Camera ricentrabile.
+- Trascina per ruotare, rotella per zoomare; seleziona le GPU con clic sul modello o pulsanti accessibili. La selezione sposta la GPU dal rig al banco; il ritorno svuota il banco. Camera e GPU si muovono insieme, rispettando la preferenza di movimento ridotto del browser.
+- Le GPU sbloccate occupano i quattro slot di ogni rig; quelli successivi appaiono completando il precedente. Il banco resta un singolo arredo sulla destra. La GPU esaminata è distinta dal blocco attivo del programma: lo sblocco automatico non cambia la scheda sul banco.
 - Ctrl/Cmd + Invio esegue; Tab aggiunge due spazi; Esc poi Tab permette di uscire dall'editor. Durante il run, codice e selezione sono bloccati.
 - Il codice viene salvato in `localStorage` se disponibile; la partita resta in memoria. Ricaricando la pagina si riparte dal primo blocco. **Nuova partita** mantiene il codice.
 - Nessun backend, account, mining reale, economia di acquisto o GPU aggiuntive sullo stesso blocco.
@@ -87,3 +88,5 @@ Font DM Sans e IBM Plex Mono distribuiti tramite i rispettivi pacchetti Fontsour
 Il banco da elettronico è un modello originale costruito in Three.js: piano in legno, telaio metallico, cassetti, tappetino antistatico, oscilloscopio, saldatore, lampada e pannello porta attrezzi. Riferimenti consultati per tipologia e stile: [Workbench low-poly di MaX3Dd](https://sketchfab.com/3d-models/workbench-low-poly-01c0b5991ad448ed917845df202867c2) e [Workbench su Free3D](https://free3d.com/3d-model/workbench-6290.html). Nessuna geometria o texture di questi modelli è inclusa nel progetto.
 
 Riferimenti: [compatibilità Angular](https://angular.dev/reference/versions), [documentazione Three.js](https://threejs.org/docs/).
+
+Il mining rig è un modello low poly originale costruito in Three.js, con telaio aperto, schede verticali, riser, cablaggio, motherboard, alimentatore e ventole. Riferimenti consultati: [Crypto Farm / Mining Rig di Michael V](https://sketchfab.com/3d-models/crypto-farm-mining-rig-049f02ffd15c41ca8cb8020feb43993f), [Mining Rig di Cem Gürbüz](https://sketchfab.com/3d-models/mining-rig-a131eb6aca5f4b4fb16d6572a853912e) e [Mining Rig Frame 6x video card](https://sketchfab.com/3d-models/mining-rig-frame-6x-video-card-3e83a16d2b2c4d7398389afdcd752a08). Nessuna geometria o texture dei rig di riferimento è inclusa: vengono riutilizzate le GPU già presenti nel progetto.
