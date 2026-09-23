@@ -1,0 +1,252 @@
+:host {
+  display: flex;
+  min-width: 0;
+}
+.editor-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.language-tag {
+  color: #a2b39c;
+  font-size: 10px;
+}
+.language-tag span {
+  color: #607060;
+  font-size: 9px;
+  margin-left: 4px;
+}
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.editor-action {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+}
+.editor-action app-icon {
+  width: 16px;
+  height: 16px;
+}
+.run-button {
+  color: var(--accent);
+  border-color: #b8f57538;
+  background: #b8f57512;
+}
+.run-button:hover:not(:disabled) {
+  border-color: #b8f5758c;
+  background: #b8f57524;
+}
+.stop-button {
+  color: #ffad9d;
+  border-color: #78523b88;
+  background: #472d2240;
+}
+.stop-button:hover:not(:disabled) {
+  background: #472d2270;
+}
+.editor-tabs {
+  display: flex;
+  height: 44px;
+  flex: 0 0 44px;
+  background: #111713;
+  border-bottom: 1px solid var(--border);
+  align-items: stretch;
+  justify-content: space-between;
+  overflow: hidden;
+}
+.file-tabs {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: stretch;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.file-tab-group {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  border-right: 1px solid var(--border);
+}
+.file-tab {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 0;
+  border-top: 1px solid transparent;
+  font: 11px var(--mono);
+  color: #9da995;
+  background: transparent;
+  white-space: nowrap;
+}
+.file-tab.active {
+  color: #ccd5c5;
+  background: #181e19;
+  border-top-color: var(--accent);
+}
+.file-tab app-icon {
+  color: var(--accent);
+  width: 14px;
+  height: 14px;
+}
+.close-file {
+  display: flex;
+  width: 25px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #788574;
+}
+.close-file app-icon {
+  width: 12px;
+  height: 12px;
+}
+.add-file {
+  align-self: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  margin: 0 5px;
+}
+.code-area {
+  flex: 1;
+  display: flex;
+  background: #151a16;
+  min-height: 292px;
+  position: relative;
+}
+.line-numbers {
+  flex: 0 0 45px;
+  padding: 22px 0;
+  overflow: hidden;
+  max-height: 100%;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 45px;
+}
+.line-numbers span {
+  display: block;
+  height: 25px;
+  font: 11px/25px var(--mono);
+  text-align: right;
+  padding-right: 12px;
+  color: #53604f;
+  border-left: 2px solid transparent;
+}
+.line-numbers span.active-line {
+  color: var(--accent);
+  background: #b8f57513;
+  border-left-color: var(--accent);
+}
+.line-numbers span.error-line {
+  color: #f18d83;
+  background: #e8817120;
+  border-left-color: #f18d83;
+}
+.code-content {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 45px;
+  overflow: hidden;
+}
+textarea,
+.code-highlight {
+  margin: 0;
+  border: 0;
+  padding: 22px 16px 22px 2px;
+  width: 100%;
+  height: 100%;
+  font: 11px/25px var(--mono);
+  letter-spacing: 0;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+.code-highlight {
+  pointer-events: none;
+  color: #c4cebd;
+  scrollbar-width: none;
+}
+textarea {
+  color: transparent;
+  caret-color: var(--accent);
+  resize: none;
+  outline: none;
+  -webkit-text-fill-color: transparent;
+}
+textarea::selection {
+  background: #b8f57530;
+}
+textarea:focus-visible {
+  outline: none;
+}
+.code-area:focus-within {
+  box-shadow: inset 0 0 0 1px #b8f57528;
+}
+.editor-status {
+  border-top: 1px solid var(--border);
+  padding: 9px 16px;
+  display: flex;
+  gap: 15px;
+  color: #73826b;
+  font-size: 9px;
+}
+.editor-status > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.editor-status > span:last-child:not(:first-child) {
+  margin-left: auto;
+}
+.editor-status .status-dot {
+  width: 4px;
+  height: 4px;
+}
+.editor-status .error-dot {
+  background: #f18d83;
+}
+@media (max-width: 980px) {
+  .code-area {
+    min-height: 320px;
+  }
+}
+
+:host {
+  min-height: 0;
+  flex: 1;
+}
+.editor-panel {
+  height: 100%;
+  min-height: 0;
+}
+.code-area {
+  min-height: 0;
+}
+.panel-heading {
+  user-select: none;
+  touch-action: none;
+  cursor: grab;
+}
+.panel-heading:active {
+  cursor: grabbing;
+}

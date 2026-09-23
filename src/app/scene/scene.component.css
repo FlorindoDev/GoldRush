@@ -1,0 +1,42 @@
+:host {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+.viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 52% 48%, #283b2c, #151d19 78%);
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  pointer-events: auto;
+}
+canvas:active {
+  cursor: grabbing;
+}
+.webgl-error {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border: 1px solid #6a6039;
+  border-radius: 8px;
+  background: #29271df2;
+  color: #f1dfaa;
+  font-size: 12px;
+  transform: translateX(-50%);
+}
+.webgl-error p {
+  margin: 0;
+  color: #c7b98e;
+}

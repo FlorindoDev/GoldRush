@@ -1,0 +1,46 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  effect,
+  inject,
+  input,
+  output,
+  viewChild,
+} from '@angular/core';
+import { GameService, LogEntry } from '../game/game.service';
+import { IconComponent } from '../shared/icon.component';
+
+@Component({
+  selector: 'app-console',
+  imports: [IconComponent],
+  templateUrl: './console.component.html',
+  styleUrl: './console.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class ConsoleComponent {
+  readonly game = inject(GameService);
+  readonly docked = input(false);
+  readonly toggleDock = output<void>();
+  readonly scroll = viewChild<ElementRef<HTMLElement>>('scroll');
+  readonly logMarkers: Record<LogEntry['kind'], string> = {
+    info: '›',
+    output: '›',
+    success: '✓',
+    error: '!',
+  };
+
+  constructor() {
+    effect(() => {
+      this.game.logs();
+      queueMicrotask(() => this.scrollToLatestEntry());
+    });
+  }
+
+  private scrollToLatestEntry(): void {
+    const output = this.scroll()?.nativeElement;
+    if (output) {
+      output.scrollTop = output.scrollHeight;
+    }
+  }
+}

@@ -1,0 +1,61 @@
+<section
+  class="console panel"
+  aria-label="Console di esecuzione"
+>
+  <div class="panel-heading">
+    <div class="heading-label">
+      <app-icon name="terminal" />
+      <span>Console</span>
+      <span class="log-count mono">{{ game.logs().length }}</span>
+    </div>
+    <div class="console-actions">
+      <button
+        class="icon-button"
+        [attr.aria-label]="docked() ? 'Sgancia console' : 'Aggancia console sotto editor'"
+        [title]="docked() ? 'Sgancia console' : 'Aggancia sotto editor'"
+        (click)="toggleDock.emit()"
+      >
+        <app-icon [name]="docked() ? 'undock' : 'dock'" />
+      </button>
+      <button
+        class="icon-button"
+        aria-label="Svuota console"
+        title="Svuota console"
+        (click)="game.clearLogs()"
+      >
+        <app-icon name="trash" />
+      </button>
+    </div>
+  </div>
+  <div
+    #scroll
+    class="console-output"
+    role="log"
+    aria-live="polite"
+    aria-label="Messaggi del programma"
+  >
+    @if (!game.logs().length) {
+      <div class="empty-log">
+        <span class="console-prompt">›</span>
+        <span>
+          {{
+            game.started()
+              ? 'Console vuota. Pronta per nuove istruzioni.'
+              : 'Ciao, miner. Il tuo prossimo blocco inizia con una riga di codice.'
+          }}
+        </span>
+        <span class="cursor-blink"></span>
+      </div>
+    }
+    @for (log of game.logs(); track log.id) {
+      <div
+        class="log-line"
+        [class]="'log-line ' + log.kind"
+      >
+        <time>{{ log.time }}</time>
+        <span class="log-marker">{{ logMarkers[log.kind] }}</span>
+        <span>{{ log.message }}</span>
+      </div>
+    }
+  </div>
+</section>

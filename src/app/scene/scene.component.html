@@ -1,0 +1,21 @@
+<section
+  class="viewport"
+  aria-label="Mondo di mining 3D"
+>
+  <canvas
+    #canvas
+    aria-label="Mondo 3D. Clicca un blocco per selezionarlo, trascina per ruotare, usa la rotella per lo zoom."
+    tabindex="0"
+  ></canvas>
+
+  @if (unavailable()) {
+    <div
+      class="webgl-error"
+      role="alert"
+    >
+      <app-icon name="info" />
+      <strong>Vista 3D non disponibile</strong>
+      <p>Attiva l’accelerazione grafica del browser.</p>
+    </div>
+  }
+</section>

@@ -1,0 +1,141 @@
+<section
+  class="editor-panel panel"
+  aria-label="Editor del codice"
+>
+  <div class="panel-heading">
+    <div class="heading-label">
+      <app-icon name="code" />
+      <span>Editor del codice</span>
+    </div>
+    <div class="editor-actions">
+      <span class="language-tag mono">
+        MineScript
+        <span>v0.1</span>
+      </span>
+      @if (game.running()) {
+        <button
+          class="editor-action stop-button"
+          aria-label="Interrompi esecuzione"
+          title="Interrompi esecuzione"
+          (click)="game.stop()"
+        >
+          <app-icon name="stop" />
+        </button>
+      } @else {
+        <button
+          class="editor-action run-button"
+          aria-label="Avvia codice"
+          title="Avvia codice (Ctrl + Invio)"
+          [disabled]="!game.started()"
+          (click)="game.run()"
+        >
+          <app-icon name="start" />
+        </button>
+      }
+    </div>
+  </div>
+  <div class="editor-tabs">
+    <div
+      class="file-tabs"
+      role="group"
+      aria-label="File MineScript"
+    >
+      @for (file of game.files(); track file.id) {
+        <div class="file-tab-group">
+          <button
+            class="file-tab"
+            [class.active]="game.activeFileId() === file.id"
+            [attr.aria-pressed]="game.activeFileId() === file.id"
+            [disabled]="game.running()"
+            (click)="selectFile(file.id)"
+          >
+            <app-icon name="code" />
+            {{ file.name }}
+          </button>
+          @if (game.files().length > 1) {
+            <button
+              class="close-file"
+              [attr.aria-label]="'Chiudi ' + file.name"
+              [title]="'Chiudi ' + file.name"
+              [disabled]="game.running()"
+              (click)="closeFile(file.id)"
+            >
+              <app-icon name="close" />
+            </button>
+          }
+        </div>
+      }
+      <button
+        class="icon-button add-file"
+        aria-label="Nuovo file"
+        title="Nuovo file"
+        [disabled]="game.running()"
+        (click)="addFile()"
+      >
+        <app-icon name="plus" />
+      </button>
+    </div>
+  </div>
+  <div class="code-area">
+    <div
+      #gutter
+      class="line-numbers"
+      aria-hidden="true"
+    >
+      @for (line of lines(); track line) {
+        <span
+          [class.active-line]="game.activeLine() === line"
+          [class.error-line]="game.errorLine() === line"
+        >
+          {{ line }}
+        </span>
+      }
+    </div>
+    <div class="code-content">
+      <pre
+        #overlay
+        class="code-highlight"
+        aria-hidden="true"
+        [innerHTML]="highlighted()"
+      ></pre>
+      <textarea
+        #editor
+        aria-label="Codice MineScript"
+        aria-describedby="editor-shortcuts"
+        spellcheck="false"
+        autocapitalize="off"
+        autocomplete="off"
+        autocorrect="off"
+        wrap="off"
+        [value]="game.code()"
+        [readOnly]="game.running()"
+        (input)="onInput($event)"
+        (scroll)="syncScroll()"
+        (keydown)="keydown($event)"
+        (click)="updateCursor()"
+        (keyup)="updateCursor()"
+        (focus)="focus()"
+      ></textarea>
+    </div>
+  </div>
+  <div class="editor-status mono">
+    <span> Ln {{ cursor().line }}, Col {{ cursor().column }} </span>
+    <span>UTF-8</span>
+    @if (game.errorLine() || game.running()) {
+      <span>
+        <i
+          class="status-dot"
+          [class.error-dot]="game.errorLine()"
+        ></i>
+        {{ game.errorLine() ? 'Errore alla riga ' + game.errorLine() : 'In esecuzione' }}
+      </span>
+    }
+  </div>
+  <span
+    id="editor-shortcuts"
+    class="sr-only"
+  >
+    Control Invio esegue il codice. Tab inserisce due spazi. Premi Escape, poi Tab, per uscire
+    dall’editor.
+  </span>
+</section>
