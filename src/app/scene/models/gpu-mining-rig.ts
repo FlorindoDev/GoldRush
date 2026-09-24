@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GAME_BALANCE } from '../../config/game-balance';
 import { GPUS_PER_RIG } from '../../game/mining-world';
 import { createBox, createLabelTexture, createRod } from '../geometry/mesh-primitives';
 import { RIG_PLOT_DEPTH, RIG_PLOT_WIDTH } from '../environment/scene-layout';
@@ -29,7 +30,7 @@ const FRAME = 0x526560;
 const DARK = 0x202b2b;
 const STEEL = 0x9cac9f;
 const ACCENT = 0xb8f575;
-const SLOT_SPACING = 1.12;
+const SLOT_SPACING = GAME_BALANCE.layout.plots.rigSlotSpacing;
 const RIG_WIDTH = GPUS_PER_RIG * SLOT_SPACING + 0.6;
 
 export function createGpuMiningRig(id: number): GpuMiningRig {

@@ -10,6 +10,9 @@ import {
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { BITCOIN_MODEL_PATH } from '../../../assets/models/bitcoin/bitcoin-model-path';
+import { GAME_BALANCE } from '../../../config/game-balance';
+
+const CAMERA = GAME_BALANCE.camera.bitcoinPreview;
 
 @Component({
   selector: 'app-bitcoin-model',
@@ -21,7 +24,12 @@ export class BitcoinModelComponent implements AfterViewInit, OnDestroy {
   readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   readonly failed = signal(false);
   private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.PerspectiveCamera(34, 1, 0.1, 10);
+  private readonly camera = new THREE.PerspectiveCamera(
+    CAMERA.fieldOfViewDegrees,
+    1,
+    CAMERA.near,
+    CAMERA.far,
+  );
   private renderer?: THREE.WebGLRenderer;
   private model?: THREE.Group;
   private destroyed = false;
@@ -33,13 +41,15 @@ export class BitcoinModelComponent implements AfterViewInit, OnDestroy {
         alpha: true,
         antialias: true,
       });
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio, GAME_BALANCE.scene.maxPixelRatio),
+      );
       this.renderer.setSize(48, 48, false);
       this.renderer.setClearColor(0x000000, 0);
       this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      this.renderer.toneMappingExposure = 1.2;
+      this.renderer.toneMappingExposure = CAMERA.exposure;
       this.addLighting();
-      this.camera.position.set(0, 0.08, 3.1);
+      this.camera.position.set(...CAMERA.position);
 
       const gltf = await new GLTFLoader().loadAsync(BITCOIN_MODEL_PATH);
       if (this.destroyed) {

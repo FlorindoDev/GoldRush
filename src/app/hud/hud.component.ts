@@ -6,6 +6,16 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { GAME_BALANCE } from '../config/game-balance';
+import { getGpuTelemetry } from '../game/gpu-telemetry';
+import {
+  GPU_COUNT,
+  GPUS_PER_RIG,
+  MINE_PROGRESS_PER_GPU,
+  PLOT_COUNT,
+  RIG_COUNT,
+  RIGS_PER_PLOT,
+} from '../game/mining-world';
 import { ConsoleComponent } from './panels/console/console.component';
 import { EditorComponent } from './panels/editor/editor.component';
 import { GameService } from '../game/game.service';
@@ -71,6 +81,16 @@ const SHORTCUT_GROUPS = [
 })
 export class HudComponent {
   readonly game = inject(GameService);
+  readonly balance = GAME_BALANCE;
+  readonly plotCapacity = PLOT_COUNT;
+  readonly rigCapacity = RIG_COUNT;
+  readonly gpuCapacity = GPU_COUNT;
+  readonly rigsPerPlot = RIGS_PER_PLOT;
+  readonly gpusPerRig = GPUS_PER_RIG;
+  readonly gpusPerPlot = RIGS_PER_PLOT * GPUS_PER_RIG;
+  readonly minesPerBlock = Math.ceil(100 / MINE_PROGRESS_PER_GPU);
+  readonly idleGpu = getGpuTelemetry(0);
+  readonly miningGpu = getGpuTelemetry(1);
   readonly examples = EXAMPLES;
   readonly languageGuideExample = LANGUAGE_GUIDE_EXAMPLE;
   readonly guideSection = signal<GuideSection>('examples');

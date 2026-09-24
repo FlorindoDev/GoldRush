@@ -1,3 +1,5 @@
+import { GAME_BALANCE } from '../config/game-balance';
+
 export interface GpuTelemetry {
   readonly model: string;
   readonly frequencyGhz: number;
@@ -10,50 +12,25 @@ export interface GpuTelemetry {
   readonly maxTemperatureCelsius: number;
 }
 
-const GPU_MODEL = 'Blockcraft Miner X1';
-const MAX_FREQUENCY_GHZ = 2;
-const MAX_FAN_SPEED_RPM = 3200;
-const MAX_TEMPERATURE_CELSIUS = 90;
-
-const IDLE_TELEMETRY = {
-  frequencyGhz: 0.5,
-  powerWatts: 32,
-  temperatureCelsius: 34,
-  fanSpeed: 20,
-};
-
-const MINING_TELEMETRY = {
-  frequencyGhz: 1.8,
-  powerWatts: 205,
-  temperatureCelsius: 72,
-  fanSpeed: 70,
-};
+const { model, idle, mining, limits } = GAME_BALANCE.gpu;
 
 export function getGpuTelemetry(workload: number): GpuTelemetry {
   const load = Math.min(1, Math.max(0, workload));
-  const frequencyGhz = interpolate(
-    IDLE_TELEMETRY.frequencyGhz,
-    MINING_TELEMETRY.frequencyGhz,
-    load,
-  );
-  const fanSpeed = Math.round(
-    interpolate(IDLE_TELEMETRY.fanSpeed, MINING_TELEMETRY.fanSpeed, load),
-  );
+  const frequencyGhz = interpolate(idle.frequencyGhz, mining.frequencyGhz, load);
+  const fanSpeed = Math.round(interpolate(idle.fanSpeedPercent, mining.fanSpeedPercent, load));
 
   return {
-    model: GPU_MODEL,
+    model,
     frequencyGhz: round(frequencyGhz, 2),
-    powerWatts: Math.round(
-      interpolate(IDLE_TELEMETRY.powerWatts, MINING_TELEMETRY.powerWatts, load),
-    ),
+    powerWatts: Math.round(interpolate(idle.powerWatts, mining.powerWatts, load)),
     temperatureCelsius: Math.round(
-      interpolate(IDLE_TELEMETRY.temperatureCelsius, MINING_TELEMETRY.temperatureCelsius, load),
+      interpolate(idle.temperatureCelsius, mining.temperatureCelsius, load),
     ),
     fanSpeed,
-    currentFanSpeedRpm: Math.round((MAX_FAN_SPEED_RPM * fanSpeed) / 100),
-    maxFrequencyGhz: MAX_FREQUENCY_GHZ,
-    maxFanSpeedRpm: MAX_FAN_SPEED_RPM,
-    maxTemperatureCelsius: MAX_TEMPERATURE_CELSIUS,
+    currentFanSpeedRpm: Math.round((limits.fanSpeedRpm * fanSpeed) / 100),
+    maxFrequencyGhz: limits.frequencyGhz,
+    maxFanSpeedRpm: limits.fanSpeedRpm,
+    maxTemperatureCelsius: limits.temperatureCelsius,
   };
 }
 

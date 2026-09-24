@@ -1,7 +1,8 @@
+import { GAME_BALANCE } from '../config/game-balance';
 import { tokenize } from './lexer';
 import { Expression, ScriptError, Statement, Token } from './syntax';
 
-const MAX_NESTING_DEPTH = 64;
+const MAX_NESTING_DEPTH = GAME_BALANCE.scripting.maxNestingDepth;
 const UNARY_PRECEDENCE = 7;
 const RESERVED_WORDS = ['true', 'false', 'null', 'let', 'if', 'else', 'for', 'while', 'repeat'];
 

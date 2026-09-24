@@ -1,3 +1,5 @@
+import { GAME_BALANCE } from '../config/game-balance';
+
 export interface MiningBlock {
   readonly id: number;
   readonly progress: number;
@@ -29,15 +31,15 @@ export interface MiningWorld {
   readonly satoshis: number;
 }
 
-export const PLOT_COUNT = 6;
-export const RIGS_PER_PLOT = 6;
-export const GPUS_PER_RIG = 4;
+export const PLOT_COUNT = GAME_BALANCE.world.plotCount;
+export const RIGS_PER_PLOT = GAME_BALANCE.world.rigsPerPlot;
+export const GPUS_PER_RIG = GAME_BALANCE.world.gpusPerRig;
 export const RIG_COUNT = PLOT_COUNT * RIGS_PER_PLOT;
 export const GPU_COUNT = RIG_COUNT * GPUS_PER_RIG;
-export const STARTING_RIG_COUNT = 1;
-export const STARTING_GPU_COUNT = 1;
-export const MINE_PROGRESS_PER_GPU = 80 / GPU_COUNT;
-export const BLOCK_REWARD = 1_000_000;
+export const STARTING_RIG_COUNT = GAME_BALANCE.world.startingRigCount;
+export const STARTING_GPU_COUNT = GAME_BALANCE.world.startingGpuCount;
+export const MINE_PROGRESS_PER_GPU = GAME_BALANCE.world.progressPerGpuAtFullFarm / GPU_COUNT;
+export const BLOCK_REWARD = GAME_BALANCE.world.blockRewardSatoshis;
 
 export function createWorld(): MiningWorld {
   return {

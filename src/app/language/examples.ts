@@ -1,3 +1,7 @@
+import { MINE_PROGRESS_PER_GPU } from '../game/mining-world';
+
+const MINES_PER_BLOCK = Math.ceil(100 / MINE_PROGRESS_PER_GPU);
+
 export const EXAMPLES = [
   {
     name: 'Il primo blocco',
@@ -12,11 +16,11 @@ print("Blocco completato!");`,
   },
   {
     name: 'Ciclo for',
-    code: `// Con una GPU servono 180 chiamate a gpu.mine().
+    code: `// Con una GPU servono ${MINES_PER_BLOCK} chiamate a gpu.mine().
 let gpu = plots[0].rig(0).gpu(0);
-for (let i = 0; i < 180; i++) {
+for (let i = 0; i < ${MINES_PER_BLOCK}; i++) {
   gpu.mine();
-  print("Passo " + (i + 1) + "/180");
+  print("Passo " + (i + 1) + "/${MINES_PER_BLOCK}");
 }`,
   },
   {

@@ -191,8 +191,9 @@
         >
           <h2 id="guide-title">Esempi di codice</h2>
           <p class="dialog-intro">
-            Parti con una GPU sbloccata; le altre 143 sono bloccate. Consulta un esempio oppure
-            caricalo nel file attivo.
+            GPU disponibili all'avvio: {{ balance.world.startingGpuCount }}. Slot ancora bloccati:
+            {{ gpuCapacity - balance.world.startingGpuCount }}. Consulta un esempio oppure caricalo
+            nel file attivo.
           </p>
           <h3>Primi passi</h3>
           <ol class="getting-started">
@@ -210,8 +211,8 @@
             <li>
               <strong>Segui i risultati</strong>
               <span
-                >La console mostra messaggi ed errori. Con una GPU servono 180 chiamate a
-                <code>gpu.mine()</code>.</span
+                >La console mostra messaggi ed errori. Con una GPU servono
+                {{ minesPerBlock }} chiamate a <code>gpu.mine()</code>.</span
               >
             </li>
           </ol>
@@ -238,12 +239,13 @@
           <p class="guide-note">
             Trascina la scena per ruotarla e usa la rotella per ingrandire. Clicca la GPU nel rig
             sbloccato, oppure il pulsante numerato, per portarla al banco con un'animazione. La farm
-            ha 36 quadrati di sblocco e 144 alloggiamenti GPU; per ora solo il primo rig e la sua
-            GPU sono sbloccati. Completare un blocco non sblocca rig o GPU. Usa “Torna al quadrato”
-            per rimettere la scheda al suo posto. Trascina la barra del titolo per spostare editor e
-            console. Puoi agganciare la console sotto l'editor o sganciarla per spostarla da sola.
-            Ridimensiona le finestre dal manico nell'angolo; la console agganciata usa il manico sul
-            bordo inferiore.
+            ha {{ rigCapacity }} quadrati di sblocco e {{ gpuCapacity }} alloggiamenti GPU;
+            all'avvio sono sbloccati {{ balance.world.startingRigCount }} rig e
+            {{ balance.world.startingGpuCount }} GPU. Completare un blocco non sblocca rig o GPU.
+            Usa “Torna al quadrato” per rimettere la scheda al suo posto. Trascina la barra del
+            titolo per spostare editor e console. Puoi agganciare la console sotto l'editor o
+            sganciarla per spostarla da sola. Ridimensiona le finestre dal manico nell'angolo; la
+            console agganciata usa il manico sul bordo inferiore.
           </p>
           <p class="guide-note">
             Il codice resta salvato in questo browser quando disponibile. La partita è una
@@ -301,8 +303,8 @@
               <h4>Fai una pausa</h4>
               <code class="guide-card-signature">wait(ms)</code>
               <p>
-                Attende da 0 a 5000 millisecondi. Per esempio, <code>wait(1000)</code> attende un
-                secondo.
+                Attende da 0 a {{ balance.scripting.maxWaitMs }} millisecondi. Per esempio,
+                <code>wait(1000)</code> attende un secondo.
               </p>
               <p>Durante la pausa il mining non avanza. La velocità 2× non riduce questa attesa.</p>
             </article>
@@ -553,18 +555,24 @@ print("Progresso: " + progress());</pre>
           </p>
           <h3>Trovare una scheda nella farm</h3>
           <p>
-            La farm è divisa in <strong>6 plot</strong>, cioè aree. Ogni area contiene
-            <strong>6 rig</strong>, le strutture che ospitano le schede. Ogni rig ha
-            <strong>4 slot GPU</strong>, per un totale di 144 posti.
+            La farm è divisa in <strong>{{ plotCapacity }} plot</strong>, cioè aree. Ogni area
+            contiene <strong>{{ rigsPerPlot }} rig</strong>, le strutture che ospitano le schede.
+            Ogni rig ha <strong>{{ gpusPerRig }} slot GPU</strong>, per un totale di
+            {{ gpuCapacity }} posti.
           </p>
           <pre class="guide-code">let gpu = plots[0].rig(0).gpu(0);</pre>
           <ol class="guide-steps">
-            <li><code>plots[0]</code> sceglie la prima area. Indici validi: da 0 a 5.</li>
             <li>
-              <code>.rig(0)</code> sceglie il primo rig di quell'area. Indici validi: da 0 a 5.
+              <code>plots[0]</code> sceglie la prima area. Indici validi: da 0 a
+              {{ plotCapacity - 1 }}.
             </li>
             <li>
-              <code>.gpu(0)</code> sceglie il primo slot di quel rig. Indici validi: da 0 a 3.
+              <code>.rig(0)</code> sceglie il primo rig di quell'area. Indici validi: da 0 a
+              {{ rigsPerPlot - 1 }}.
+            </li>
+            <li>
+              <code>.gpu(0)</code> sceglie il primo slot di quel rig. Indici validi: da 0 a
+              {{ gpusPerRig - 1 }}.
             </li>
           </ol>
           <p>
@@ -577,25 +585,27 @@ print("Progresso: " + progress());</pre>
           >
             <h3>
               <app-icon name="info" />
-              <span>All'inizio hai una GPU disponibile</span>
+              <span>GPU disponibili all'inizio: {{ balance.world.startingGpuCount }}</span>
             </h3>
             <p>
-              Sono sbloccati solo il primo rig e la sua prima scheda. Puoi leggere anche gli slot
-              bloccati, ma non usarli per minare. Lo sblocco di altri rig e GPU non è ancora
-              disponibile.
+              Sono sbloccati {{ balance.world.startingRigCount }} rig e
+              {{ balance.world.startingGpuCount }} GPU. Puoi leggere anche gli slot bloccati, ma non
+              usarli per minare. Lo sblocco di altri rig e GPU non è ancora disponibile.
             </p>
           </aside>
           <h3>Minare con questa GPU</h3>
           <p>
             <code>mine()</code> è un metodo della GPU. <code>gpu.mine()</code> fa lavorare solo la
-            scheda indicata. Ogni chiamata aggiunge 80/144% al blocco attivo e attende che il lavoro
-            finisca prima di proseguire.
+            scheda indicata. Ogni chiamata aggiunge {{ balance.world.progressPerGpuAtFullFarm }}/{{
+              gpuCapacity
+            }}% al blocco attivo e attende che il lavoro finisca prima di proseguire.
           </p>
           <pre class="guide-code">gpu.mine();</pre>
           <p>
-            Con la GPU iniziale servono 180 chiamate a <code>gpu.mine()</code> per completare un
-            blocco. Ogni chiamata dura 850 ms, oppure 425 ms a velocità 2×. La GPU e il rig devono
-            essere sbloccati. Usa <code>progress()</code> per sapere quando fermare il ciclo.
+            Con una GPU servono {{ minesPerBlock }} chiamate a <code>gpu.mine()</code> per
+            completare un blocco. Ogni chiamata dura {{ balance.mining.actionDurationMs }} ms,
+            oppure {{ balance.mining.actionDurationMs / 2 }} ms a velocità 2×. La GPU e il rig
+            devono essere sbloccati. Usa <code>progress()</code> per sapere quando fermare il ciclo.
           </p>
           <h3>Identità e stato</h3>
           <div class="guide-card-grid">
@@ -628,7 +638,10 @@ print("Progresso: " + progress());</pre>
             </article>
             <article class="guide-card">
               <h4>Modello</h4>
-              <p>Restituisce il nome della scheda: <code>Blockcraft Miner X1</code>.</p>
+              <p>
+                Restituisce il nome della scheda: <code>{{ idleGpu.model }}</code
+                >.
+              </p>
               <code class="guide-card-signature">gpu.getModel()</code>
               <p class="guide-card-property">Attributo: <code>gpu.model</code></p>
             </article>
@@ -649,9 +662,15 @@ print("Progresso: " + progress());</pre>
               <h4>Frequenza</h4>
               <p>Velocità di lavoro della scheda, in gigahertz (GHz).</p>
               <ul class="guide-facts">
-                <li>A riposo: <strong>0,5 GHz</strong></li>
-                <li>Durante il mining: <strong>1,8 GHz</strong></li>
-                <li>Massimo del modello: <strong>2 GHz</strong></li>
+                <li>
+                  A riposo: <strong>{{ idleGpu.frequencyGhz }} GHz</strong>
+                </li>
+                <li>
+                  Durante il mining: <strong>{{ miningGpu.frequencyGhz }} GHz</strong>
+                </li>
+                <li>
+                  Massimo del modello: <strong>{{ miningGpu.maxFrequencyGhz }} GHz</strong>
+                </li>
               </ul>
               <details class="guide-card-details">
                 <summary>Leggere frequenza attuale e massima</summary>
@@ -665,8 +684,12 @@ print("Progresso: " + progress());</pre>
               <h4>Consumo</h4>
               <p>Potenza assorbita dalla scheda, in watt (W).</p>
               <ul class="guide-facts">
-                <li>A riposo: <strong>32 W</strong></li>
-                <li>Durante il mining: <strong>205 W</strong></li>
+                <li>
+                  A riposo: <strong>{{ idleGpu.powerWatts }} W</strong>
+                </li>
+                <li>
+                  Durante il mining: <strong>{{ miningGpu.powerWatts }} W</strong>
+                </li>
               </ul>
               <details class="guide-card-details">
                 <summary>Leggere il consumo attuale</summary>
@@ -678,9 +701,15 @@ print("Progresso: " + progress());</pre>
               <h4>Temperatura</h4>
               <p>Temperatura della scheda, in gradi Celsius (°C).</p>
               <ul class="guide-facts">
-                <li>A riposo: <strong>34 °C</strong></li>
-                <li>Durante il mining: <strong>72 °C</strong></li>
-                <li>Massimo del modello: <strong>90 °C</strong></li>
+                <li>
+                  A riposo: <strong>{{ idleGpu.temperatureCelsius }} °C</strong>
+                </li>
+                <li>
+                  Durante il mining: <strong>{{ miningGpu.temperatureCelsius }} °C</strong>
+                </li>
+                <li>
+                  Massimo del modello: <strong>{{ miningGpu.maxTemperatureCelsius }} °C</strong>
+                </li>
               </ul>
               <details class="guide-card-details">
                 <summary>Leggere temperatura attuale e massima</summary>
@@ -694,9 +723,19 @@ print("Progresso: " + progress());</pre>
               <h4>Ventole</h4>
               <p>Velocità di rotazione, in percentuale o in giri al minuto (RPM).</p>
               <ul class="guide-facts">
-                <li>A riposo: <strong>20% · 640 RPM</strong></li>
-                <li>Durante il mining: <strong>70% · 2240 RPM</strong></li>
-                <li>Massimo del modello: <strong>3200 RPM</strong></li>
+                <li>
+                  A riposo:
+                  <strong>{{ idleGpu.fanSpeed }}% · {{ idleGpu.currentFanSpeedRpm }} RPM</strong>
+                </li>
+                <li>
+                  Durante il mining:
+                  <strong
+                    >{{ miningGpu.fanSpeed }}% · {{ miningGpu.currentFanSpeedRpm }} RPM</strong
+                  >
+                </li>
+                <li>
+                  Massimo del modello: <strong>{{ miningGpu.maxFanSpeedRpm }} RPM</strong>
+                </li>
               </ul>
               <details class="guide-card-details">
                 <summary>Leggere percentuale e giri al minuto</summary>
@@ -746,7 +785,11 @@ print("Progresso: " + progress());</pre>
                 <dt>
                   Plot: <code>rigCount</code>, <code>gpuCount</code>, <code>gpuCapacity</code>
                 </dt>
-                <dd>Numero totale di rig (6), GPU utilizzabili e slot totali (24).</dd>
+                <dd>
+                  Numero totale di rig ({{ rigsPerPlot }}), GPU utilizzabili e slot totali ({{
+                    gpusPerPlot
+                  }}).
+                </dd>
               </div>
               <div>
                 <dt>Rig: <code>id</code>, <code>plotId</code>, <code>type</code></dt>
@@ -765,7 +808,7 @@ print("Progresso: " + progress());</pre>
               </div>
               <div>
                 <dt>Rig: <code>gpuCount</code>, <code>gpuCapacity</code></dt>
-                <dd>Numero di GPU utilizzabili e slot totali (4).</dd>
+                <dd>Numero di GPU utilizzabili e slot totali ({{ gpusPerRig }}).</dd>
               </div>
             </dl>
           </details>

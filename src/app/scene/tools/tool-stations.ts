@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GAME_BALANCE } from '../../config/game-balance';
 import { TOOL_AREA_POSITION } from '../environment/scene-layout';
 
 type Position2D = readonly [x: number, z: number];
@@ -16,9 +17,7 @@ const TOOL_STATION_DEFINITIONS = {
   workbench: {
     id: 'workbench',
     label: 'Workbench',
-    slotIndex: 0,
-    focusTargetOffset: [-0.2, 1.65, 0],
-    cameraOffset: [5.5, 5, 10],
+    ...GAME_BALANCE.toolStations.workbench,
   },
 } as const satisfies Record<string, ToolStationDefinition>;
 
@@ -27,12 +26,8 @@ type ToolStation = (typeof TOOL_STATION_DEFINITIONS)[keyof typeof TOOL_STATION_D
 export type ToolStationId = keyof typeof TOOL_STATION_DEFINITIONS;
 export const TOOL_STATIONS: readonly ToolStation[] = Object.values(TOOL_STATION_DEFINITIONS);
 
-export const TOOL_SLOT_POSITIONS: readonly Position2D[] = [
-  [-4.2, 3.8],
-  [4.2, 3.8],
-  [-4.2, -3.8],
-  [4.2, -3.8],
-];
+export const TOOL_SLOT_POSITIONS: readonly Position2D[] =
+  GAME_BALANCE.layout.toolArea.slotPositions;
 
 export interface ToolStationCamera {
   target: THREE.Vector3;

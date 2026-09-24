@@ -1,14 +1,15 @@
+import { GAME_BALANCE } from '../config/game-balance';
 import { parse } from './parser';
 import { Expression, ScriptError, type ScriptObject, Statement, Value } from './syntax';
 import { VectorQueueValue } from './collections/vector-queue';
 import { VectorStackValue } from './collections/vector-stack';
 import { VectorValue } from './collections/vector';
 
-const MAX_EXECUTION_STEPS = 10_000;
-const YIELD_INTERVAL = 50;
-const MAX_REPEAT_COUNT = 1000;
-const MAX_WAIT_MS = 5000;
-const MAX_OUTPUT_LENGTH = 2000;
+const MAX_EXECUTION_STEPS = GAME_BALANCE.scripting.maxExecutionSteps;
+const YIELD_INTERVAL = GAME_BALANCE.scripting.yieldEverySteps;
+const MAX_REPEAT_COUNT = GAME_BALANCE.scripting.maxRepeatCount;
+const MAX_WAIT_MS = GAME_BALANCE.scripting.maxWaitMs;
+const MAX_OUTPUT_LENGTH = GAME_BALANCE.scripting.maxOutputLength;
 const BUILTIN_ARGUMENT_COUNTS: Record<string, number> = {
   print: 1,
   wait: 1,
@@ -67,7 +68,10 @@ class Interpreter {
   private async checkExecutionLimit(line: number): Promise<void> {
     this.signal.throwIfAborted();
     if (++this.steps > MAX_EXECUTION_STEPS) {
-      throw new ScriptError('limite di 10.000 operazioni raggiunto. Controlla i cicli.', line);
+      throw new ScriptError(
+        `limite di ${MAX_EXECUTION_STEPS.toLocaleString('it-IT')} operazioni raggiunto. Controlla i cicli.`,
+        line,
+      );
     }
     // Cede periodicamente il controllo al browser: Stop resta utilizzabile anche nei cicli vuoti.
     if (this.steps % YIELD_INTERVAL === 0) {
@@ -110,7 +114,10 @@ class Interpreter {
           statement.line,
         );
         if (!Number.isInteger(count) || count < 0 || count > MAX_REPEAT_COUNT) {
-          throw new ScriptError('repeat richiede un intero tra 0 e 1000.', statement.line);
+          throw new ScriptError(
+            `repeat richiede un intero tra 0 e ${MAX_REPEAT_COUNT}.`,
+            statement.line,
+          );
         }
         for (let i = 0; i < count; i++) {
           await this.checkExecutionLimit(statement.line);
@@ -312,7 +319,7 @@ class Interpreter {
       case 'wait': {
         const time = this.requireNumber(args[0], line);
         if (time < 0 || time > MAX_WAIT_MS) {
-          throw new ScriptError('wait richiede millisecondi tra 0 e 5000.', line);
+          throw new ScriptError(`wait richiede millisecondi tra 0 e ${MAX_WAIT_MS}.`, line);
         }
         await delay(time, this.signal);
         return 0;

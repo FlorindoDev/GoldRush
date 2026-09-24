@@ -1,13 +1,14 @@
 import * as THREE from 'three';
+import { GAME_BALANCE } from '../../config/game-balance';
 import { createBox, createRod } from '../geometry/mesh-primitives';
 import { addWorkbenchEquipment } from './workbench-equipment';
 import { addWorkbenchFurniture } from './workbench-furniture';
 import { WORKBENCH_COLORS } from './workbench-palette';
 
-export const WORKBENCH_WIDTH = 5;
-export const WORKBENCH_DEPTH = 3.6;
-export const WORKBENCH_SURFACE_Y = 1.8;
-export const BITCOIN_TRAY_POSITION = [1.6, 1.87, 1.04] as const;
+export const WORKBENCH_WIDTH = GAME_BALANCE.layout.workbench.width;
+export const WORKBENCH_DEPTH = GAME_BALANCE.layout.workbench.depth;
+export const WORKBENCH_SURFACE_Y = GAME_BALANCE.layout.workbench.surfaceY;
+export const BITCOIN_TRAY_POSITION = GAME_BALANCE.layout.workbench.bitcoinTrayPosition;
 
 export function createElectronicsWorkbench(): THREE.Group {
   const workbench = new THREE.Group();

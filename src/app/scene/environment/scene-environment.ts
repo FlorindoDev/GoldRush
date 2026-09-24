@@ -1,6 +1,7 @@
 import * as THREE from 'three';
+import { GAME_BALANCE } from '../../config/game-balance';
 
-const GROUND_SIZE = 120;
+const GROUND_SIZE = GAME_BALANCE.scene.groundSize;
 
 export function createSceneEnvironment(): THREE.Scene {
   const scene = new THREE.Scene();

@@ -1,19 +1,21 @@
 import * as THREE from 'three';
+import { GAME_BALANCE } from '../../config/game-balance';
 import { plotIdForRig, RIGS_PER_PLOT } from '../../game/mining-world';
 
-const RIG_COLUMN_SPACING = 6.8;
-const RIG_ROW_SPACING = 5.6;
-const PLOT_GRID_ORIGIN_X = -10;
-export const PLOT_GRID_COLUMNS = 3;
-export const PLOT_GAP = 5.4;
+const PLOTS = GAME_BALANCE.layout.plots;
+const RIG_COLUMN_SPACING = PLOTS.rigColumnSpacing;
+const RIG_ROW_SPACING = PLOTS.rigRowSpacing;
+const PLOT_GRID_ORIGIN_X = PLOTS.gridOriginX;
+export const PLOT_GRID_COLUMNS = PLOTS.gridColumns;
+export const PLOT_GAP = PLOTS.gap;
 
-export const RIG_PLOT_WIDTH = 14.2;
-export const RIG_PLOT_DEPTH = 17.2;
+export const RIG_PLOT_WIDTH = PLOTS.width;
+export const RIG_PLOT_DEPTH = PLOTS.depth;
 export const PLOT_SPACING_X = RIG_PLOT_WIDTH + PLOT_GAP;
 export const PLOT_SPACING_Z = RIG_PLOT_DEPTH + PLOT_GAP;
-export const TOOL_AREA_WIDTH = 16;
-export const TOOL_AREA_DEPTH = 18;
-export const TOOL_AREA_POSITION = new THREE.Vector3(50.5, 0, -25.2);
+export const TOOL_AREA_WIDTH = GAME_BALANCE.layout.toolArea.width;
+export const TOOL_AREA_DEPTH = GAME_BALANCE.layout.toolArea.depth;
+export const TOOL_AREA_POSITION = new THREE.Vector3(...GAME_BALANCE.layout.toolArea.position);
 
 export function rigPosition(rigId: number): THREE.Vector3 {
   const plotId = plotIdForRig(rigId);

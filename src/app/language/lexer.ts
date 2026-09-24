@@ -1,6 +1,7 @@
+import { GAME_BALANCE } from '../config/game-balance';
 import { ScriptError, Token } from './syntax';
 
-const MAX_SOURCE_LENGTH = 20_000;
+const MAX_SOURCE_LENGTH = GAME_BALANCE.scripting.maxSourceLength;
 const TOKEN_KINDS = ['number', 'string', 'word', 'symbol'] as const;
 const TOKEN_PATTERNS = [
   /(?<space>\s+)/,
@@ -13,7 +14,10 @@ const TOKEN_PATTERNS = [
 
 export function tokenize(source: string): Token[] {
   if (source.length > MAX_SOURCE_LENGTH) {
-    throw new ScriptError('programma troppo lungo (massimo 20.000 caratteri).', 1);
+    throw new ScriptError(
+      `programma troppo lungo (massimo ${MAX_SOURCE_LENGTH.toLocaleString('it-IT')} caratteri).`,
+      1,
+    );
   }
   const tokens: Token[] = [];
   // "y" impedisce di saltare caratteri non validi tra due token.

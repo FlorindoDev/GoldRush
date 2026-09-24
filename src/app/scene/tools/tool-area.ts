@@ -1,9 +1,13 @@
 import * as THREE from 'three';
+import { GAME_BALANCE } from '../../config/game-balance';
 import { createBox, createLabelTexture } from '../geometry/mesh-primitives';
 import { TOOL_AREA_DEPTH, TOOL_AREA_WIDTH } from '../environment/scene-layout';
 import { TOOL_SLOT_POSITIONS, TOOL_STATIONS } from './tool-stations';
 
-const TOOL_SLOT_SIZE = { width: 6.5, depth: 4.8 };
+const TOOL_SLOT_SIZE = {
+  width: GAME_BALANCE.layout.toolArea.slotWidth,
+  depth: GAME_BALANCE.layout.toolArea.slotDepth,
+};
 const FLOOR_COLORS = { station: 0x3b5845, empty: 0x2b3a30 };
 
 interface StationSlotOptions {

@@ -1,4 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core';
+import { GAME_BALANCE } from '../config/game-balance';
 import { delay, execute } from '../language/interpreter';
 import { ScriptError } from '../language/syntax';
 import { createWorldBindings } from './script-api/world-bindings';
@@ -12,6 +13,7 @@ import {
 } from './script-storage';
 import {
   canExpand,
+  BLOCK_REWARD,
   countUnlockedGpus,
   countUnlockedRigs,
   createWorld,
@@ -29,10 +31,10 @@ import {
   STARTING_RIG_COUNT,
 } from './mining-world';
 
-const LINE_EFFECT_DURATION_MS = 620;
-const MINING_DURATION_MS = 850;
-const GPU_COOLDOWN_DURATION_MS = 5_000;
-const MAX_LOG_ENTRIES = 100;
+const LINE_EFFECT_DURATION_MS = GAME_BALANCE.editor.lineEffectDurationMs;
+const MINING_DURATION_MS = GAME_BALANCE.mining.actionDurationMs;
+const GPU_COOLDOWN_DURATION_MS = GAME_BALANCE.gpu.cooldownMs;
+const MAX_LOG_ENTRIES = GAME_BALANCE.editor.maxLogEntries;
 
 export type { ScriptFile } from './script-storage';
 
@@ -78,7 +80,9 @@ export class GameService {
   readonly completed = computed(
     () => this.world().blocks.filter((block) => block.progress === 100).length,
   );
-  readonly balance = computed(() => (this.world().satoshis / 100_000_000).toFixed(4));
+  readonly balance = computed(() =>
+    (this.world().satoshis / GAME_BALANCE.world.satoshisPerBitcoin).toFixed(4),
+  );
   private controller?: AbortController;
   private lineExecutionId = 0;
   private lineEffectTimers = new Map<number, ReturnType<typeof setTimeout>>();
@@ -396,7 +400,7 @@ export class GameService {
 
     if (block.progress === 100) {
       this.log(
-        'Blocco estratto! +0.0100 BTC al saldo simulato. La farm mantiene le stesse GPU.',
+        `Blocco estratto! +${(BLOCK_REWARD / GAME_BALANCE.world.satoshisPerBitcoin).toFixed(4)} BTC al saldo simulato. La farm mantiene le stesse GPU.`,
         'success',
       );
     }

@@ -1,6 +1,7 @@
+import { GAME_BALANCE } from '../../config/game-balance';
 import { ScriptError, type Value } from '../syntax';
 
-export const MAX_COLLECTION_SIZE = 1000;
+export const MAX_COLLECTION_SIZE = GAME_BALANCE.scripting.maxCollectionSize;
 
 export function requireMethodArguments(
   method: string,

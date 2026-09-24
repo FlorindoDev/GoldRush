@@ -1,6 +1,6 @@
 # Blockcraft
 
-Prototipo di gioco Angular + Three.js: scrivi MineScript per gestire una farm con 144 alloggiamenti GPU su una mappa 3D low poly. Mining e BTC sono simulati.
+Prototipo di gioco Angular + Three.js: scrivi MineScript per gestire una farm GPU su una mappa 3D low poly. Mining e BTC sono simulati.
 
 ## Avvio
 
@@ -13,7 +13,7 @@ npm start
 
 In Windows PowerShell, se l'esecuzione di `npm.ps1` è bloccata, usa `npm.cmd start` (e `npm.cmd` al posto di `npm` per gli altri comandi).
 
-Apri **http://localhost:4200**. La farm ha 6 plot, 6 quadrati di sblocco per plot e 4 alloggiamenti GPU per quadrato: 144 slot GPU. All'inizio è mostrato il primo rig con GPU 1 montata; gli altri rig restano bloccati sui quadrati a terra. Ogni chiamata a `gpu.mine()` aggiunge 80/144% al blocco usando solo quella scheda. Con la GPU iniziale servono 180 chiamate per ottenere 0,0100 BTC. La GPU sbloccata e le ventole girano durante il mining. Clicca GPU 1 o il pulsante numerato per trasferirla alla workbench; la freccia la rimette sul quadrato. Completare un blocco non sblocca rig o GPU.
+Apri **http://localhost:4200**. I valori iniziali della farm, il progresso per chiamata e il premio sono in `src/app/config/game-balance.ts`. Le GPU sbloccate e le ventole girano durante il mining. Clicca una GPU sbloccata o il pulsante numerato per trasferirla alla workbench; la freccia la rimette sul quadrato. Completare un blocco non sblocca rig o GPU.
 
 ```sh
 npm run build       # Produzione in dist/blockcraft/browser
@@ -32,7 +32,11 @@ npm run format        # Formatta i sorgenti e la configurazione
 npm run format:check  # Controlla la formattazione senza modificare file
 ```
 
-Per orientarti: `src/app/hud/hud.component.ts` coordina la UI sovrapposta; `src/app/scene/scene.component.ts` collega HUD e rendering Three.js, mentre `src/app/scene/mining-scene.ts` gestisce scena e interazioni. La scena separa `camera/`, `environment/`, `models/`, `geometry/` e `tools/`.
+Per orientarti: `src/app/hud/hud.component.ts` coordina la UI sovrapposta; `src/app/scene/scene.component.ts` collega HUD e rendering Three.js, mentre `src/app/scene/mining-scene.ts` coordina scena e interazioni. `scene/gpu-visuals.ts` gestisce istanze GPU, caricamento, ventole, trasferimenti e rilascio del modello condiviso. `scene/camera/camera-focus.ts` sceglie target e offset; `SceneCameraController` applica il movimento. Le transizioni condivise sono in `scene/animation/`, il rilascio delle risorse Three.js in `scene/resources/`.
+
+## Bilanciamento
+
+Modifica `src/app/config/game-balance.ts`. I gruppi `world`, `gpu`, `mining`, `scripting`, `camera`, `animation`, `scene`, `layout` e `toolStations` raccolgono i valori modificabili. Frequenze, temperature, consumi e ventole hanno profili `idle` e `mining` e limiti in `gpu.limits`. Tempi sono in millisecondi, la transizione in secondi, gli angoli polari in radianti e il campo visivo in gradi. Le capacità totali e il progresso per GPU derivano dalle dimensioni della farm; guida ed esempio del ciclo `for` si aggiornano con questi valori. Dopo modifiche al numero di rig o slot, verifica che i modelli 3D restino dentro i plot.
 
 ## Moduli
 
@@ -40,6 +44,7 @@ Componenti Angular standalone organizzati per funzionalità; nessun NgModule nec
 
 | Directory                      | Responsabilità                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------- |
+| `src/app/config`               | Parametri di bilanciamento della partita e della scena                                   |
 | `src/app/game`                 | Stato reattivo, regole pure della partita, selezione, saldo in satoshi, esecuzione e log |
 | `src/app/game/script-api`      | Oggetti MineScript per plot, rig e GPU                                                   |
 | `src/app/language`             | Lexer, parser, AST, interprete e valori runtime                                          |
@@ -68,43 +73,43 @@ while (progress() < 100) {
 }
 ```
 
-- `gpu.mine()`: lavora solo con la GPU specificata e aggiunge 80/144% al blocco attivo. Con la GPU iniziale servono 180 chiamate per completare un blocco. Ogni chiamata dura 850 ms (425 ms a velocità 2×); il premio viene assegnato solo al raggiungimento del 100%.
+- `gpu.mine()`: lavora solo con la GPU specificata e aggiunge il progresso configurato al blocco attivo. Il premio viene assegnato solo al raggiungimento del 100%.
 - `progress()`: progresso attuale, 0–100.
 - `print(valore)`: scrive in console.
-- `wait(ms)`: pausa interrompibile, 0–5000 ms. La velocità 2× riguarda solo `gpu.mine()`.
-- `repeat(n) { ... }`: intero 0–1000.
+- `wait(ms)`: pausa interrompibile entro il limite configurato. La velocità 2× riguarda solo `gpu.mine()`.
+- `repeat(n) { ... }`: intero non negativo entro il limite configurato.
 - `for (let i = 0; i < 5; i++) { ... }`, `while (...) { ... }`, `if (...) { ... } else { ... }`.
 - Variabili `let`, assegnazione, `++`, `--`, numeri, stringhe, booleani, vettori, attributi, metodi, `+ - * / %`, confronti `== != < <= > >=`, `&& || !` e parentesi.
 - Commenti `//`; punto e virgola obbligatorio per istruzioni semplici. Variabili in un unico ambito per esecuzione; vengono azzerate al run successivo. Le dichiarazioni dentro i cicli possono riassegnarle.
 
 ### Vettori e farm
 
-- `vector()` crea un vettore modificabile: `push`, `pop`, `get`, `set`, `insert`, `remove`, `contains`, `indexOf`, `concat`, `slice`, `copy`, `reverse`, `sort`, `clear`, `isEmpty`; attributi `length`, `first` e `last`. Indici da zero; capienza massima 1000 elementi. `sort()` accetta vettori omogenei di numeri o stringhe.
+- `vector()` crea un vettore modificabile: `push`, `pop`, `get`, `set`, `insert`, `remove`, `contains`, `indexOf`, `concat`, `slice`, `copy`, `reverse`, `sort`, `clear`, `isEmpty`; attributi `length`, `first` e `last`. Indici da zero; capienza in `scripting.maxCollectionSize`. `sort()` accetta vettori omogenei di numeri o stringhe.
 - `stack()` crea una pila LIFO di vettori, con `push`, `pop`, `peek`, `size`, `isEmpty` e `clear`.
 - `queue()` crea una coda FIFO di vettori, con `enqueue`, `dequeue`, `peek`, `front`, `back`, `size`, `isEmpty` e `clear`.
-- `plots` è il vettore di sola lettura della farm: 6 plot, ciascuno con 6 rig e 4 alloggiamenti GPU. Usa `plots[0].rig(0).gpu(0)` per accedere al primo elemento a ogni livello. All'avvio solo il primo rig e la prima GPU sono sbloccati. Plot espone `id`, `rigs`, `rigCount`, `gpuCount` (sbloccate), `gpuCapacity`; rig espone `id`, `plotId`, `unlocked`, `gpus`, `gpuCount` (sbloccate), `gpuCapacity`.
+- `plots` è il vettore di sola lettura della farm, con capacità definite in `world`. Usa `plots[0].rig(0).gpu(0)` per accedere al primo elemento a ogni livello. Plot espone `id`, `rigs`, `rigCount`, `gpuCount` (sbloccate), `gpuCapacity`; rig espone `id`, `plotId`, `unlocked`, `gpus`, `gpuCount` (sbloccate), `gpuCapacity`.
 - Tutti gli oggetti espongono `type`.
-- `null` rappresenta un contenitore vuoto quando `pop`, `peek` o `dequeue` non trova elementi. Le collezioni sono limitate a 1000 elementi.
+- `null` rappresenta un contenitore vuoto quando `pop`, `peek` o `dequeue` non trova elementi. La capienza delle collezioni è configurabile.
 
 ### GPU
 
-Accedi a una GPU tramite `plots[plotIndex].rig(rigIndex).gpu(gpuIndex)` oppure indicizza il vettore `gpus`. Gli indici partono da zero. All'avvio solo il primo rig e GPU 1 sono sbloccati; GPU è accessibile solo se è sbloccato anche il rig. Non esistono ancora metodi per sbloccare o configurare l'hardware.
+Accedi a una GPU tramite `plots[plotIndex].rig(rigIndex).gpu(gpuIndex)` oppure indicizza il vettore `gpus`. Gli indici partono da zero. GPU è utilizzabile solo se è sbloccato anche il rig. Non esistono ancora metodi per sbloccare o configurare l'hardware.
 
-| Attributo               | Getter MineScript            | Significato                        |
-| ----------------------- | ---------------------------- | ---------------------------------- |
-| `model`                 | `getModel()`                 | Modello, ora `Blockcraft Miner X1` |
-| `frequencyGhz`          | `getFrequencyGhz()`          | Frequenza attuale in GHz           |
-| `powerWatts`            | `getPowerWatts()`            | Consumo attuale in W               |
-| `temperatureCelsius`    | `getTemperatureCelsius()`    | Temperatura attuale in °C          |
-| `fanSpeed`              | `getFanSpeed()`              | Velocità ventole in percentuale    |
-| `currentFanSpeedRpm`    | `getCurrentFanSpeedRpm()`    | Velocità attuale ventole in RPM    |
-| `maxFrequencyGhz`       | `getMaxFrequencyGhz()`       | Frequenza massima: 2 GHz           |
-| `maxFanSpeedRpm`        | `getMaxFanSpeedRpm()`        | Velocità massima ventole: 3200 RPM |
-| `maxTemperatureCelsius` | `getMaxTemperatureCelsius()` | Temperatura massima: 90 °C         |
+| Attributo               | Getter MineScript            | Significato                     |
+| ----------------------- | ---------------------------- | ------------------------------- |
+| `model`                 | `getModel()`                 | Modello configurato             |
+| `frequencyGhz`          | `getFrequencyGhz()`          | Frequenza attuale in GHz        |
+| `powerWatts`            | `getPowerWatts()`            | Consumo attuale in W            |
+| `temperatureCelsius`    | `getTemperatureCelsius()`    | Temperatura attuale in °C       |
+| `fanSpeed`              | `getFanSpeed()`              | Velocità ventole in percentuale |
+| `currentFanSpeedRpm`    | `getCurrentFanSpeedRpm()`    | Velocità attuale ventole in RPM |
+| `maxFrequencyGhz`       | `getMaxFrequencyGhz()`       | Frequenza massima configurata   |
+| `maxFanSpeedRpm`        | `getMaxFanSpeedRpm()`        | Velocità massima configurata    |
+| `maxTemperatureCelsius` | `getMaxTemperatureCelsius()` | Temperatura massima configurata |
 
 GPU espone anche `id`, `rigId`, `plotId`, `unlocked`, `working` e `selected`, oltre a `type` che vale `GPU`. I metodi `isWorking()` e `isSelected()` corrispondono agli attributi `working` e `selected`. Per ora `working` indica che GPU e rig sono sbloccati, non che stiano minando in quell'istante; `selected` indica che GPU è al banco.
 
-La telemetria è simulata sul carico complessivo: a riposo frequenza 0,5 GHz, consumo 32 W, temperatura 34 °C e ventole 20%; durante il mining rispettivamente 1,8 GHz, 205 W, 72 °C e 70%. Le ventole raggiungono 3200 RPM; la telemetria scende durante il raffreddamento.
+La telemetria è simulata sul carico complessivo: i valori di riposo e mining sono in `gpu.idle` e `gpu.mining`. La telemetria scende durante il raffreddamento.
 
 ```js
 let gpu = plots[0].rig(0).gpu(0);
@@ -122,7 +127,7 @@ print(
 );
 ```
 
-L'interprete analizza il programma prima di eseguirlo. Non usa `eval`, `Function` né accesso alle API del browser. Limiti: 20.000 caratteri, 64 livelli di parser, 10.000 operazioni per esecuzione, ultimi 100 log, messaggi di massimo 2.000 caratteri. Gli errori riportano la riga. Un errore di runtime conserva le azioni già completate. Stop annulla anche il mining pendente senza attribuire ricompense.
+L'interprete analizza il programma prima di eseguirlo. Non usa `eval`, `Function` né accesso alle API del browser. I limiti sono in `scripting` e `editor.maxLogEntries`. Gli errori riportano la riga. Un errore di runtime conserva le azioni già completate. Stop annulla anche il mining pendente senza attribuire ricompense.
 
 ## Interazione e limiti del prototipo
 

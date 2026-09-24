@@ -1,0 +1,199 @@
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GPU_MODEL_PATH } from '../assets/models/gpu/gpu-model-path';
+import { GAME_BALANCE } from '../config/game-balance';
+import { GPU_COUNT, isGpuUnlocked, type MiningWorld } from '../game/mining-world';
+import { easeTransition, transitionProgress } from './animation/scene-transition';
+import { createFallbackGpu } from './models/fallback-gpu';
+import { fitGpuModel, styleGpuModel } from './models/gpu-model';
+import { disposeObject } from './resources/dispose-object';
+
+const ANIMATION = GAME_BALANCE.animation;
+const GPU_MODEL_WIDTH = GAME_BALANCE.scene.gpuModelWidth;
+
+export interface GpuPose {
+  readonly position: THREE.Vector3;
+  readonly rotation: THREE.Quaternion;
+}
+
+interface GpuTransfer {
+  readonly from: GpuPose;
+  readonly to: GpuPose;
+  elapsed: number;
+}
+
+interface GpuVisual {
+  readonly root: THREE.Group;
+  fans: THREE.Object3D[];
+  mixer?: THREE.AnimationMixer;
+  transfer?: GpuTransfer;
+}
+
+export class GpuVisuals {
+  private readonly gpus = new Map<number, GpuVisual>();
+  private template = createFallbackGpu(GPU_MODEL_WIDTH);
+  private clips: THREE.AnimationClip[] = [];
+  private inspectedGpuId: number | null = null;
+  private disposed = false;
+
+  constructor(
+    private readonly scene: THREE.Scene,
+    private readonly homePose: (gpuId: number) => GpuPose,
+    private readonly inspectionMount: THREE.Object3D,
+  ) {}
+
+  /** Snapshot for picking and particle placement; instance lifecycle stays in this class. */
+  get objects(): readonly THREE.Group[] {
+    return Array.from(this.gpus.values(), (gpu) => gpu.root);
+  }
+
+  sync(world: MiningWorld, inspectedGpuId: number | null): void {
+    for (const [id, gpu] of this.gpus) {
+      if (!isGpuUnlocked(world, id)) {
+        this.removeGpu(id, gpu);
+      }
+    }
+
+    for (let id = 1; id <= GPU_COUNT; id++) {
+      if (!isGpuUnlocked(world, id) || this.gpus.has(id)) {
+        continue;
+      }
+      const pose = this.homePose(id);
+      const root = new THREE.Group();
+      root.name = `gpu-${id}`;
+      root.userData['gpuId'] = id;
+      root.position.copy(pose.position);
+      root.quaternion.copy(pose.rotation);
+      const gpu: GpuVisual = { root, fans: [] };
+      this.attachModel(gpu);
+      this.gpus.set(id, gpu);
+      this.scene.add(root);
+    }
+
+    if (inspectedGpuId !== this.inspectedGpuId) {
+      this.inspectedGpuId = inspectedGpuId;
+      for (const [id, gpu] of this.gpus) {
+        this.transferGpu(id, gpu);
+      }
+    }
+  }
+
+  update(delta: number, mining: boolean, reducedMotion: boolean): void {
+    for (const gpu of this.gpus.values()) {
+      this.updateTransfer(gpu, delta, reducedMotion);
+      if (!mining || reducedMotion) {
+        continue;
+      }
+      gpu.mixer?.update(delta * ANIMATION.gpuMixerTimeScale);
+      for (const fan of gpu.fans) {
+        if (fan.name === 'Spin') {
+          fan.rotation.z -= delta * ANIMATION.gpuFanRadiansPerSecond;
+        } else {
+          fan.rotation.y -= delta * ANIMATION.gpuFanRadiansPerSecond;
+        }
+      }
+    }
+  }
+
+  async loadModel(): Promise<void> {
+    if (this.disposed) {
+      return;
+    }
+    try {
+      const gltf = await new GLTFLoader().loadAsync(GPU_MODEL_PATH);
+      if (this.disposed) {
+        disposeObject(gltf.scene);
+        return;
+      }
+      const previous = this.template;
+      fitGpuModel(gltf.scene, GPU_MODEL_WIDTH);
+      styleGpuModel(gltf.scene);
+      this.template = new THREE.Group();
+      this.template.add(gltf.scene);
+      this.clips = gltf.animations;
+      for (const gpu of this.gpus.values()) {
+        this.attachModel(gpu);
+      }
+      disposeObject(previous);
+    } catch {
+      // The procedural GPU remains mounted and selectable if the asset is unavailable.
+    }
+  }
+
+  dispose(): void {
+    if (this.disposed) {
+      return;
+    }
+    this.disposed = true;
+    for (const [id, gpu] of this.gpus) {
+      this.removeGpu(id, gpu);
+    }
+    disposeObject(this.template);
+    this.clips = [];
+  }
+
+  private attachModel(gpu: GpuVisual): void {
+    gpu.mixer?.stopAllAction();
+    gpu.mixer = undefined;
+    gpu.root.clear();
+    const clone = this.template.clone(true);
+    clone.userData['sharedGpu'] = true;
+    gpu.root.add(clone);
+    gpu.fans = [];
+    clone.traverse((object) => {
+      if (object.name === 'Spin' || object.name === 'gpu-fan-rotor') {
+        gpu.fans.push(object);
+      }
+    });
+    if (this.clips.length) {
+      const mixer = new THREE.AnimationMixer(clone);
+      this.clips.forEach((clip) => mixer.clipAction(clip).play());
+      gpu.mixer = mixer;
+    }
+  }
+
+  private removeGpu(id: number, gpu: GpuVisual): void {
+    this.scene.remove(gpu.root);
+    gpu.mixer?.stopAllAction();
+    disposeObject(gpu.root, true);
+    this.gpus.delete(id);
+  }
+
+  private transferGpu(id: number, gpu: GpuVisual): void {
+    const to =
+      id === this.inspectedGpuId
+        ? {
+            position: this.inspectionMount.getWorldPosition(new THREE.Vector3()),
+            rotation: this.inspectionMount.getWorldQuaternion(new THREE.Quaternion()),
+          }
+        : this.homePose(id);
+    if (
+      gpu.root.position.distanceToSquared(to.position) < 0.0001 &&
+      gpu.root.quaternion.angleTo(to.rotation) < 0.001
+    ) {
+      gpu.transfer = undefined;
+      return;
+    }
+    gpu.transfer = {
+      from: { position: gpu.root.position.clone(), rotation: gpu.root.quaternion.clone() },
+      to,
+      elapsed: 0,
+    };
+  }
+
+  private updateTransfer(gpu: GpuVisual, delta: number, reducedMotion: boolean): void {
+    const transfer = gpu.transfer;
+    if (!transfer) {
+      return;
+    }
+    transfer.elapsed += delta;
+    const progress = transitionProgress(transfer.elapsed, reducedMotion);
+    const eased = easeTransition(progress);
+    gpu.root.position.lerpVectors(transfer.from.position, transfer.to.position, eased);
+    gpu.root.position.y += Math.sin(progress * Math.PI) * ANIMATION.gpuTransferArcHeight;
+    gpu.root.quaternion.slerpQuaternions(transfer.from.rotation, transfer.to.rotation, eased);
+    if (progress === 1) {
+      gpu.transfer = undefined;
+    }
+  }
+}

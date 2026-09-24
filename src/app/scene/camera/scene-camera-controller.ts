@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { easeTransition, transitionProgress } from './scene-transition';
+import { GAME_BALANCE } from '../../config/game-balance';
+import { easeTransition, transitionProgress } from '../animation/scene-transition';
 
-const MAX_CLICK_MOVEMENT = 5;
-const PAN_LIMIT = 2.5;
+const CAMERA = GAME_BALANCE.camera.scene;
 
 interface CameraTransition {
   readonly fromPosition: THREE.Vector3;
@@ -30,11 +30,11 @@ export class SceneCameraController {
     this.controls = new OrbitControls(camera, canvas);
     this.controls.enableDamping = true;
     this.controls.enablePan = true;
-    this.controls.panSpeed = 0.6;
-    this.controls.minDistance = 7;
-    this.controls.maxDistance = 32;
-    this.controls.minPolarAngle = 0.3;
-    this.controls.maxPolarAngle = Math.PI / 2.3;
+    this.controls.panSpeed = CAMERA.panSpeed;
+    this.controls.minDistance = CAMERA.minDistance;
+    this.controls.maxDistance = CAMERA.maxDistance;
+    this.controls.minPolarAngle = CAMERA.minPolarAngleRadians;
+    this.controls.maxPolarAngle = CAMERA.maxPolarAngleRadians;
 
     canvas.addEventListener('pointerdown', this.handlePointerDown);
     canvas.addEventListener('pointermove', this.handlePointerMove);
@@ -75,7 +75,14 @@ export class SceneCameraController {
   resize(width: number, height: number): void {
     this.camera.aspect = width / height;
     // Leave space for the editor on desktop without changing the orbit target.
-    this.camera.setViewOffset(width, height, width >= 1000 ? width * 0.12 : 0, 0, width, height);
+    this.camera.setViewOffset(
+      width,
+      height,
+      width >= CAMERA.editorOffsetMinWidthPx ? width * CAMERA.editorOffsetWidthRatio : 0,
+      0,
+      width,
+      height,
+    );
     this.camera.updateProjectionMatrix();
   }
 
@@ -86,7 +93,8 @@ export class SceneCameraController {
     this.pointerId = undefined;
     this.pointerPosition.set(event.clientX, event.clientY);
     return (
-      event.button === 0 && this.pointerDown.distanceTo(this.pointerPosition) <= MAX_CLICK_MOVEMENT
+      event.button === 0 &&
+      this.pointerDown.distanceTo(this.pointerPosition) <= CAMERA.maxClickMovementPx
     );
   }
 
@@ -117,12 +125,21 @@ export class SceneCameraController {
   private constrainPan(): void {
     const target = this.controls.target;
     this.panCorrection.set(
-      THREE.MathUtils.clamp(target.x, this.panAnchor.x - PAN_LIMIT, this.panAnchor.x + PAN_LIMIT) -
+      THREE.MathUtils.clamp(
         target.x,
-      THREE.MathUtils.clamp(target.y, this.panAnchor.y - PAN_LIMIT, this.panAnchor.y + PAN_LIMIT) -
+        this.panAnchor.x - CAMERA.panLimit,
+        this.panAnchor.x + CAMERA.panLimit,
+      ) - target.x,
+      THREE.MathUtils.clamp(
         target.y,
-      THREE.MathUtils.clamp(target.z, this.panAnchor.z - PAN_LIMIT, this.panAnchor.z + PAN_LIMIT) -
+        this.panAnchor.y - CAMERA.panLimit,
+        this.panAnchor.y + CAMERA.panLimit,
+      ) - target.y,
+      THREE.MathUtils.clamp(
         target.z,
+        this.panAnchor.z - CAMERA.panLimit,
+        this.panAnchor.z + CAMERA.panLimit,
+      ) - target.z,
     );
     target.add(this.panCorrection);
     this.camera.position.add(this.panCorrection);
@@ -146,7 +163,7 @@ export class SceneCameraController {
       return;
     }
     this.pointerPosition.set(event.clientX, event.clientY);
-    if (this.pointerDown.distanceTo(this.pointerPosition) > MAX_CLICK_MOVEMENT) {
+    if (this.pointerDown.distanceTo(this.pointerPosition) > CAMERA.maxClickMovementPx) {
       this.cancelTransition();
     }
   };
