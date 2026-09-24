@@ -226,7 +226,7 @@ dialog::backdrop {
 }
 .guide-navigation {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 5px;
   margin: 0 22px 11px;
   padding: 5px;
@@ -241,7 +241,7 @@ dialog::backdrop {
   border-radius: 6px;
   background: transparent;
   color: #98a88d;
-  font: 11px var(--mono);
+  font: 12px var(--mono);
   cursor: pointer;
 }
 .guide-navigation button:hover {
@@ -284,7 +284,7 @@ dialog::backdrop {
   font-size: 14px;
   font-weight: 600;
 }
-.syntax-list code {
+.syntax-list > article > code {
   display: block;
   margin: 5px 0;
   padding: 9px 12px;
@@ -333,31 +333,68 @@ dialog h3 {
   font-size: 15px;
   font-weight: 600;
 }
-.function-list {
-  overflow: hidden;
+.guide-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.guide-card {
+  min-width: 0;
+  padding: 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
+  background: #141b15;
 }
-.function-list > div {
-  display: grid;
-  grid-template-columns: 140px 1fr;
-  align-items: start;
-  padding: 14px;
-  border-bottom: 1px solid var(--border);
+.guide-card h4 {
+  margin: 0 0 10px;
+  color: #dce8d2;
+  font-size: 14px;
+  font-weight: 600;
 }
-.function-list > div:last-child {
-  border-bottom: 0;
+.guide-card p {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
 }
-.function-list code {
+.guide-card p code {
   color: var(--accent);
-  font-size: 12px;
-  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
-.function-list p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
+.guide-card-signature {
+  display: block;
+  max-width: 100%;
+  padding: 8px 10px;
+  border-radius: 5px;
+  background: #0e140f;
+  color: var(--accent);
+  font: 12px/1.5 var(--mono);
+  overflow-wrap: anywhere;
+}
+.guide-card-signature + .guide-card-signature {
+  margin-top: 5px;
+}
+.guide-card .guide-card-property {
+  margin-top: 12px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+}
+.guide-card-details {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.guide-card-details summary {
+  color: #c7d9b4;
+  font-size: 13px;
+  cursor: pointer;
+}
+.guide-card-details summary:hover,
+.guide-card-details summary:focus-visible {
+  color: var(--accent);
+}
+.guide-card-details p {
+  margin-top: 10px;
 }
 .guide-code {
   overflow: auto;
@@ -406,6 +443,147 @@ dialog h3 {
 }
 .guide-note code {
   color: #c7d9b4;
+}
+.guide-reference {
+  color: #dce8d2;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+}
+.guide-reference h2 {
+  margin-top: 8px;
+  font-weight: 650;
+  letter-spacing: -0.5px;
+  line-height: 1.25;
+}
+.guide-reference h3 {
+  margin-top: 32px;
+  font-size: 19px;
+  line-height: 1.4;
+}
+.guide-reference h4,
+.guide-reference .syntax-list h3 {
+  margin: 0 0 12px;
+  color: #e5ebdf;
+  font-size: 17px;
+  line-height: 1.4;
+}
+.guide-reference p,
+.guide-reference .guide-facts,
+.guide-reference .guide-steps,
+.guide-reference dd {
+  color: #c3cdbb;
+  font-size: 15px;
+  line-height: 1.65;
+}
+.guide-reference .dialog-intro {
+  margin-bottom: 24px;
+  font-size: 16px;
+}
+.guide-reference strong {
+  color: #e5ebdf;
+  font-weight: 650;
+}
+.guide-reference :is(p, li, dt, dd, h3) code {
+  color: #c7dfa9;
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
+.guide-reference .guide-card-grid {
+  align-items: start;
+  gap: 14px;
+}
+.guide-reference .guide-collection-list {
+  grid-template-columns: 1fr;
+}
+.guide-reference .guide-card,
+.guide-reference .syntax-list article {
+  padding: 20px;
+}
+.guide-reference .guide-card-signature {
+  font-size: 13px;
+}
+.guide-reference .guide-card-details {
+  margin-top: 16px;
+  padding-top: 14px;
+}
+.guide-reference .guide-card-details summary {
+  padding: 4px 0;
+  color: #d1e6bd;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.guide-reference .guide-card-details summary:hover {
+  color: var(--accent);
+}
+.guide-reference .guide-card-details summary:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.guide-reference .guide-card-details .guide-card-signature {
+  margin-top: 12px;
+}
+.guide-reference .guide-facts,
+.guide-reference .guide-steps {
+  margin: 14px 0;
+  padding-left: 22px;
+}
+.guide-reference li + li {
+  margin-top: 8px;
+}
+.guide-reference li::marker {
+  color: #b8cf9f;
+}
+.guide-reference .guide-callout {
+  margin: 20px 0;
+  padding: 18px 22px;
+  border: 1px solid var(--border);
+  border-left: 3px solid #8aad68;
+  border-radius: 6px;
+  background: #b8f57508;
+}
+.guide-reference .guide-callout h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.guide-reference .guide-callout h3 app-icon {
+  width: 17px;
+  height: 17px;
+}
+.guide-reference .guide-callout p {
+  margin: 0;
+}
+.guide-reference .guide-callout .guide-facts {
+  margin: 0;
+  padding-left: 22px;
+}
+.guide-definition-list {
+  margin: 12px 0 0;
+}
+.guide-definition-list > div {
+  padding: 12px 0;
+}
+.guide-definition-list > div + div {
+  border-top: 1px solid var(--border);
+}
+.guide-definition-list dt {
+  color: #dce8d2;
+  font-weight: 600;
+}
+.guide-definition-list dd {
+  margin: 5px 0 0;
 }
 .shortcut-list {
   overflow: hidden;
@@ -572,9 +750,8 @@ dialog h3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     margin: 0 14px 11px;
   }
-  .function-list > div {
+  .guide-card-grid {
     grid-template-columns: 1fr;
-    gap: 8px;
   }
   .shortcut-row {
     grid-template-columns: 1fr;

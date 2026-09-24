@@ -1,6 +1,7 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { delay, execute } from '../language/interpreter';
 import { ScriptError } from '../language/syntax';
+import { createWorldBindings } from './script-api/world-bindings';
 import {
   loadActiveFileId,
   loadLineEffectsEnabled,
@@ -11,19 +12,26 @@ import {
 } from './script-storage';
 import {
   canExpand,
+  countUnlockedGpus,
+  countUnlockedRigs,
   createWorld,
   expandWorld,
-  mineSelected,
+  GPU_COUNT,
+  isGpuUnlocked,
+  mineGpu as mineGpuOnWorld,
   plotCount as worldPlotCount,
   plotIdForGpu,
   plotIdForRig,
   RIGS_PER_PLOT,
   rigCount,
   rigIdForGpu,
+  STARTING_GPU_COUNT,
+  STARTING_RIG_COUNT,
 } from './mining-world';
 
 const LINE_EFFECT_DURATION_MS = 620;
 const MINING_DURATION_MS = 850;
+const GPU_COOLDOWN_DURATION_MS = 5_000;
 const MAX_LOG_ENTRIES = 100;
 
 export type { ScriptFile } from './script-storage';
@@ -45,7 +53,9 @@ export class GameService {
   readonly viewedRigId = signal(1);
   readonly viewedPlotId = signal(1);
   readonly rigCount = computed(() => rigCount(this.world()));
+  readonly unlockedRigCount = computed(() => countUnlockedRigs(this.world()));
   readonly plotCount = computed(() => worldPlotCount(this.world()));
+  readonly unlockedGpuCount = computed(() => countUnlockedGpus(this.world()));
   readonly activeLine = signal(0);
   readonly executedLineEffects = signal<ReadonlyMap<number, number>>(new Map());
   readonly errorLine = signal(0);
@@ -76,13 +86,17 @@ export class GameService {
   private releaseStepWaiter?: () => void;
   private executionMode: 'continuous' | 'step' = 'continuous';
   private logId = 0;
+  private lastMiningCompletedAt: number | null = null;
 
   start(): void {
     if (this.started()) {
       return;
     }
     this.started.set(true);
-    this.log('Ambiente pronto. GPU connessa al blocco #001.', 'success');
+    this.log(
+      `Ambiente pronto. ${STARTING_RIG_COUNT} rig e ${STARTING_GPU_COUNT} GPU sbloccati; il resto della farm è bloccato.`,
+      'success',
+    );
     this.log('Esegui il codice per iniziare a minare.');
   }
 
@@ -154,6 +168,7 @@ export class GameService {
       this.resumeContinuousExecution();
       return;
     }
+    this.prepareNextBlock();
     const controller = new AbortController();
     this.clearLineEffects();
     this.controller = controller;
@@ -165,7 +180,12 @@ export class GameService {
       await execute(
         this.code(),
         {
-          mine: (signal) => this.mineBlock(signal),
+          globals: createWorldBindings(
+            this.world(),
+            (gpuId) => this.inspectedGpuId() === gpuId,
+            () => this.gpuWorkload(),
+            (gpuId) => this.mineBlock(gpuId, controller.signal),
+          ),
           print: (message) => this.log(message, 'output'),
           progress: () => this.selected().progress,
         },
@@ -304,8 +324,7 @@ export class GameService {
   }
 
   select(id: number): void {
-    if (!this.running() && this.world().blocks.some((block) => block.id === id)) {
-      this.world.update((world) => ({ ...world, selectedId: id }));
+    if (!this.running() && isGpuUnlocked(this.world(), id)) {
       this.viewedRigId.set(rigIdForGpu(id));
       this.viewedPlotId.set(plotIdForGpu(id));
       this.inspectedGpuId.set(id);
@@ -314,6 +333,7 @@ export class GameService {
 
   returnToRig(): void {
     this.inspectedGpuId.set(null);
+    this.lastMiningCompletedAt = null;
   }
 
   viewRig(id: number): void {
@@ -353,9 +373,9 @@ export class GameService {
     this.logs.set([]);
   }
 
-  private async mineBlock(signal: AbortSignal): Promise<void> {
+  private async mineBlock(gpuId: number, signal: AbortSignal): Promise<void> {
     if (this.selected().progress === 100) {
-      throw new Error('Blocco completato. Sblocca il prossimo blocco.');
+      this.prepareNextBlock();
     }
 
     this.mining.set(true);
@@ -367,31 +387,38 @@ export class GameService {
 
     // Un'interruzione durante l'animazione non deve assegnare progresso o premi.
     signal.throwIfAborted();
-    this.world.update(mineSelected);
+    this.world.update((world) => mineGpuOnWorld(world, gpuId));
+    this.lastMiningCompletedAt = Date.now();
 
     const block = this.selected();
     const blockNumber = String(block.id).padStart(3, '0');
-    this.log(`mine() → blocco #${blockNumber} · ${block.progress}%`, 'output');
+    this.log(`GPU ${gpuId} · mine() → blocco #${blockNumber} · ${block.progress}%`, 'output');
 
     if (block.progress === 100) {
-      this.log('Blocco estratto! +0.0100 BTC al saldo simulato.', 'success');
-      if (this.expandable()) {
-        const previousRigCount = this.rigCount();
-        this.world.update(expandWorld);
-        const id = this.selected().id;
-        this.log(`Blocco #${String(id).padStart(3, '0')} sbloccato. Nuova GPU pronta.`, 'success');
-        if (this.rigCount() > previousRigCount) {
-          this.log(
-            `Rig ${this.rigCount()} sbloccato. Continua a minare per espandere la farm.`,
-            'success',
-          );
-          if (this.inspectedGpuId() === null) {
-            this.viewedRigId.set(this.rigCount());
-            this.viewedPlotId.set(plotIdForRig(this.rigCount()));
-          }
-        }
-      }
+      this.log(
+        'Blocco estratto! +0.0100 BTC al saldo simulato. La farm mantiene le stesse GPU.',
+        'success',
+      );
     }
+  }
+
+  private prepareNextBlock(): void {
+    if (this.expandable()) {
+      this.world.update(expandWorld);
+      const id = this.selected().id;
+      this.log(`Blocco #${String(id).padStart(3, '0')} pronto. La farm mantiene le stesse GPU.`);
+    }
+  }
+
+  private gpuWorkload(): number {
+    if (this.mining()) {
+      return 1;
+    }
+    if (this.lastMiningCompletedAt === null) {
+      return 0;
+    }
+
+    return Math.max(0, 1 - (Date.now() - this.lastMiningCompletedAt) / GPU_COOLDOWN_DURATION_MS);
   }
 
   private reportExecutionError(error: unknown, signal: AbortSignal): void {

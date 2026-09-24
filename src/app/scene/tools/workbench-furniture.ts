@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createBox } from '../objects/mesh-primitives';
+import { createBox } from '../geometry/mesh-primitives';
 import { WORKBENCH_COLORS } from './workbench-palette';
 
 export function addWorkbenchFurniture(workbench: THREE.Group): void {

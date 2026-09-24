@@ -1,5 +1,8 @@
 import { parse } from './parser';
-import { Expression, ScriptError, Statement, Value } from './syntax';
+import { Expression, ScriptError, type ScriptObject, Statement, Value } from './syntax';
+import { VectorQueueValue } from './collections/vector-queue';
+import { VectorStackValue } from './collections/vector-stack';
+import { VectorValue } from './collections/vector';
 
 const MAX_EXECUTION_STEPS = 10_000;
 const YIELD_INTERVAL = 50;
@@ -7,14 +10,16 @@ const MAX_REPEAT_COUNT = 1000;
 const MAX_WAIT_MS = 5000;
 const MAX_OUTPUT_LENGTH = 2000;
 const BUILTIN_ARGUMENT_COUNTS: Record<string, number> = {
-  mine: 0,
   print: 1,
   wait: 1,
   progress: 0,
+  vector: 0,
+  stack: 0,
+  queue: 0,
 };
 
 export interface ScriptHost {
-  mine(signal: AbortSignal): Promise<void>;
+  globals?: Readonly<Record<string, Value>>;
   print(message: string): void;
   progress(): number;
 }
@@ -45,14 +50,19 @@ export async function execute(
 }
 
 class Interpreter {
-  private readonly variables = new Map<string, Value>();
+  private readonly variables: Map<string, Value>;
+  private readonly globalNames: ReadonlySet<string>;
   private steps = 0;
 
   constructor(
     private readonly host: ScriptHost,
     private readonly signal: AbortSignal,
     private readonly onLine: (line: number) => void | Promise<void>,
-  ) {}
+  ) {
+    const globals = host.globals ?? {};
+    this.variables = new Map(Object.entries(globals));
+    this.globalNames = new Set(Object.keys(globals));
+  }
 
   private async checkExecutionLimit(line: number): Promise<void> {
     this.signal.throwIfAborted();
@@ -79,6 +89,12 @@ class Interpreter {
         await this.evaluateExpression(statement.expression);
         break;
       case 'assign': {
+        if (this.globalNames.has(statement.name)) {
+          throw new ScriptError(
+            `la variabile di sistema "${statement.name}" non è modificabile.`,
+            statement.line,
+          );
+        }
         if (!statement.declare && !this.variables.has(statement.name)) {
           throw new ScriptError(
             `variabile "${statement.name}" non definita. Usa let.`,
@@ -166,7 +182,52 @@ class Interpreter {
         }
         return this.callBuiltin(expression.name, args, expression.line);
       }
+      case 'member': {
+        const object = this.requireScriptObject(
+          await this.evaluateExpression(expression.object),
+          expression.line,
+        );
+        if (expression.name === 'type') {
+          return object.objectType;
+        }
+        return object.getAttribute(expression.name, expression.line);
+      }
+      case 'index': {
+        const object = await this.evaluateExpression(expression.object);
+        if (!this.isIndexable(object)) {
+          throw new ScriptError('solo i vettori possono essere indicizzati.', expression.line);
+        }
+        const index = this.requireNumber(
+          await this.evaluateExpression(expression.index),
+          expression.line,
+        );
+        return object.getItem(index, expression.line);
+      }
+      case 'method-call': {
+        const object = this.requireScriptObject(
+          await this.evaluateExpression(expression.object),
+          expression.line,
+        );
+        const args: Value[] = [];
+        for (const arg of expression.args) {
+          args.push(await this.evaluateExpression(arg));
+        }
+        return await object.callMethod(expression.name, args, expression.line);
+      }
     }
+  }
+
+  private requireScriptObject(value: Value, line: number): ScriptObject {
+    if (typeof value !== 'object' || value === null) {
+      throw new ScriptError('attributi e metodi richiedono un oggetto.', line);
+    }
+    return value;
+  }
+
+  private isIndexable(
+    value: Value,
+  ): value is ScriptObject & { getItem(index: number, line: number): Value } {
+    return typeof value === 'object' && value !== null && 'getItem' in value;
   }
 
   private requireNumber(value: Value, line: number): number {
@@ -190,7 +251,7 @@ class Interpreter {
       return Boolean(left || right);
     }
     if (operator === '+' && (typeof left === 'string' || typeof right === 'string')) {
-      return `${left}${right}`.slice(0, MAX_OUTPUT_LENGTH);
+      return `${this.formatValue(left)}${this.formatValue(right)}`.slice(0, MAX_OUTPUT_LENGTH);
     }
     const a = this.requireNumber(left, line);
     const b = this.requireNumber(right, line);
@@ -237,22 +298,17 @@ class Interpreter {
       throw new ScriptError(`${name} richiede ${expectedArguments} argomenti.`, line);
     }
     switch (name) {
-      case 'mine':
-        try {
-          await this.host.mine(this.signal);
-        } catch (error) {
-          this.signal.throwIfAborted();
-          throw new ScriptError(
-            error instanceof Error ? error.message : 'mining non riuscito.',
-            line,
-          );
-        }
-        return 0;
       case 'print':
-        this.host.print(String(args[0]).slice(0, MAX_OUTPUT_LENGTH));
+        this.host.print(this.formatValue(args[0]).slice(0, MAX_OUTPUT_LENGTH));
         return 0;
       case 'progress':
         return this.host.progress();
+      case 'vector':
+        return new VectorValue();
+      case 'stack':
+        return new VectorStackValue();
+      case 'queue':
+        return new VectorQueueValue();
       case 'wait': {
         const time = this.requireNumber(args[0], line);
         if (time < 0 || time > MAX_WAIT_MS) {
@@ -264,5 +320,9 @@ class Interpreter {
       default:
         return 0;
     }
+  }
+
+  private formatValue(value: Value): string {
+    return typeof value === 'object' && value !== null ? value.toDisplayString() : String(value);
   }
 }

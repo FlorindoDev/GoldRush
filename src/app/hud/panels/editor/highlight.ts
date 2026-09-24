@@ -58,9 +58,9 @@ function highlightLine(line: string, lineNumber: number, options: HighlightOptio
   }
   if (executionId !== undefined) {
     classes.push('executed-line');
+    classes.push(`execution-${executionId}`);
   }
-  const executionAttribute = executionId === undefined ? '' : ` data-execution="${executionId}"`;
-  return `<span class="${classes.join(' ')}"${executionAttribute}><span class="line-number">${lineNumber}</span><span class="line-content">${html}</span></span>`;
+  return `<span class="${classes.join(' ')}"><span class="line-number">${lineNumber}</span><span class="line-content">${html}</span></span>`;
 }
 
 function getTokenClass(token: string): string {

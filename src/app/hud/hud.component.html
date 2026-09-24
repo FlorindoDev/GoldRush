@@ -1,0 +1,1027 @@
+<main class="game-shell">
+  <app-scene class="world-scene" />
+
+  <aside
+    class="bitcoin-counter"
+    aria-label="Bitcoin minati"
+  >
+    <app-bitcoin-model class="bitcoin-icon" />
+    <div>
+      <span>BTC MINATI</span>
+      <strong>{{ game.balance() }} BTC</strong>
+    </div>
+  </aside>
+
+  <div
+    class="utility-actions"
+    role="group"
+    aria-label="Strumenti"
+  >
+    <button
+      class="icon-button utility-button"
+      aria-label="Impostazioni"
+      title="Impostazioni"
+      (click)="openSettings()"
+    >
+      <app-icon name="settings" />
+    </button>
+    <button
+      class="icon-button utility-button"
+      aria-label="Manuale e tutorial"
+      title="Manuale e tutorial"
+      (click)="openGuide()"
+    >
+      <app-icon name="book" />
+    </button>
+  </div>
+
+  <div
+    class="floating-window editor-window"
+    [style.left.px]="editorPosition()?.x ?? null"
+    [style.top.px]="editorPosition()?.y ?? null"
+    [style.zIndex]="activeWindow() === 'editor' ? 22 : 21"
+    (pointerdown)="startWindowDrag($event, 'editor')"
+    (pointermove)="moveWindow($event)"
+    (pointerup)="stopWindowInteraction($event)"
+    (pointercancel)="stopWindowInteraction($event)"
+    (lostpointercapture)="stopWindowInteraction($event)"
+  >
+    <app-editor (openGuide)="openGuide()" />
+    @if (consoleDocked()) {
+      <div class="docked-console-window">
+        <app-console
+          [docked]="true"
+          (toggleDock)="toggleConsoleDock()"
+        />
+        <button
+          class="window-resize-handle vertical-resize-handle"
+          type="button"
+          aria-label="Ridimensiona console agganciata"
+          title="Ridimensiona console agganciata: trascina o usa le frecce su e giù"
+          (pointerdown)="startWindowResize($event, 'docked-console')"
+          (keydown)="resizeWindowWithKeyboard($event, 'docked-console')"
+        >
+          <app-icon name="resizeY" />
+        </button>
+      </div>
+    }
+    <button
+      class="window-resize-handle"
+      type="button"
+      aria-label="Ridimensiona editor"
+      title="Ridimensiona editor: trascina o usa le frecce"
+      (pointerdown)="startWindowResize($event, 'editor')"
+      (keydown)="resizeWindowWithKeyboard($event, 'editor')"
+    >
+      <app-icon name="resize" />
+    </button>
+  </div>
+
+  @if (!consoleDocked()) {
+    <div
+      class="floating-window console-window"
+      [style.left.px]="consolePosition()?.x ?? null"
+      [style.top.px]="consolePosition()?.y ?? null"
+      [style.zIndex]="activeWindow() === 'console' ? 22 : 20"
+      (pointerdown)="startWindowDrag($event, 'console')"
+      (pointermove)="moveWindow($event)"
+      (pointerup)="stopWindowInteraction($event)"
+      (pointercancel)="stopWindowInteraction($event)"
+      (lostpointercapture)="stopWindowInteraction($event)"
+    >
+      <app-console (toggleDock)="toggleConsoleDock()" />
+      <button
+        class="window-resize-handle"
+        type="button"
+        aria-label="Ridimensiona console"
+        title="Ridimensiona console: trascina o usa le frecce"
+        (pointerdown)="startWindowResize($event, 'console')"
+        (keydown)="resizeWindowWithKeyboard($event, 'console')"
+      >
+        <app-icon name="resize" />
+      </button>
+    </div>
+  }
+</main>
+<dialog
+  #guide
+  class="guide-dialog"
+  (click)="onBackdrop($event, guide)"
+  aria-labelledby="guide-title"
+>
+  <div class="guide-frame">
+    <div class="guide-topbar">
+      <div class="dialog-heading">
+        <button
+          class="icon-button guide-close"
+          aria-label="Chiudi tutorial"
+          title="Chiudi tutorial"
+          (click)="closeGuide()"
+        >
+          <app-icon name="close" />
+        </button>
+      </div>
+      <nav
+        class="guide-navigation"
+        role="tablist"
+        aria-label="Sezioni del tutorial"
+      >
+        <button
+          id="guide-tab-examples"
+          type="button"
+          role="tab"
+          aria-controls="guide-page-examples"
+          [attr.aria-selected]="guideSection() === 'examples'"
+          (click)="selectGuideSection('examples')"
+        >
+          Esempi
+        </button>
+        <button
+          id="guide-tab-functions"
+          type="button"
+          role="tab"
+          aria-controls="guide-page-functions"
+          [attr.aria-selected]="guideSection() === 'functions'"
+          (click)="selectGuideSection('functions')"
+        >
+          Funzioni
+        </button>
+        <button
+          id="guide-tab-constructs"
+          type="button"
+          role="tab"
+          aria-controls="guide-page-constructs"
+          [attr.aria-selected]="guideSection() === 'constructs'"
+          (click)="selectGuideSection('constructs')"
+        >
+          Costrutti
+        </button>
+        <button
+          id="guide-tab-gpu"
+          type="button"
+          role="tab"
+          aria-controls="guide-page-gpu"
+          [attr.aria-selected]="guideSection() === 'gpu'"
+          (click)="selectGuideSection('gpu')"
+        >
+          GPU
+        </button>
+        <button
+          id="guide-tab-shortcuts"
+          type="button"
+          role="tab"
+          aria-controls="guide-page-shortcuts"
+          [attr.aria-selected]="guideSection() === 'shortcuts'"
+          (click)="selectGuideSection('shortcuts')"
+        >
+          Scorciatoie
+        </button>
+      </nav>
+    </div>
+    <div
+      #guideContent
+      class="dialog-content"
+    >
+      @if (guideSection() === 'examples') {
+        <section
+          id="guide-page-examples"
+          class="guide-page guide-reference"
+          role="tabpanel"
+          aria-labelledby="guide-tab-examples"
+        >
+          <h2 id="guide-title">Esempi di codice</h2>
+          <p class="dialog-intro">
+            Parti con una GPU sbloccata; le altre 143 sono bloccate. Consulta un esempio oppure
+            caricalo nel file attivo.
+          </p>
+          <h3>Primi passi</h3>
+          <ol class="getting-started">
+            <li>
+              <strong>Scegli un esempio</strong>
+              <span>Aprilo per leggerlo; usa il pulsante per caricarlo nell'editor.</span>
+            </li>
+            <li>
+              <strong>Avvia il programma</strong>
+              <span
+                >Usa il pulsante a passo singolo o avvia tutto con il pulsante verde o Ctrl +
+                Invio.</span
+              >
+            </li>
+            <li>
+              <strong>Segui i risultati</strong>
+              <span
+                >La console mostra messaggi ed errori. Con una GPU servono 180 chiamate a
+                <code>gpu.mine()</code>.</span
+              >
+            </li>
+          </ol>
+          <div class="guide-examples">
+            @for (example of examples; track example.name) {
+              <details class="guide-example">
+                <summary>{{ example.name }}</summary>
+                <pre>{{ example.code }}</pre>
+                <button
+                  class="secondary-button small"
+                  [disabled]="game.running()"
+                  (click)="loadExample(example.code)"
+                >
+                  Carica nel file attivo
+                </button>
+              </details>
+            }
+          </div>
+          <p class="guide-note">
+            Ogni istruzione semplice finisce con <code>;</code>. I commenti iniziano con
+            <code>//</code>. Gli esempi dei cicli sono alternativi: provali su un blocco nuovo.
+          </p>
+          <h3>Controlli del laboratorio</h3>
+          <p class="guide-note">
+            Trascina la scena per ruotarla e usa la rotella per ingrandire. Clicca la GPU nel rig
+            sbloccato, oppure il pulsante numerato, per portarla al banco con un'animazione. La farm
+            ha 36 quadrati di sblocco e 144 alloggiamenti GPU; per ora solo il primo rig e la sua
+            GPU sono sbloccati. Completare un blocco non sblocca rig o GPU. Usa “Torna al quadrato”
+            per rimettere la scheda al suo posto. Trascina la barra del titolo per spostare editor e
+            console. Puoi agganciare la console sotto l'editor o sganciarla per spostarla da sola.
+            Ridimensiona le finestre dal manico nell'angolo; la console agganciata usa il manico sul
+            bordo inferiore.
+          </p>
+          <p class="guide-note">
+            Il codice resta salvato in questo browser quando disponibile. La partita è una
+            simulazione e riparte ricaricando la pagina.
+          </p>
+        </section>
+      }
+
+      @if (guideSection() === 'functions') {
+        <section
+          id="guide-page-functions"
+          class="guide-page guide-reference"
+          role="tabpanel"
+          aria-labelledby="guide-tab-functions"
+        >
+          <h2 id="guide-title">Funzioni di MineScript</h2>
+          <p class="dialog-intro">
+            Usa le funzioni per leggere il progresso, scrivere nella console e creare raccolte. Per
+            minare, chiama <code>mine()</code> sulla GPU che vuoi usare.
+          </p>
+          <div
+            class="guide-callout"
+            role="note"
+          >
+            <h3>
+              <app-icon name="info" />
+              <span>Come leggere i comandi</span>
+            </h3>
+            <p>
+              Le parentesi contengono i valori da passare alla funzione. Se sono vuote, non serve
+              alcun valore. Un risultato restituito può essere salvato in una variabile o usato in
+              una condizione.
+            </p>
+          </div>
+          <h3>Controllare il programma</h3>
+          <div class="guide-card-grid">
+            <article class="guide-card">
+              <h4>Controlla il progresso</h4>
+              <code class="guide-card-signature">progress()</code>
+              <p>
+                Restituisce la percentuale del blocco attivo, da <strong>0 a 100</strong>. Il valore
+                può avere decimali. Usalo nella condizione di un ciclo per fermarti quando il blocco
+                è completo.
+              </p>
+            </article>
+            <article class="guide-card">
+              <h4>Scrivi nella console</h4>
+              <code class="guide-card-signature">print(valore)</code>
+              <p>
+                Mostra un valore nella console: testo, numero o risultato di una funzione. Usa
+                <code>+</code> per unire testo e numeri in un unico messaggio.
+              </p>
+            </article>
+            <article class="guide-card">
+              <h4>Fai una pausa</h4>
+              <code class="guide-card-signature">wait(ms)</code>
+              <p>
+                Attende da 0 a 5000 millisecondi. Per esempio, <code>wait(1000)</code> attende un
+                secondo.
+              </p>
+              <p>Durante la pausa il mining non avanza. La velocità 2× non riduce questa attesa.</p>
+            </article>
+          </div>
+          <aside
+            class="guide-callout"
+            role="note"
+          >
+            <h3>
+              <app-icon name="info" />
+              <span>Quando raggiungi il 100%</span>
+            </h3>
+            <p>
+              Ricevi 0,0100 BTC simulati, una sola volta per blocco. La chiamata successiva a
+              <code>gpu.mine()</code>, oppure un nuovo avvio del programma, prepara il blocco
+              seguente. Rig e GPU rimangono gli stessi.
+            </p>
+          </aside>
+          <h3>Scegliere una raccolta di dati</h3>
+          <p>
+            Usa un vettore per leggere e modificare valori in qualsiasi posizione. Usa una pila o
+            una coda per decidere in quale ordine recuperare i vettori. Ogni raccolta può contenere
+            al massimo <strong>1000 elementi</strong>.
+          </p>
+          <div class="guide-card-grid guide-collection-list">
+            <article class="guide-card">
+              <h4>Vettore: una lista di valori</h4>
+              <code class="guide-card-signature">vector()</code>
+              <p>
+                Crea una lista vuota e modificabile. Leggi un elemento con <code>[0]</code>; gli
+                indici partono da zero e arrivano a <code>length - 1</code>.
+              </p>
+              <details class="guide-card-details">
+                <summary>Leggere, modificare e cercare valori</summary>
+                <p>
+                  Chiama i metodi dopo il nome del vettore e un punto. Gli attributi si leggono
+                  nello stesso modo, ma senza parentesi.
+                </p>
+                <dl class="guide-definition-list">
+                  <div>
+                    <dt><code>length</code> / <code>size</code></dt>
+                    <dd>Numero di elementi. Sono attributi, senza parentesi.</dd>
+                  </div>
+                  <div>
+                    <dt><code>first</code> / <code>last</code></dt>
+                    <dd>
+                      Primo e ultimo valore; restituiscono <code>null</code> se la lista è vuota.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>get(indice)</code></dt>
+                    <dd>Legge il valore nella posizione indicata, come le parentesi quadre.</dd>
+                  </div>
+                  <div>
+                    <dt><code>push(valore)</code></dt>
+                    <dd>Aggiunge in fondo e restituisce il nuovo numero di elementi.</dd>
+                  </div>
+                  <div>
+                    <dt><code>pop()</code></dt>
+                    <dd>
+                      Toglie e restituisce l'ultimo valore; restituisce <code>null</code> se la
+                      lista è vuota.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>set(indice, valore)</code></dt>
+                    <dd>
+                      Sostituisce un valore esistente e restituisce il valore inserito. Usa questo
+                      metodo per modificare una posizione.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>insert(indice, valore)</code></dt>
+                    <dd>
+                      Inserisce nella posizione indicata e sposta avanti gli elementi successivi.
+                      Restituisce la nuova lunghezza; l'indice può essere uguale a
+                      <code>length</code> per aggiungere in fondo.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>remove(indice)</code></dt>
+                    <dd>
+                      Toglie e restituisce il valore indicato. Gli elementi successivi scalano di
+                      una posizione.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>contains(valore)</code></dt>
+                    <dd>
+                      Restituisce <code>true</code> se il valore è presente, altrimenti
+                      <code>false</code>.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>indexOf(valore)</code></dt>
+                    <dd>
+                      Restituisce l'indice della prima occorrenza, oppure <code>-1</code> se il
+                      valore manca.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>concat(vettore)</code></dt>
+                    <dd>
+                      Restituisce un nuovo vettore con gli elementi di entrambi, nello stesso
+                      ordine.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>slice(inizio, fine)</code></dt>
+                    <dd>
+                      Restituisce un nuovo vettore dalla posizione iniziale inclusa a quella finale
+                      esclusa. I due indici devono essere tra 0 e <code>length</code>, con fine
+                      maggiore o uguale a inizio.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>copy()</code></dt>
+                    <dd>
+                      Crea un nuovo vettore con gli stessi elementi. Eventuali vettori contenuti
+                      restano condivisi.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>reverse()</code> / <code>sort()</code></dt>
+                    <dd>
+                      Modificano il vettore e lo restituiscono: il primo inverte l'ordine, il
+                      secondo ordina in senso crescente. <code>sort()</code> richiede solo numeri
+                      oppure solo stringhe.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>clear()</code> / <code>isEmpty()</code></dt>
+                    <dd>
+                      Il primo svuota la lista. Il secondo restituisce <code>true</code> se è vuota,
+                      altrimenti <code>false</code>.
+                    </dd>
+                  </div>
+                </dl>
+                <p>Un indice fuori intervallo interrompe il programma con un errore.</p>
+              </details>
+            </article>
+            <article class="guide-card">
+              <h4>Pila: recupera l'ultimo inserito</h4>
+              <code class="guide-card-signature">stack()</code>
+              <p>
+                Crea una pila vuota. Accetta solo vettori: l'ultimo che inserisci è il primo che
+                recuperi, come in una pila di piatti.
+              </p>
+              <details class="guide-card-details">
+                <summary>Inserire e recuperare vettori dalla pila</summary>
+                <dl class="guide-definition-list">
+                  <div>
+                    <dt><code>push(vettore)</code></dt>
+                    <dd>Aggiunge in cima e restituisce il nuovo numero di vettori.</dd>
+                  </div>
+                  <div>
+                    <dt><code>pop()</code> / <code>peek()</code></dt>
+                    <dd>
+                      Leggono il vettore in cima. <code>pop()</code> lo toglie,
+                      <code>peek()</code> lo lascia nella pila. Se è vuota, restituiscono
+                      <code>null</code>.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>size</code> / <code>length</code></dt>
+                    <dd>Numero di vettori presenti. Sono attributi, senza parentesi.</dd>
+                  </div>
+                  <div>
+                    <dt><code>isEmpty()</code> / <code>clear()</code></dt>
+                    <dd>
+                      Il primo restituisce <code>true</code> se la pila è vuota, altrimenti
+                      <code>false</code>. Il secondo la svuota.
+                    </dd>
+                  </div>
+                </dl>
+              </details>
+            </article>
+            <article class="guide-card">
+              <h4>Coda: recupera il primo inserito</h4>
+              <code class="guide-card-signature">queue()</code>
+              <p>
+                Crea una coda vuota. Accetta solo vettori: li recuperi nello stesso ordine in cui li
+                inserisci, come in una fila alla cassa.
+              </p>
+              <details class="guide-card-details">
+                <summary>Inserire e recuperare vettori dalla coda</summary>
+                <dl class="guide-definition-list">
+                  <div>
+                    <dt><code>enqueue(vettore)</code></dt>
+                    <dd>Aggiunge in fondo e restituisce il nuovo numero di vettori.</dd>
+                  </div>
+                  <div>
+                    <dt><code>dequeue()</code></dt>
+                    <dd>
+                      Toglie e restituisce il primo vettore; restituisce <code>null</code> se la
+                      coda è vuota.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>peek()</code> / <code>front()</code> / <code>back()</code></dt>
+                    <dd>
+                      Leggono senza togliere: i primi due il vettore in testa, il terzo quello in
+                      fondo. Se la coda è vuota, restituiscono <code>null</code>.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt><code>size</code> / <code>length</code></dt>
+                    <dd>Numero di vettori presenti. Sono attributi, senza parentesi.</dd>
+                  </div>
+                  <div>
+                    <dt><code>isEmpty()</code> / <code>clear()</code></dt>
+                    <dd>
+                      Il primo restituisce <code>true</code> se la coda è vuota, altrimenti
+                      <code>false</code>. Il secondo la svuota.
+                    </dd>
+                  </div>
+                </dl>
+              </details>
+            </article>
+          </div>
+          <p>
+            <code>null</code> significa che non c'è un valore. Pile e code conservano i vettori
+            inseriti: modificare un vettore modifica anche quello presente nella raccolta.
+          </p>
+          <h3>Esempio rapido</h3>
+          <pre class="guide-code">
+let gpu = plots[0].rig(0).gpu(0);
+gpu.mine();
+print("Progresso: " + progress());</pre>
+          <p class="guide-note">
+            <code>gpu.mine()</code> aggiorna la scena. <code>wait()</code> aggiunge una pausa
+            facoltativa.
+          </p>
+        </section>
+      }
+
+      @if (guideSection() === 'gpu') {
+        <section
+          id="guide-page-gpu"
+          class="guide-page guide-reference"
+          role="tabpanel"
+          aria-labelledby="guide-tab-gpu"
+        >
+          <h2 id="guide-title">Leggere i dati della GPU</h2>
+          <p class="dialog-intro">
+            Una GPU è la scheda che esegue il mining. Dal programma puoi leggere se è disponibile,
+            quanto consuma e come cambiano temperatura e ventole.
+          </p>
+          <h3>Trovare una scheda nella farm</h3>
+          <p>
+            La farm è divisa in <strong>6 plot</strong>, cioè aree. Ogni area contiene
+            <strong>6 rig</strong>, le strutture che ospitano le schede. Ogni rig ha
+            <strong>4 slot GPU</strong>, per un totale di 144 posti.
+          </p>
+          <pre class="guide-code">let gpu = plots[0].rig(0).gpu(0);</pre>
+          <ol class="guide-steps">
+            <li><code>plots[0]</code> sceglie la prima area. Indici validi: da 0 a 5.</li>
+            <li>
+              <code>.rig(0)</code> sceglie il primo rig di quell'area. Indici validi: da 0 a 5.
+            </li>
+            <li>
+              <code>.gpu(0)</code> sceglie il primo slot di quel rig. Indici validi: da 0 a 3.
+            </li>
+          </ol>
+          <p>
+            Gli indici partono da zero; gli identificativi <code>id</code> partono da uno. Puoi
+            anche usare <code>plots[0].rig(0).gpus[0]</code>.
+          </p>
+          <aside
+            class="guide-callout"
+            role="note"
+          >
+            <h3>
+              <app-icon name="info" />
+              <span>All'inizio hai una GPU disponibile</span>
+            </h3>
+            <p>
+              Sono sbloccati solo il primo rig e la sua prima scheda. Puoi leggere anche gli slot
+              bloccati, ma non usarli per minare. Lo sblocco di altri rig e GPU non è ancora
+              disponibile.
+            </p>
+          </aside>
+          <h3>Minare con questa GPU</h3>
+          <p>
+            <code>mine()</code> è un metodo della GPU. <code>gpu.mine()</code> fa lavorare solo la
+            scheda indicata. Ogni chiamata aggiunge 80/144% al blocco attivo e attende che il lavoro
+            finisca prima di proseguire.
+          </p>
+          <pre class="guide-code">gpu.mine();</pre>
+          <p>
+            Con la GPU iniziale servono 180 chiamate a <code>gpu.mine()</code> per completare un
+            blocco. Ogni chiamata dura 850 ms, oppure 425 ms a velocità 2×. La GPU e il rig devono
+            essere sbloccati. Usa <code>progress()</code> per sapere quando fermare il ciclo.
+          </p>
+          <h3>Identità e stato</h3>
+          <div class="guide-card-grid">
+            <article class="guide-card">
+              <h4>Identificare la scheda</h4>
+              <p>
+                <code>gpu.id</code>, <code>gpu.rigId</code> e <code>gpu.plotId</code> identificano
+                scheda, rig e plot.
+              </p>
+              <p><code>gpu.type</code> restituisce <code>GPU</code>.</p>
+            </article>
+            <article class="guide-card">
+              <h4>Sapere se può minare</h4>
+              <p>
+                <code>gpu.unlocked</code>, <code>gpu.working</code> e
+                <code>gpu.isWorking()</code> restituiscono <code>true</code> quando GPU e rig sono
+                entrambi sbloccati; altrimenti restituiscono <code>false</code>.
+              </p>
+              <p>
+                <strong>Attenzione al nome:</strong> <code>working</code> indica la disponibilità,
+                non un mining in corso.
+              </p>
+            </article>
+            <article class="guide-card">
+              <h4>Sapere se è al banco</h4>
+              <p>
+                <code>gpu.selected</code> e <code>gpu.isSelected()</code> indicano se questa GPU è
+                al banco: <code>true</code> se è selezionata, <code>false</code> altrimenti.
+              </p>
+            </article>
+            <article class="guide-card">
+              <h4>Modello</h4>
+              <p>Restituisce il nome della scheda: <code>Blockcraft Miner X1</code>.</p>
+              <code class="guide-card-signature">gpu.getModel()</code>
+              <p class="guide-card-property">Attributo: <code>gpu.model</code></p>
+            </article>
+          </div>
+          <h3>Frequenza, consumo e raffreddamento</h3>
+          <p>
+            Questi valori sono simulati in base al lavoro dell'intera farm. Durante il mining
+            salgono; dopo ogni chiamata a <code>gpu.mine()</code> tornano gradualmente ai valori di
+            riposo. Non misurano l'hardware del tuo computer.
+          </p>
+          <p>
+            Puoi leggere ogni dato con un metodo, che usa le parentesi, oppure con il relativo
+            attributo, senza parentesi. Entrambi restituiscono lo stesso valore al momento della
+            lettura.
+          </p>
+          <div class="guide-card-grid">
+            <article class="guide-card">
+              <h4>Frequenza</h4>
+              <p>Velocità di lavoro della scheda, in gigahertz (GHz).</p>
+              <ul class="guide-facts">
+                <li>A riposo: <strong>0,5 GHz</strong></li>
+                <li>Durante il mining: <strong>1,8 GHz</strong></li>
+                <li>Massimo del modello: <strong>2 GHz</strong></li>
+              </ul>
+              <details class="guide-card-details">
+                <summary>Leggere frequenza attuale e massima</summary>
+                <code class="guide-card-signature">gpu.getFrequencyGhz()</code>
+                <p>Attributo equivalente: <code>gpu.frequencyGhz</code>.</p>
+                <code class="guide-card-signature">gpu.getMaxFrequencyGhz()</code>
+                <p>Attributo equivalente: <code>gpu.maxFrequencyGhz</code>.</p>
+              </details>
+            </article>
+            <article class="guide-card">
+              <h4>Consumo</h4>
+              <p>Potenza assorbita dalla scheda, in watt (W).</p>
+              <ul class="guide-facts">
+                <li>A riposo: <strong>32 W</strong></li>
+                <li>Durante il mining: <strong>205 W</strong></li>
+              </ul>
+              <details class="guide-card-details">
+                <summary>Leggere il consumo attuale</summary>
+                <code class="guide-card-signature">gpu.getPowerWatts()</code>
+                <p>Attributo equivalente: <code>gpu.powerWatts</code>.</p>
+              </details>
+            </article>
+            <article class="guide-card">
+              <h4>Temperatura</h4>
+              <p>Temperatura della scheda, in gradi Celsius (°C).</p>
+              <ul class="guide-facts">
+                <li>A riposo: <strong>34 °C</strong></li>
+                <li>Durante il mining: <strong>72 °C</strong></li>
+                <li>Massimo del modello: <strong>90 °C</strong></li>
+              </ul>
+              <details class="guide-card-details">
+                <summary>Leggere temperatura attuale e massima</summary>
+                <code class="guide-card-signature">gpu.getTemperatureCelsius()</code>
+                <p>Attributo equivalente: <code>gpu.temperatureCelsius</code>.</p>
+                <code class="guide-card-signature">gpu.getMaxTemperatureCelsius()</code>
+                <p>Attributo equivalente: <code>gpu.maxTemperatureCelsius</code>.</p>
+              </details>
+            </article>
+            <article class="guide-card">
+              <h4>Ventole</h4>
+              <p>Velocità di rotazione, in percentuale o in giri al minuto (RPM).</p>
+              <ul class="guide-facts">
+                <li>A riposo: <strong>20% · 640 RPM</strong></li>
+                <li>Durante il mining: <strong>70% · 2240 RPM</strong></li>
+                <li>Massimo del modello: <strong>3200 RPM</strong></li>
+              </ul>
+              <details class="guide-card-details">
+                <summary>Leggere percentuale e giri al minuto</summary>
+                <code class="guide-card-signature">gpu.getFanSpeed()</code>
+                <p>Percentuale, da 0 a 100. Attributo: <code>gpu.fanSpeed</code>.</p>
+                <code class="guide-card-signature">gpu.getCurrentFanSpeedRpm()</code>
+                <p>
+                  RPM attuali, calcolati dalla percentuale. Attributo:
+                  <code>gpu.currentFanSpeedRpm</code>.
+                </p>
+                <code class="guide-card-signature">gpu.getMaxFanSpeedRpm()</code>
+                <p>RPM massimi. Attributo: <code>gpu.maxFanSpeedRpm</code>.</p>
+              </details>
+            </article>
+          </div>
+          <aside
+            class="guide-callout"
+            role="note"
+          >
+            <h3>
+              <app-icon name="info" />
+              <span>Questi dati sono di sola lettura</span>
+            </h3>
+            <p>
+              Puoi consultarli, ma non cambiare frequenza, consumo o ventole dal programma. I
+              massimi descrivono il modello della scheda.
+            </p>
+          </aside>
+          <h3>Consultare plot e rig</h3>
+          <p>
+            <code>gpuCount</code> conta le GPU utilizzabili, con scheda e rig sbloccati.
+            <code>gpuCapacity</code> conta tutti gli slot, anche quelli bloccati. Le raccolte
+            <code>plots</code>, <code>rigs</code> e <code>gpus</code> sono di sola lettura.
+          </p>
+          <details class="guide-card-details">
+            <summary>Attributi e metodi di plot e rig</summary>
+            <dl class="guide-definition-list">
+              <div>
+                <dt>Plot: <code>id</code>, <code>type</code></dt>
+                <dd>Identificativo dell'area e tipo dell'oggetto, che vale <code>plot</code>.</dd>
+              </div>
+              <div>
+                <dt>Plot: <code>rigs</code>, <code>rig(indice)</code></dt>
+                <dd>Il vettore dei rig e il metodo per sceglierne uno per indice.</dd>
+              </div>
+              <div>
+                <dt>
+                  Plot: <code>rigCount</code>, <code>gpuCount</code>, <code>gpuCapacity</code>
+                </dt>
+                <dd>Numero totale di rig (6), GPU utilizzabili e slot totali (24).</dd>
+              </div>
+              <div>
+                <dt>Rig: <code>id</code>, <code>plotId</code>, <code>type</code></dt>
+                <dd>
+                  Identificativi del rig e dell'area a cui appartiene. Il tipo vale
+                  <code>rig</code>.
+                </dd>
+              </div>
+              <div>
+                <dt>Rig: <code>unlocked</code></dt>
+                <dd><code>true</code> se il rig è sbloccato, <code>false</code> altrimenti.</dd>
+              </div>
+              <div>
+                <dt>Rig: <code>gpus</code>, <code>gpu(indice)</code></dt>
+                <dd>Il vettore degli slot GPU e il metodo per sceglierne uno per indice.</dd>
+              </div>
+              <div>
+                <dt>Rig: <code>gpuCount</code>, <code>gpuCapacity</code></dt>
+                <dd>Numero di GPU utilizzabili e slot totali (4).</dd>
+              </div>
+            </dl>
+          </details>
+          <h3>Esempio rapido</h3>
+          <pre class="guide-code">
+let gpu = plots[0].rig(0).gpu(0);
+print(gpu.getModel());
+print(gpu.getTemperatureCelsius() + " °C");
+print(gpu.getFanSpeed() + "%");</pre>
+        </section>
+      }
+
+      @if (guideSection() === 'constructs') {
+        <section
+          id="guide-page-constructs"
+          class="guide-page guide-reference"
+          role="tabpanel"
+          aria-labelledby="guide-tab-constructs"
+        >
+          <h2 id="guide-title">Costrutti del linguaggio</h2>
+          <p class="dialog-intro">
+            Le variabili conservano valori, le condizioni scelgono cosa eseguire e i cicli ripetono
+            le istruzioni. Combinandoli puoi automatizzare il mining.
+          </p>
+          <aside
+            class="guide-callout"
+            role="note"
+          >
+            <h3>
+              <app-icon name="info" />
+              <span>Regole fondamentali</span>
+            </h3>
+            <ul class="guide-facts">
+              <li>Termina ogni istruzione semplice con <code>;</code>.</li>
+              <li>
+                Racchiudi il corpo di un ciclo o di una condizione tra
+                <code>&lbrace; &rbrace;</code>.
+              </li>
+              <li>
+                Scrivi <code>//</code> per aggiungere un commento: il resto della riga viene
+                ignorato.
+              </li>
+            </ul>
+          </aside>
+          <div class="syntax-list">
+            <article>
+              <h3>Conservare e aggiornare un valore</h3>
+              <p>
+                Una variabile associa un nome a un valore. Creala con <code>let</code>; usa
+                <code>=</code> per assegnarle un valore nuovo.
+              </p>
+              <code>let obiettivo = 100;</code>
+              <code>obiettivo = obiettivo - 20;</code>
+              <code>let i = 0; i++;</code>
+              <p>
+                <code>++</code> aumenta di uno; <code>--</code> diminuisce di uno. Le variabili
+                valgono per tutta l'esecuzione, anche fuori dal blocco in cui sono dichiarate, e si
+                azzerano al prossimo avvio. Un altro <code>let</code> con lo stesso nome ne
+                sostituisce il valore.
+              </p>
+              <details class="guide-card-details">
+                <summary>Valori disponibili e nomi delle variabili</summary>
+                <ul class="guide-facts">
+                  <li><strong>Numeri:</strong> interi o decimali, scritti con il punto.</li>
+                  <li><strong>Stringhe:</strong> testo tra virgolette singole o doppie.</li>
+                  <li>
+                    <strong>Booleani:</strong> <code>true</code> (vero) e
+                    <code>false</code> (falso).
+                  </li>
+                  <li><strong>Valore assente:</strong> <code>null</code>.</li>
+                  <li><strong>Raccolte:</strong> vettori, pile e code, descritte in Funzioni.</li>
+                  <li>
+                    <strong>Oggetti della farm:</strong> plot, rig e schede, descritti in GPU.
+                  </li>
+                </ul>
+                <p>
+                  Nei nomi usa lettere da A a Z, cifre e <code>_</code>, senza iniziare con una
+                  cifra. Maiuscole e minuscole sono diverse. Dichiara una variabile prima di usarla.
+                </p>
+              </details>
+            </article>
+            <article>
+              <h3>Ripetere un numero preciso di volte: <code>repeat</code></h3>
+              <p>
+                Usalo quando sai già quante ripetizioni servono. Accetta un numero intero da 0 a
+                1000.
+              </p>
+              <code>repeat (5) &lbrace; ... &rbrace;</code>
+              <p>Il corpo viene eseguito cinque volte. Con zero ripetizioni viene saltato.</p>
+            </article>
+            <article>
+              <h3>Ripetere finché serve: <code>while</code></h3>
+              <p>Usalo quando devi raggiungere un risultato, come completare il blocco attivo.</p>
+              <code>while (progress() &lt; 100) &lbrace; ... &rbrace;</code>
+              <p>
+                Controlla la condizione prima di ogni ripetizione. Se è falsa, il ciclo termina; se
+                è già falsa all'inizio, il corpo non viene eseguito.
+              </p>
+              <p>
+                Il corpo deve far avanzare il lavoro: qui serve <code>gpu.mine()</code>. Leggere il
+                progresso o aspettare non lo fa aumentare.
+              </p>
+            </article>
+            <article>
+              <h3>Ripetere con un contatore: <code>for</code></h3>
+              <p>
+                Usalo quando vuoi conoscere il numero della ripetizione o scorrere una raccolta.
+              </p>
+              <code>for (let i = 0; i &lt; 5; i++) &lbrace; ... &rbrace;</code>
+              <ol class="guide-steps">
+                <li><code>let i = 0</code> crea il contatore una sola volta.</li>
+                <li>
+                  <code>i &lt; 5</code> decide se eseguire il corpo, prima di ogni ripetizione.
+                </li>
+                <li><code>i++</code> aggiorna il contatore dopo il corpo.</li>
+              </ol>
+              <p>Il corpo viene eseguito cinque volte, con <code>i</code> da 0 a 4.</p>
+            </article>
+            <article>
+              <h3>Scegliere cosa eseguire: <code>if</code> e <code>else</code></h3>
+              <p>
+                <code>if</code> esegue il suo blocco quando la condizione è vera.
+                <code>else</code> esegue l'alternativa quando è falsa; puoi ometterlo.
+              </p>
+              <code>if (progress() == 100) &lbrace; ... &rbrace;</code>
+              <code>else &lbrace; ... &rbrace;</code>
+              <p>
+                <code>==</code> confronta due valori; <code>=</code> assegna un valore a una
+                variabile. Sono operazioni diverse.
+              </p>
+            </article>
+            <article>
+              <h3>Calcolare e confrontare valori</h3>
+              <code>+ - * / %</code>
+              <p>
+                Somma, sottrazione, moltiplicazione, divisione e resto della divisione.
+                <code>+</code> unisce i valori come testo se uno dei due è una stringa. Dividere per
+                zero, anche con <code>%</code>, causa un errore.
+              </p>
+              <code>== != &lt; &lt;= &gt; &gt;=</code>
+              <p>
+                Uguale, diverso, minore, minore o uguale, maggiore, maggiore o uguale. Restituiscono
+                <code>true</code> oppure <code>false</code>. I confronti di ordine richiedono
+                numeri; <code>==</code> e <code>!=</code>
+                confrontano anche il tipo, senza convertire testo in numero.
+              </p>
+              <code>&amp;&amp; || !</code>
+              <ul class="guide-facts">
+                <li>
+                  <code>&amp;&amp;</code> significa “e”: entrambe le condizioni devono essere vere.
+                </li>
+                <li><code>||</code> significa “o”: basta che una condizione sia vera.</li>
+                <li><code>!</code> significa “non”: inverte il valore della condizione.</li>
+              </ul>
+              <p>
+                Usa le parentesi tonde per rendere esplicito l'ordine dei calcoli e dei confronti.
+              </p>
+            </article>
+          </div>
+          <h3>Ripeti, controlla, sperimenta</h3>
+          <pre class="guide-code">{{ languageGuideExample }}</pre>
+          <details class="guide-card-details">
+            <summary>Se il programma si interrompe</summary>
+            <p>
+              La console indica l'errore e la riga da controllare. Verifica prima punti e virgola,
+              parentesi, nomi delle variabili e valori passati ai comandi.
+            </p>
+            <ul class="guide-facts">
+              <li>
+                Un programma può contenere al massimo 20.000 caratteri e 64 livelli di annidamento.
+              </li>
+              <li>
+                Ogni esecuzione si ferma oltre 10.000 operazioni. Anche condizioni e calcoli
+                contano: non è il numero di righe né quello delle chiamate a
+                <code>gpu.mine()</code>.
+              </li>
+              <li>
+                La console conserva gli ultimi 100 messaggi, ciascuno lungo al massimo 2000
+                caratteri.
+              </li>
+              <li>Un errore durante l'esecuzione conserva il lavoro già completato.</li>
+              <li>
+                Interrompere il programma annulla il mining ancora in corso, senza assegnarne
+                progresso o premio.
+              </li>
+            </ul>
+          </details>
+        </section>
+      }
+
+      @if (guideSection() === 'shortcuts') {
+        <section
+          id="guide-page-shortcuts"
+          class="guide-page"
+          role="tabpanel"
+          aria-labelledby="guide-tab-shortcuts"
+        >
+          <h2 id="guide-title">Scorciatoie</h2>
+          <p class="dialog-intro">Combinazioni disponibili nell'editor e sulle finestre.</p>
+          <div class="shortcut-list">
+            @for (group of shortcutGroups; track group.name) {
+              <div class="shortcut-group">
+                <h3>{{ group.name }}</h3>
+                @for (shortcut of group.shortcuts; track shortcut.action) {
+                  <div class="shortcut-row">
+                    <span>{{ shortcut.action }}</span>
+                    <span
+                      class="shortcut-keys"
+                      aria-label="Combinazione di tasti"
+                    >
+                      @for (key of shortcut.keys; track $index) {
+                        @if (!$first) {
+                          <span class="shortcut-separator">{{ shortcut.separator }}</span>
+                        }
+                        <kbd>{{ key }}</kbd>
+                      }
+                    </span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+          <p class="guide-note">
+            Per la console agganciata, il manico accetta solo freccia su e freccia giù.
+          </p>
+        </section>
+      }
+    </div>
+  </div>
+</dialog>
+
+<dialog
+  #settings
+  class="settings-dialog"
+  (click)="onBackdrop($event, settings)"
+  aria-label="Impostazioni"
+>
+  <div class="settings-heading">
+    <span class="eyebrow">IMPOSTAZIONI</span>
+    <button
+      class="icon-button"
+      aria-label="Chiudi impostazioni"
+      (click)="closeSettings()"
+    >
+      <app-icon name="close" />
+    </button>
+  </div>
+  <label class="setting-option">
+    <span>
+      <strong>Animazione riga eseguita</strong>
+      <small>Pulse e vibrazione sulla riga attiva</small>
+    </span>
+    <input
+      type="checkbox"
+      [checked]="game.lineEffectsEnabled()"
+      (change)="updateLineEffects($event)"
+    />
+  </label>
+</dialog>

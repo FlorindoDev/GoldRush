@@ -8,8 +8,8 @@ import {
   output,
   viewChild,
 } from '@angular/core';
-import { GameService, LogEntry } from '../game/game.service';
-import { IconComponent } from '../shared/icon.component';
+import { GameService, LogEntry } from '../../../game/game.service';
+import { IconComponent } from '../../icons/icon.component';
 
 const LOG_MARKERS: Record<LogEntry['kind'], string> = {
   info: '›',

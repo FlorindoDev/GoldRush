@@ -1,0 +1,269 @@
+:host {
+  display: contents;
+}
+
+.scene-hud {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  width: 252px;
+  max-width: calc(100% - 48px);
+  max-height: calc(100dvh - 128px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  border: 1px solid #465045;
+  border-top: 3px solid #b8c79e;
+  border-radius: 3px;
+  background: #1b211e;
+  color: #e0e5da;
+  pointer-events: auto;
+  scrollbar-width: thin;
+}
+
+.hud-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.hud-group + .hud-group {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #343c32;
+}
+
+.hud-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font: 12px var(--mono);
+  color: #a8b1a1;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #d4dccb;
+  font: 500 11px var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.section-title app-icon {
+  width: 14px;
+  height: 14px;
+  color: #9da995;
+}
+
+.section-meta {
+  color: #95a18c;
+  font: 11px var(--mono);
+}
+
+.gpu-heading {
+  margin-top: 6px;
+}
+
+.rig-options {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.gpu-slots {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.scene-hud button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: #c5cebd;
+  font: 14px var(--mono);
+  cursor: pointer;
+}
+
+.scene-hud .rig-choice,
+.gpu-slots button {
+  padding: 8px 0;
+  background: #252d24;
+  font: 13px var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-hud .rig-choice {
+  position: relative;
+  min-height: 36px;
+  border-color: #3a4438;
+  background: #202820;
+}
+
+.scene-hud .rig-choice.locked {
+  border-style: dashed;
+  background: #1b211d;
+  color: #879184;
+}
+
+.scene-hud .gpu-slot {
+  position: relative;
+  min-height: 49px;
+  padding-bottom: 13px;
+  border-color: #3a4438;
+  background: #242e25;
+}
+
+.scene-hud .gpu-slot.locked {
+  border-style: dashed;
+  background: #1b211d;
+}
+
+.gpu-slot::after {
+  content: '';
+  position: absolute;
+  right: 9px;
+  bottom: 7px;
+  left: 9px;
+  height: 3px;
+  background: repeating-linear-gradient(90deg, #111b14 0 2px, transparent 2px 5px);
+}
+
+.slot-light {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #58614f;
+}
+
+.available .slot-light {
+  background: #b8d49a;
+}
+
+.scene-hud button:enabled:hover {
+  background: #303a2e;
+  color: #edf2e7;
+  filter: none;
+}
+
+.scene-hud button[aria-pressed='true'] {
+  background: #343f30;
+  border-color: #899c72;
+  color: #e4f0d8;
+}
+
+.scene-hud button:disabled {
+  color: #65705e;
+  opacity: 0.65;
+  cursor: default;
+}
+
+.scene-hud button:focus-visible {
+  outline: 2px solid #b8d49a;
+  outline-offset: 2px;
+}
+
+.scene-hud .back-to-rig {
+  justify-content: flex-start;
+  min-height: 34px;
+  padding-left: 0;
+  color: #a8b1a1;
+  font-size: 12px;
+}
+
+.back-to-rig app-icon {
+  transform: rotate(180deg);
+}
+
+.rig-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #8f9b87;
+  font: 11px var(--mono);
+}
+
+.plot-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.scene-hud .plot-choice {
+  gap: 6px;
+  padding: 8px 4px;
+  border-color: #3a4438;
+  background: #222a23;
+  font-size: 12px;
+}
+
+.plot-number {
+  font: 14px var(--mono);
+}
+
+.scene-hud .station-choice {
+  justify-content: flex-start;
+  width: 100%;
+  font-size: 13px;
+}
+
+.station-arrow {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  color: #8f9b87;
+}
+
+.camera-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.scene-hud .view-preset {
+  padding: 8px 5px;
+  border-color: #3a4438;
+  font-size: 12px;
+}
+
+.overhead-camera {
+  transform: rotate(90deg);
+}
+
+.scene-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .scene-hud {
+    bottom: 216px;
+    max-height: calc(100dvh - 320px);
+  }
+}
+
+@media (max-width: 600px) {
+  .scene-hud {
+    left: 12px;
+    bottom: calc(min(170px, 23dvh) + 24px);
+    width: 212px;
+    max-width: calc(100% - 24px);
+    max-height: 150px;
+    padding: 12px;
+  }
+}

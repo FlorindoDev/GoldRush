@@ -8,8 +8,8 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { GameService } from '../game/game.service';
-import { IconComponent } from '../shared/icon.component';
+import { GameService } from '../../../game/game.service';
+import { IconComponent } from '../../icons/icon.component';
 import { highlight } from './highlight';
 
 const INDENTATION = '  ';

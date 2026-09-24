@@ -8,7 +8,7 @@ const TOKEN_PATTERNS = [
   /(?<number>\d+(?:\.\d+)?)/,
   /(?<string>"(?:[^"\\\n]|\\["\\nt])*"|'(?:[^'\\\n]|\\['\\nt])*')/,
   /(?<word>[a-zA-Z_][a-zA-Z_0-9]*)/,
-  /(?<symbol>==|!=|<=|>=|\+\+|--|&&|\|\||[{}();,+\-*/%<>=!])/,
+  /(?<symbol>==|!=|<=|>=|\+\+|--|&&|\|\||[{}();,.\[\]+\-*/%<>=!])/,
 ];
 
 export function tokenize(source: string): Token[] {

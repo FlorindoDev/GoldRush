@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createBox, createLabelTexture } from '../objects/mesh-primitives';
+import { createBox, createLabelTexture } from '../geometry/mesh-primitives';
 import { TOOL_AREA_DEPTH, TOOL_AREA_WIDTH } from '../environment/scene-layout';
 import { TOOL_SLOT_POSITIONS, TOOL_STATIONS } from './tool-stations';
 

@@ -3,7 +3,7 @@ import { Expression, ScriptError, Statement, Token } from './syntax';
 
 const MAX_NESTING_DEPTH = 64;
 const UNARY_PRECEDENCE = 7;
-const RESERVED_WORDS = ['true', 'false', 'let', 'if', 'else', 'for', 'while', 'repeat'];
+const RESERVED_WORDS = ['true', 'false', 'null', 'let', 'if', 'else', 'for', 'while', 'repeat'];
 
 const PRECEDENCE: Record<string, number> = {
   '||': 1,
@@ -171,47 +171,105 @@ class Parser {
   private parsePrimaryExpression(): Expression {
     const token = this.advance();
     const { text, line } = token;
+    let expression: Expression;
     if (token.kind === 'number') {
-      return { kind: 'literal', value: Number(text), line };
-    }
-    if (token.kind === 'string') {
+      expression = { kind: 'literal', value: Number(text), line };
+    } else if (token.kind === 'string') {
       const value = text
         .slice(1, -1)
         .replace(
           /\\(["'\\nt])/g,
           (_, escaped: string) => ({ n: '\n', t: '\t' })[escaped] ?? escaped,
         );
-      return { kind: 'literal', value, line };
-    }
-    if (text === 'true' || text === 'false') {
-      return { kind: 'literal', value: text === 'true', line };
-    }
-    if (text === '!' || text === '-') {
-      return {
+      expression = { kind: 'literal', value, line };
+    } else if (text === 'true' || text === 'false' || text === 'null') {
+      expression = {
+        kind: 'literal',
+        value: text === 'null' ? null : text === 'true',
+        line,
+      };
+    } else if (text === '!' || text === '-') {
+      expression = {
         kind: 'unary',
         operator: text,
         operand: this.parseExpression(UNARY_PRECEDENCE),
         line,
       };
-    }
-    if (text === '(') {
-      const value = this.parseExpression();
+    } else if (text === '(') {
+      expression = this.parseExpression();
       this.expect(')');
-      return value;
+    } else if (token.kind === 'word') {
+      expression = { kind: 'variable', name: text, line };
+    } else {
+      throw new ScriptError('espressione non valida.', line);
     }
-    if (token.kind === 'word') {
-      if (!this.match('(')) {
-        return { kind: 'variable', name: text, line };
+
+    return this.parsePostfixExpression(expression);
+  }
+
+  private parsePostfixExpression(initial: Expression): Expression {
+    let expression = initial;
+    let postfixCount = 0;
+
+    while (true) {
+      if (this.match('.')) {
+        this.checkPostfixDepth(++postfixCount);
+        const member = this.advance();
+        if (member.kind !== 'word') {
+          throw new ScriptError('atteso il nome di un attributo.', member.line);
+        }
+        expression = this.match('(')
+          ? {
+              kind: 'method-call',
+              object: expression,
+              name: member.text,
+              args: this.parseCallArguments(),
+              line: member.line,
+            }
+          : { kind: 'member', object: expression, name: member.text, line: member.line };
+        continue;
       }
-      const args: Expression[] = [];
-      if (!this.match(')')) {
-        do {
-          args.push(this.parseExpression());
-        } while (this.match(','));
-        this.expect(')');
+
+      if (this.match('[')) {
+        this.checkPostfixDepth(++postfixCount);
+        const index = this.parseExpression();
+        this.expect(']');
+        expression = { kind: 'index', object: expression, index, line: index.line };
+        continue;
       }
-      return { kind: 'call', name: text, args, line };
+
+      if (this.match('(')) {
+        this.checkPostfixDepth(++postfixCount);
+        if (expression.kind !== 'variable') {
+          throw new ScriptError('puoi chiamare solo funzioni nominate.', this.current.line);
+        }
+        expression = {
+          kind: 'call',
+          name: expression.name,
+          args: this.parseCallArguments(),
+          line: expression.line,
+        };
+        continue;
+      }
+
+      return expression;
     }
-    throw new ScriptError('espressione non valida.', line);
+  }
+
+  private parseCallArguments(): Expression[] {
+    const args: Expression[] = [];
+    if (!this.match(')')) {
+      do {
+        args.push(this.parseExpression());
+      } while (this.match(','));
+      this.expect(')');
+    }
+    return args;
+  }
+
+  private checkPostfixDepth(depth: number): void {
+    if (depth > MAX_NESTING_DEPTH) {
+      throw new ScriptError('troppi attributi o indici concatenati.', this.current.line);
+    }
   }
 }

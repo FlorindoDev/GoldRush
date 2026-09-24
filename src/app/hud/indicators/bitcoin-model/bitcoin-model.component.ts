@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { BITCOIN_MODEL_PATH } from './bitcoin-asset';
+import { BITCOIN_MODEL_PATH } from '../../../assets/models/bitcoin/bitcoin-model-path';
 
 @Component({
   selector: 'app-bitcoin-model',

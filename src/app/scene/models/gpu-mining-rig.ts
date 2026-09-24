@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GPUS_PER_RIG } from '../../game/mining-world';
-import { createBox, createLabelTexture, createRod } from './mesh-primitives';
+import { createBox, createLabelTexture, createRod } from '../geometry/mesh-primitives';
 import { RIG_PLOT_DEPTH, RIG_PLOT_WIDTH } from '../environment/scene-layout';
 
 export interface RigSlot {
@@ -50,49 +50,6 @@ export function createGpuMiningRig(id: number): GpuMiningRig {
   label.position.set(0, 0.37, 1.72);
   root.add(label);
   return { root, slots, fans };
-}
-
-export function createLockedRigTile(id: number): THREE.Group {
-  const tile = new THREE.Group();
-  tile.name = 'locked-rig-tile';
-  tile.userData['rigId'] = id;
-
-  const base = createBox([RIG_WIDTH, 0.05, 3.36], 0x344b3d, [0, 0, 0]);
-  base.material.transparent = true;
-  base.material.opacity = 0.28;
-  base.castShadow = false;
-  tile.add(base);
-
-  const outline = createDashedBoxOutline({
-    size: [RIG_WIDTH, 0.07, 3.36],
-    color: 0x88aa7b,
-    dashSize: 0.2,
-    gapSize: 0.13,
-    opacity: 0.68,
-  });
-  tile.add(outline);
-
-  const label = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.7, 0.42),
-    new THREE.MeshBasicMaterial({
-      map: createLabelTexture(`RIG ${String(id).padStart(2, '0')}`, '#b5c7a5'),
-      transparent: true,
-      opacity: 0.78,
-    }),
-  );
-  label.rotation.x = -Math.PI / 2;
-  label.position.set(0, 0.052, 0.68);
-  tile.add(label);
-
-  const shackle = new THREE.Mesh(
-    new THREE.TorusGeometry(0.2, 0.035, 4, 8, Math.PI),
-    new THREE.MeshStandardMaterial({ color: 0x88aa7b, flatShading: true }),
-  );
-  shackle.rotation.x = -Math.PI / 2;
-  shackle.position.set(0, 0.06, -0.22);
-  tile.add(shackle);
-  tile.add(createBox([0.45, 0.035, 0.3], 0x587562, [0, 0.055, 0.07]));
-  return tile;
 }
 
 export function createRigPlot(id: number): THREE.Group {

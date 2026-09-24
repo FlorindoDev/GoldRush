@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createBox, createRod } from '../objects/mesh-primitives';
+import { createBox, createRod } from '../geometry/mesh-primitives';
 import { addWorkbenchEquipment } from './workbench-equipment';
 import { addWorkbenchFurniture } from './workbench-furniture';
 import { WORKBENCH_COLORS } from './workbench-palette';

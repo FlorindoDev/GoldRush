@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { delay, execute, ScriptHost } from './interpreter';
+import type { ScriptObject } from './syntax';
 import { parse } from './parser';
 
 function fixture() {
@@ -8,8 +9,20 @@ function fixture() {
   const mine = vi.fn(async () => {
     progress = Math.min(progress + 20, 100);
   });
+  const gpu: ScriptObject = {
+    objectType: 'GPU',
+    getAttribute: () => null,
+    callMethod: async (name) => {
+      if (name !== 'mine') {
+        throw new Error(`metodo "${name}" non disponibile per una GPU.`);
+      }
+      await mine();
+      return null;
+    },
+    toDisplayString: () => 'GPU',
+  };
   const host: ScriptHost = {
-    mine,
+    globals: { gpu },
     print: (message) => output.push(message),
     progress: () => progress,
   };
@@ -26,14 +39,14 @@ function fixture() {
 describe('MineScript', () => {
   it('executes repeat and reports progress in order', async () => {
     const f = fixture();
-    await f.run('repeat (5) { mine(); } print(progress());');
+    await f.run('repeat (5) { gpu.mine(); } print(progress());');
     expect(f.mine).toHaveBeenCalledTimes(5);
     expect(f.output).toEqual(['100']);
   });
 
   it('handles for, increment, variables and operator precedence', async () => {
     const f = fixture();
-    await f.run('let n = 2 + 1 * 3; for (let i = 0; i < n; i++) { mine(); } print(i);');
+    await f.run('let n = 2 + 1 * 3; for (let i = 0; i < n; i++) { gpu.mine(); } print(i);');
     expect(f.mine).toHaveBeenCalledTimes(5);
     expect(f.output).toEqual(['5']);
   });
@@ -41,7 +54,7 @@ describe('MineScript', () => {
   it('uses the live progress in while and supports if/else', async () => {
     const f = fixture();
     await f.run(
-      'while (progress() < 100) { mine(); } if (progress() == 100) { print("ok"); } else { print("no"); }',
+      'while (progress() < 100) { gpu.mine(); } if (progress() == 100) { print("ok"); } else { print("no"); }',
     );
     expect(f.output).toEqual(['ok']);
     expect(f.mine).toHaveBeenCalledTimes(5);
@@ -49,14 +62,16 @@ describe('MineScript', () => {
 
   it('supports nested loops, comments and escaped strings', async () => {
     const f = fixture();
-    await f.run('// mine();\nrepeat(2) { repeat(2) { mine(); } } print("a\\\"b");');
+    await f.run('// gpu.mine();\nrepeat(2) { repeat(2) { gpu.mine(); } } print("a\\\"b");');
     expect(f.mine).toHaveBeenCalledTimes(4);
     expect(f.output).toEqual(['a"b']);
   });
 
   it('short-circuits logical conditions', async () => {
     const f = fixture();
-    await f.run('if (false && mine()) { print("no"); } if (true || mine()) { print("yes"); }');
+    await f.run(
+      'if (false && gpu.mine()) { print("no"); } if (true || gpu.mine()) { print("yes"); }',
+    );
     expect(f.mine).not.toHaveBeenCalled();
     expect(f.output).toEqual(['yes']);
   });
@@ -80,7 +95,7 @@ describe('MineScript', () => {
 
   it('reports the correct syntax error line before any mining', async () => {
     const f = fixture();
-    await expect(f.run('mine();\nrepeat (5) {\n mine()\n}')).rejects.toThrow('Riga 4:');
+    await expect(f.run('gpu.mine();\nrepeat (5) {\n gpu.mine()\n}')).rejects.toThrow('Riga 4:');
     expect(f.mine).not.toHaveBeenCalled();
   });
 
@@ -95,7 +110,7 @@ describe('MineScript', () => {
 
   it('allows cancellation while waiting without executing subsequent calls', async () => {
     const f = fixture();
-    const running = f.run('wait(5000); mine();');
+    const running = f.run('wait(5000); gpu.mine();');
     setTimeout(() => f.controller.abort(), 10);
     await expect(running).rejects.toMatchObject({ name: 'AbortError' });
     expect(f.mine).not.toHaveBeenCalled();

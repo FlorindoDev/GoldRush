@@ -6,7 +6,7 @@ import {
   WORKBENCH_SURFACE_Y,
   WORKBENCH_WIDTH,
 } from './electronics-workbench';
-import { createBox, createLabelTexture } from '../objects/mesh-primitives';
+import { createBox, createLabelTexture } from '../geometry/mesh-primitives';
 
 export interface WorkbenchMesh {
   readonly root: THREE.Group;

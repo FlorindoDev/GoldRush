@@ -4,7 +4,7 @@ import {
   createCanvasTexture,
   createRod,
   GAME_FONT_FAMILY,
-} from '../objects/mesh-primitives';
+} from '../geometry/mesh-primitives';
 import { WORKBENCH_COLORS } from './workbench-palette';
 
 export function addWorkbenchEquipment(desktop: THREE.Group): void {

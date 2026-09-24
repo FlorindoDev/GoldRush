@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createBox } from './mesh-primitives';
+import { createBox } from '../geometry/mesh-primitives';
 
 const FAN_POSITIONS = [-0.75, 0.75];
 const FAN_BLADE_COUNT = 8;
@@ -23,14 +23,19 @@ function addCoolingFan(gpu: THREE.Group, x: number): void {
   rim.position.set(x, 0.46, 0);
   gpu.add(rim);
 
+  const rotor = new THREE.Group();
+  rotor.name = 'gpu-fan-rotor';
+  rotor.position.set(x, 0.52, 0);
+  rotor.add(createBox([0.2, 0.06, 0.2], 0x101715, [0, 0, 0]));
   for (let bladeIndex = 0; bladeIndex < FAN_BLADE_COUNT; bladeIndex++) {
     const angle = (bladeIndex * Math.PI) / (FAN_BLADE_COUNT / 2);
     const blade = createBox([0.42, 0.05, 0.15], 0x68736e, [
-      x + Math.cos(angle) * 0.24,
-      0.52,
+      Math.cos(angle) * 0.24,
+      0,
       Math.sin(angle) * 0.24,
     ]);
     blade.rotation.y = -angle + 0.4;
-    gpu.add(blade);
+    rotor.add(blade);
   }
+  gpu.add(rotor);
 }
