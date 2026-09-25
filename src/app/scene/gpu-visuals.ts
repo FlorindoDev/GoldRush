@@ -7,7 +7,6 @@ import { gpuTemperature, isGpuOperational, type GpuOperatingState } from '../gam
 import type { GpuTelemetry } from '../game/gpu-telemetry';
 import { GpuConditionEffects } from './gpu-condition-effects';
 import { easeTransition, transitionProgress } from './animation/scene-transition';
-import { createFallbackGpu } from './models/fallback-gpu';
 import { fitGpuModel, styleGpuModel } from './models/gpu-model';
 import { disposeObject } from './resources/dispose-object';
 
@@ -37,7 +36,7 @@ interface GpuVisual {
 
 export class GpuVisuals {
   private readonly gpus = new Map<number, GpuVisual>();
-  private template = createFallbackGpu(GPU_MODEL_WIDTH);
+  private template: THREE.Group;
   private clips: THREE.AnimationClip[] = [];
   private inspectedGpuId: number | null = null;
   private disposed = false;
@@ -46,8 +45,12 @@ export class GpuVisuals {
     private readonly scene: THREE.Scene,
     private readonly homePose: (gpuId: number) => GpuPose,
     private readonly inspectionMount: THREE.Object3D,
+    initialTemplate: THREE.Group,
     private readonly readTelemetry?: (id: number) => GpuTelemetry,
-  ) {}
+  ) {
+    this.template = initialTemplate;
+    fitGpuModel(this.template, GPU_MODEL_WIDTH);
+  }
 
   /** Snapshot for picking and particle placement; instance lifecycle stays in this class. */
   get objects(): readonly THREE.Group[] {
@@ -120,7 +123,10 @@ export class GpuVisuals {
         (GAME_BALANCE.gpu.fanKits[gpu.state.fanKit].maxRpm / GAME_BALANCE.gpu.limits.fanSpeedRpm);
       gpu.mixer?.update(delta * ANIMATION.gpuMixerTimeScale * fanRatio);
       for (const fan of gpu.fans) {
-        if (fan.name === 'Spin') {
+        const axis: unknown = fan.userData['animationAxis'];
+        if (axis === 'x' || axis === 'y' || axis === 'z') {
+          fan.rotation[axis] -= delta * ANIMATION.gpuFanRadiansPerSecond * fanRatio;
+        } else if (fan.name === 'Spin') {
           fan.rotation.z -= delta * ANIMATION.gpuFanRadiansPerSecond * fanRatio;
         } else {
           fan.rotation.y -= delta * ANIMATION.gpuFanRadiansPerSecond * fanRatio;
@@ -150,7 +156,7 @@ export class GpuVisuals {
       }
       disposeObject(previous);
     } catch {
-      // The procedural GPU remains mounted and selectable if the asset is unavailable.
+      // The preloaded compact GLB remains selectable if the primary GPU asset fails.
     }
   }
 
@@ -177,7 +183,11 @@ export class GpuVisuals {
     gpu.root.add(clone, gpu.effects.root);
     gpu.fans = [];
     clone.traverse((object) => {
-      if (object.name === 'Spin' || object.name === 'gpu-fan-rotor') {
+      if (
+        object.name === 'Spin' ||
+        object.name === 'gpu-fan-rotor' ||
+        object.name.startsWith('fan-rotor')
+      ) {
         gpu.fans.push(object);
       }
     });

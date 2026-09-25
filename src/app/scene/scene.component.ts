@@ -16,6 +16,7 @@ import { IconComponent } from '../hud/icons/icon.component';
 import type { GpuHover } from '../hud/indicators/gpu-tooltip/gpu-tooltip.component';
 import type { CameraPreset } from './camera/camera-preset';
 import { MiningScene } from './mining-scene';
+import { SceneAssets } from './resources/scene-assets';
 import type { ToolStationId } from './tools/tool-stations';
 
 @Component({
@@ -33,6 +34,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
   readonly cameraPreset = signal<CameraPreset>('front');
   readonly selectedToolStationId = signal<ToolStationId | null>(null);
   private scene?: MiningScene;
+  private destroyed = false;
 
   constructor() {
     effect(() => {
@@ -59,14 +61,24 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  ngAfterViewInit(): void {
+  async ngAfterViewInit(): Promise<void> {
+    let assets: SceneAssets | undefined;
     try {
-      this.scene = new MiningScene(this.canvas().nativeElement, {
-        select: (id) => this.game.select(id),
-        inspect: (id) => this.game.inspectGpu(id),
-        telemetry: (id) => this.game.gpuTelemetry(id),
-        hover: (gpuId, x, y) => this.gpuHover.emit(gpuId === null ? null : { gpuId, x, y }),
-      });
+      assets = await SceneAssets.load();
+      if (this.destroyed) {
+        assets.dispose();
+        return;
+      }
+      this.scene = new MiningScene(
+        this.canvas().nativeElement,
+        {
+          select: (id) => this.game.select(id),
+          inspect: (id) => this.game.inspectGpu(id),
+          telemetry: (id) => this.game.gpuTelemetry(id),
+          hover: (gpuId, x, y) => this.gpuHover.emit(gpuId === null ? null : { gpuId, x, y }),
+        },
+        assets,
+      );
       this.scene.update(
         this.game.world(),
         this.game.mining(),
@@ -79,11 +91,15 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
         this.game.selectedGpuId(),
       );
     } catch {
-      this.unavailable.set(true);
+      assets?.dispose();
+      if (!this.destroyed) {
+        this.unavailable.set(true);
+      }
     }
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.scene?.dispose();
   }
 

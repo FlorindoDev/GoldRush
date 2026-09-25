@@ -1,12 +1,18 @@
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GAME_BALANCE } from '../config/game-balance';
 import { createWorld, stopGpu, type MiningWorld } from '../game/mining-world';
 import { GpuVisuals, type GpuPose } from './gpu-visuals';
+import { loadTestGpu } from './testing/load-test-gpu';
 
 const visualsToDispose: GpuVisuals[] = [];
 const duration = GAME_BALANCE.animation.transitionSeconds;
+let initialTemplate: THREE.Group;
+
+beforeEach(async () => {
+  initialTemplate = await loadTestGpu();
+});
 
 afterEach(() => {
   visualsToDispose.splice(0).forEach((visuals) => visuals.dispose());
@@ -45,7 +51,7 @@ function setup() {
   mount.rotation.z = 0.4;
   workbench.add(mount);
   scene.add(workbench);
-  const visuals = new GpuVisuals(scene, homePose, mount);
+  const visuals = new GpuVisuals(scene, homePose, mount, initialTemplate);
   visualsToDispose.push(visuals);
   return { scene, mount, visuals };
 }
@@ -75,15 +81,16 @@ describe('GPU visuals', () => {
     const { visuals } = setup();
     const world = worldWithGpus(1, 2);
     visuals.sync(world, null);
-    const firstFan = visuals.objects[0].getObjectByName('gpu-fan-rotor')!;
-    const secondFan = visuals.objects[1].getObjectByName('gpu-fan-rotor')!;
+    const firstFan = visuals.objects[0].getObjectByName('fan-rotor')!;
+    const secondFan = visuals.objects[1].getObjectByName('fan-rotor')!;
+    const idleRotation = secondFan.rotation.z;
     visuals.update(0.1, true, false, [1]);
-    expect(firstFan.rotation.y).toBeLessThan(0);
-    expect(secondFan.rotation.y).toBe(0);
-    const rotation = firstFan.rotation.y;
+    expect(firstFan.rotation.z).toBeLessThan(0);
+    expect(secondFan.rotation.z).toBe(idleRotation);
+    const rotation = firstFan.rotation.z;
     visuals.sync(stopGpu(world, 1), null);
     visuals.update(0.1, true, false, [1]);
-    expect(firstFan.rotation.y).toBe(rotation);
+    expect(firstFan.rotation.z).toBe(rotation);
   });
   it('synchronizes available GPUs without replacing surviving instances', () => {
     const { visuals, scene } = setup();
@@ -129,15 +136,15 @@ describe('GPU visuals', () => {
     const { visuals, mount } = setup();
     visuals.sync(worldWithGpus(1), 1);
     const gpu = visuals.objects[0];
-    const fan = gpu.getObjectByName('gpu-fan-rotor')!;
-    const initialRotation = fan.rotation.y;
+    const fan = gpu.getObjectByName('fan-rotor')!;
+    const initialRotation = fan.rotation.z;
     visuals.update(0.01, true, true);
     expectAtMount(gpu, mount);
-    expect(fan.rotation.y).toBe(initialRotation);
+    expect(fan.rotation.z).toBe(initialRotation);
     visuals.update(0.1, false, false);
-    expect(fan.rotation.y).toBe(initialRotation);
+    expect(fan.rotation.z).toBe(initialRotation);
     visuals.update(0.1, true, false);
-    expect(fan.rotation.y).toBeCloseTo(
+    expect(fan.rotation.z).toBeCloseTo(
       initialRotation - 0.1 * GAME_BALANCE.animation.gpuFanRadiansPerSecond,
     );
   });

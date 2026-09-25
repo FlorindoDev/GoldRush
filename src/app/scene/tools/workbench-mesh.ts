@@ -1,12 +1,9 @@
 import * as THREE from 'three';
-import {
-  BITCOIN_TRAY_POSITION,
-  createElectronicsWorkbench,
-  WORKBENCH_DEPTH,
-  WORKBENCH_SURFACE_Y,
-  WORKBENCH_WIDTH,
-} from './electronics-workbench';
-import { createBox, createLabelTexture } from '../geometry/mesh-primitives';
+import { GAME_BALANCE } from '../../config/game-balance';
+
+const WORKBENCH_WIDTH = GAME_BALANCE.layout.workbench.width;
+const WORKBENCH_DEPTH = GAME_BALANCE.layout.workbench.depth;
+const WORKBENCH_SURFACE_Y = GAME_BALANCE.layout.workbench.surfaceY;
 
 export interface WorkbenchMesh {
   readonly root: THREE.Group;
@@ -17,46 +14,20 @@ export interface WorkbenchMesh {
   readonly light: THREE.PointLight;
 }
 
-export function createWorkbench(): WorkbenchMesh {
-  const workbench = new THREE.Group();
+export function createWorkbench(workbench: THREE.Group): WorkbenchMesh {
   workbench.name = 'workbench';
 
-  workbench.add(createElectronicsWorkbench(), createWorkbenchLabel());
-
-  const gpuMount = addGpuMount(workbench);
-  const ore = new THREE.Group();
-  ore.position.set(...BITCOIN_TRAY_POSITION);
+  const gpuMount = workbench.getObjectByName('gpu-mount') as THREE.Group;
+  const ore = workbench.getObjectByName('coin-tray-mount') as THREE.Group;
+  if (!gpuMount || !ore) {
+    throw new Error('Banco GLB privo dei punti di montaggio.');
+  }
   const beam = createMiningBeam();
   const light = new THREE.PointLight(0xb2ff77, 0, 7);
   light.position.set(0, WORKBENCH_SURFACE_Y + 1.2, 0);
   const outline = createSelectionOutline();
-  workbench.add(ore, beam, light, outline);
+  workbench.add(beam, light, outline);
   return { root: workbench, gpuMount, outline, ore, beam, light };
-}
-
-function createWorkbenchLabel(): THREE.Mesh {
-  const plate = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.16, 0.23),
-    new THREE.MeshBasicMaterial({ map: createLabelTexture('WORKBENCH') }),
-  );
-  plate.position.set(0.15, WORKBENCH_SURFACE_Y - 0.34, WORKBENCH_DEPTH / 2 - 0.19);
-  return plate;
-}
-
-function addGpuMount(root: THREE.Group): THREE.Group {
-  const gpuMount = new THREE.Group();
-  gpuMount.position.set(-0.55, WORKBENCH_SURFACE_Y + 0.11, 0.14);
-  gpuMount.rotation.y = -0.12;
-  root.add(gpuMount);
-  const gpuStand = createBox(
-    [2.55, 0.08, 1.4],
-    0x1b2824,
-    [-0.55, WORKBENCH_SURFACE_Y + 0.07, 0.14],
-    true,
-  );
-  gpuStand.rotation.y = gpuMount.rotation.y;
-  root.add(gpuStand);
-  return gpuMount;
 }
 
 function createMiningBeam(): THREE.Mesh {

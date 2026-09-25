@@ -376,7 +376,7 @@ test('mining locks selection; automatic unlock keeps the inspected GPU on the be
 });
 
 test('fallback model remains selectable when GPU assets fail', async ({ page }) => {
-  await page.route('**/models/modello-gpu/**', (route) => route.abort());
+  await page.route('**/assets/models/gpus/gpu-dual.glb', (route) => route.abort());
   await page.reload();
   await expect(page.getByRole('alert')).toHaveCount(0);
   await page.getByRole('button', { name: 'Seleziona GPU 001', exact: true }).click();

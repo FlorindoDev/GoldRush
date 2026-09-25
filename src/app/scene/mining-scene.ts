@@ -11,7 +11,7 @@ import {
 } from '../game/mining-world';
 import { BITCOIN_MODEL_PATH } from '../assets/models/bitcoin/bitcoin-model-path';
 import { createGpuMiningRig, createRigPlot, type GpuMiningRig } from './models/gpu-mining-rig';
-import { createRigUnlockTile, RigUnlockTile } from './models/rig-unlock-tile';
+import { createRigSlotTile, RigSlotTile } from './models/rig-slot-tile';
 import { SceneCameraController } from './camera/scene-camera-controller';
 import { resolveCameraFocus, rigCameraFocus } from './camera/camera-focus';
 import type { CameraPreset } from './camera/camera-preset';
@@ -21,7 +21,7 @@ import { rigPlotCenter, rigPosition, TOOL_AREA_POSITION } from './environment/sc
 import { GpuVisuals, type GpuPose } from './gpu-visuals';
 import type { GpuTelemetry } from '../game/gpu-telemetry';
 import { disposeObject } from './resources/dispose-object';
-import { createToolArea } from './tools/tool-area';
+import { SceneAssets } from './resources/scene-assets';
 import { createWorkbench, WorkbenchMesh } from './tools/workbench-mesh';
 import { toolStationPosition, type ToolStationId } from './tools/tool-stations';
 
@@ -39,7 +39,7 @@ interface GpuInteractions {
 }
 
 export class MiningScene {
-  private readonly scene = createSceneEnvironment();
+  private readonly scene: THREE.Scene;
   private readonly camera = new THREE.PerspectiveCamera(
     CAMERA.fieldOfViewDegrees,
     1,
@@ -50,7 +50,7 @@ export class MiningScene {
   private readonly cameraController: SceneCameraController;
   private readonly observer: ResizeObserver;
   private readonly rigs = new Map<number, GpuMiningRig>();
-  private readonly rigUnlockTiles = new Map<number, RigUnlockTile>();
+  private readonly rigSlotTiles = new Map<number, RigSlotTile>();
   private readonly plots = new Map<number, THREE.Group>();
   private readonly workbench: WorkbenchMesh;
   private readonly gpuVisuals: GpuVisuals;
@@ -76,19 +76,23 @@ export class MiningScene {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly interactions: GpuInteractions,
+    private readonly assets: SceneAssets,
   ) {
+    this.scene = createSceneEnvironment(assets.instantiate('floor'));
     this.renderer = this.createRenderer();
     this.cameraController = new SceneCameraController(canvas, this.camera, this.reducedMotion);
-    const toolArea = createToolArea();
+    const toolArea = assets.instantiate('toolArea');
+    toolArea.name = 'tool-area';
     toolArea.position.copy(TOOL_AREA_POSITION);
     this.scene.add(toolArea);
-    this.workbench = createWorkbench();
+    this.workbench = createWorkbench(assets.instantiate('workbench'));
     this.workbench.root.position.copy(toolStationPosition('workbench'));
     this.scene.add(this.workbench.root);
     this.gpuVisuals = new GpuVisuals(
       this.scene,
       (id) => this.gpuHomePose(id),
       this.workbench.gpuMount,
+      assets.instantiate('gpuFallback'),
       (id) => this.interactions.telemetry(id),
     );
     this.particles = this.createParticles();
@@ -136,7 +140,7 @@ export class MiningScene {
     this.cameraPreset = cameraPreset;
     this.selectedToolStationId = selectedToolStationId;
     this.syncPlots(world);
-    this.syncRigUnlockTiles(world);
+    this.syncRigSlotTiles(world);
     this.syncRigs(world);
     this.gpuVisuals.sync(world, inspection);
     this.updateAppearance(world);
@@ -181,9 +185,10 @@ export class MiningScene {
       disposeObject(this.bitcoin);
     }
     this.rigs.clear();
-    this.rigUnlockTiles.clear();
+    this.rigSlotTiles.clear();
     this.plots.clear();
     this.renderer.dispose();
+    this.assets.dispose();
   }
 
   private createRenderer(): THREE.WebGLRenderer {
@@ -209,39 +214,39 @@ export class MiningScene {
       if (this.plots.has(id)) {
         continue;
       }
-      const plot = createRigPlot(id);
+      const plot = createRigPlot(id, this.assets.instantiate('plot'));
       plot.position.copy(rigPlotCenter(id));
       this.plots.set(id, plot);
       this.scene.add(plot);
     }
   }
 
-  private syncRigUnlockTiles(world: MiningWorld): void {
+  private syncRigSlotTiles(world: MiningWorld): void {
     const rigIds = new Set<number>();
     for (const plot of world.plots) {
       for (const rig of plot.rigs) {
         rigIds.add(rig.id);
-        const current = this.rigUnlockTiles.get(rig.id);
+        const current = this.rigSlotTiles.get(rig.id);
         if (current) {
           current.setUnlocked(rig.unlocked);
           continue;
         }
 
-        const tile = createRigUnlockTile(rig.id, rig.unlocked);
+        const tile = createRigSlotTile(rig.id, rig.unlocked, this.assets.instantiate('rigSlot'));
         tile.root.position.copy(rigPosition(rig.id));
         tile.root.position.y = -0.42;
-        this.rigUnlockTiles.set(rig.id, tile);
+        this.rigSlotTiles.set(rig.id, tile);
         this.scene.add(tile.root);
       }
     }
 
-    for (const [id, tile] of this.rigUnlockTiles) {
+    for (const [id, tile] of this.rigSlotTiles) {
       if (rigIds.has(id)) {
         continue;
       }
       this.scene.remove(tile.root);
       disposeObject(tile.root);
-      this.rigUnlockTiles.delete(id);
+      this.rigSlotTiles.delete(id);
     }
   }
 
@@ -257,7 +262,7 @@ export class MiningScene {
           continue;
         }
 
-        const miningRig = createGpuMiningRig(rig.id);
+        const miningRig = createGpuMiningRig(rig.id, this.assets.instantiate('rig'));
         miningRig.root.position.copy(rigPosition(rig.id));
         this.rigs.set(rig.id, miningRig);
         this.scene.add(miningRig.root);

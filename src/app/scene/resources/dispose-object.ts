@@ -10,9 +10,15 @@ export function disposeObject(object: THREE.Object3D, preserveShared = false): v
     object instanceof THREE.LineSegments ||
     object instanceof THREE.Points
   ) {
-    object.geometry.dispose();
+    if (!object.userData['sharedAssetGeometry']) {
+      object.geometry.dispose();
+    }
     for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
-      if ('map' in material && material.map instanceof THREE.Texture) {
+      if (
+        !object.userData['sharedAssetGeometry'] &&
+        'map' in material &&
+        material.map instanceof THREE.Texture
+      ) {
         material.map.dispose();
       }
       material.dispose();

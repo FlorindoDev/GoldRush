@@ -1,12 +1,9 @@
 import * as THREE from 'three';
-import { GAME_BALANCE } from '../../config/game-balance';
 
-const GROUND_SIZE = GAME_BALANCE.scene.groundSize;
-
-export function createSceneEnvironment(): THREE.Scene {
+export function createSceneEnvironment(ground: THREE.Group): THREE.Scene {
   const scene = new THREE.Scene();
   addLighting(scene);
-  addGround(scene);
+  scene.add(ground);
   return scene;
 }
 
@@ -28,21 +25,4 @@ function addLighting(scene: THREE.Scene): void {
   const rim = new THREE.DirectionalLight(0x9ad4ac, 2.3);
   rim.position.set(5, 7, -8);
   scene.add(rim);
-}
-
-function addGround(scene: THREE.Scene): void {
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
-    new THREE.MeshStandardMaterial({ color: 0x19241e, roughness: 1 }),
-  );
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -0.5;
-  floor.receiveShadow = true;
-  scene.add(floor);
-
-  const grid = new THREE.GridHelper(GROUND_SIZE, GROUND_SIZE, 0x35473b, 0x2c3c32);
-  grid.position.y = -0.49;
-  (grid.material as THREE.Material).transparent = true;
-  (grid.material as THREE.Material).opacity = 0.45;
-  scene.add(grid);
 }
