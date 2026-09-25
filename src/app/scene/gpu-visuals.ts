@@ -3,7 +3,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { GPU_MODEL_PATH } from '../assets/models/gpu/gpu-model-path';
 import { GAME_BALANCE } from '../config/game-balance';
 import { GPU_COUNT, getGpu, isGpuUnlocked, type MiningWorld } from '../game/mining-world';
-import { gpuTemperature, isGpuOperational, type GpuOperatingState } from '../game/gpu-operation';
+import {
+  gpuFanSpeedRatio,
+  gpuTemperature,
+  isGpuOperational,
+  type GpuOperatingState,
+} from '../game/gpu-operation';
 import type { GpuTelemetry } from '../game/gpu-telemetry';
 import { GpuConditionEffects } from './gpu-condition-effects';
 import { easeTransition, transitionProgress } from './animation/scene-transition';
@@ -118,9 +123,10 @@ export class GpuVisuals {
         continue;
       }
       const fanSpeed = gpu.state.targetFanSpeedPercent ?? GAME_BALANCE.gpu.mining.fanSpeedPercent;
-      const fanRatio =
-        (fanSpeed / GAME_BALANCE.gpu.mining.fanSpeedPercent) *
-        (GAME_BALANCE.gpu.fanKits[gpu.state.fanKit].maxRpm / GAME_BALANCE.gpu.limits.fanSpeedRpm);
+      const fanKit = GAME_BALANCE.gpu.fanKits[gpu.state.fanKit];
+      const maxRpm = GAME_BALANCE.gpu.limits.fanSpeedRpm;
+      const fanKitSpeedRatio = maxRpm > 0 ? fanKit.maxRpm / maxRpm : 1;
+      const fanRatio = gpuFanSpeedRatio(fanSpeed) * fanKitSpeedRatio;
       gpu.mixer?.update(delta * ANIMATION.gpuMixerTimeScale * fanRatio);
       for (const fan of gpu.fans) {
         const axis: unknown = fan.userData['animationAxis'];
