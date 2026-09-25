@@ -1,4 +1,5 @@
 import { GAME_BALANCE } from '../config/game-balance';
+import type { GpuDustDamageConfig } from '../config/gpu-config';
 import type { GpuOperatingState } from './gpu-operation';
 
 export type GpuFanKit = keyof typeof GAME_BALANCE.gpu.fanKits;
@@ -13,10 +14,14 @@ export function thermalServiceHoursRemaining(gpu: GpuOperatingState): number {
   return Math.max(0, config.thermalServiceIntervalHours - gpu.hoursSinceThermalService);
 }
 
-export function dustWearMultiplier(dustPercent: number): number {
-  const excess = Math.max(0, Math.min(100, dustPercent) - config.dustWearThresholdPercent);
+export function dustWearMultiplier(
+  dustPercent: number,
+  dustDamage: GpuDustDamageConfig = GAME_BALANCE.gpu.dustDamage,
+): number {
+  const excess = Math.max(0, Math.min(100, dustPercent) - dustDamage.wearThresholdPercent);
   return (
-    1 + (excess / (100 - config.dustWearThresholdPercent)) * (config.dustMaxWearMultiplier - 1)
+    1 +
+    (excess / (100 - dustDamage.wearThresholdPercent)) * (dustDamage.maxWearMultiplier - 1)
   );
 }
 

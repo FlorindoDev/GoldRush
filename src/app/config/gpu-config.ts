@@ -1,0 +1,340 @@
+/** Specifiche di gioco e dimensioni visive delle GPU. Valori bilanciabili, non dati reali. */
+export interface GpuDustDamageConfig {
+  readonly dustBuildUpMultiplier: number;
+  readonly maxExtraHeatCelsius: number;
+  readonly maxHeatingResponseBonus: number;
+  readonly wearThresholdPercent: number;
+  readonly maxWearMultiplier: number;
+}
+
+export const GPU_MODELS = [
+  {
+    id: 'gpu-compact',
+    name: 'Miner S1 · Compact',
+    style: 'compact',
+    fans: 1,
+    length: 1.65,
+    accent: 'white',
+    specifications: {
+      idle: { frequencyGhz: 0.45, powerWatts: 22, temperatureCelsius: 32, fanSpeedPercent: 15 },
+      mining: { frequencyGhz: 1.5, powerWatts: 135, temperatureCelsius: 68, fanSpeedPercent: 80 },
+      limits: {
+        minFrequencyGhz: 0.45,
+        frequencyGhz: 1.7,
+        absoluteFrequencyGhz: 2.1,
+        fanSpeedRpm: 2800,
+        temperatureCelsius: 86,
+      },
+      thermalResponsePerAction: 0.38,
+      wearPercentPerHour: 0.004,
+      dustDamage: {
+        dustBuildUpMultiplier: 1.15,
+        maxExtraHeatCelsius: 24,
+        maxHeatingResponseBonus: 0.9,
+        wearThresholdPercent: 55,
+        maxWearMultiplier: 3.4,
+      },
+    },
+  },
+  {
+    id: 'gpu-dual',
+    name: 'Miner D2 · Dual',
+    style: 'dual',
+    fans: 2,
+    length: 2.65,
+    accent: 'lime',
+    specifications: {
+      idle: { frequencyGhz: 0.5, powerWatts: 32, temperatureCelsius: 34, fanSpeedPercent: 20 },
+      mining: { frequencyGhz: 1.8, powerWatts: 205, temperatureCelsius: 72, fanSpeedPercent: 70 },
+      limits: {
+        minFrequencyGhz: 0.5,
+        frequencyGhz: 2,
+        absoluteFrequencyGhz: 2.6,
+        fanSpeedRpm: 3200,
+        temperatureCelsius: 90,
+      },
+      thermalResponsePerAction: 0.4,
+      wearPercentPerHour: 0.005,
+      dustDamage: {
+        dustBuildUpMultiplier: 1,
+        maxExtraHeatCelsius: 22,
+        maxHeatingResponseBonus: 0.8,
+        wearThresholdPercent: 60,
+        maxWearMultiplier: 3,
+      },
+    },
+  },
+  {
+    id: 'gpu-triple',
+    name: 'Miner T3 · Triple',
+    style: 'triple',
+    fans: 3,
+    length: 3.1,
+    accent: 'blue',
+    specifications: {
+      idle: { frequencyGhz: 0.55, powerWatts: 40, temperatureCelsius: 35, fanSpeedPercent: 18 },
+      mining: { frequencyGhz: 2, powerWatts: 260, temperatureCelsius: 76, fanSpeedPercent: 72 },
+      limits: {
+        minFrequencyGhz: 0.55,
+        frequencyGhz: 2.2,
+        absoluteFrequencyGhz: 2.8,
+        fanSpeedRpm: 4800,
+        temperatureCelsius: 94,
+      },
+      thermalResponsePerAction: 0.44,
+      wearPercentPerHour: 0.006,
+      dustDamage: {
+        dustBuildUpMultiplier: 0.95,
+        maxExtraHeatCelsius: 20,
+        maxHeatingResponseBonus: 0.75,
+        wearThresholdPercent: 65,
+        maxWearMultiplier: 2.8,
+      },
+    },
+  },
+  {
+    id: 'gpu-blower',
+    name: 'Miner B1 · Blower',
+    style: 'blower',
+    fans: 1,
+    length: 2.65,
+    accent: 'orange',
+    specifications: {
+      idle: { frequencyGhz: 0.5, powerWatts: 38, temperatureCelsius: 36, fanSpeedPercent: 20 },
+      mining: { frequencyGhz: 1.75, powerWatts: 225, temperatureCelsius: 80, fanSpeedPercent: 85 },
+      limits: {
+        minFrequencyGhz: 0.5,
+        frequencyGhz: 2,
+        absoluteFrequencyGhz: 2.5,
+        fanSpeedRpm: 5200,
+        temperatureCelsius: 96,
+      },
+      thermalResponsePerAction: 0.48,
+      wearPercentPerHour: 0.0065,
+      dustDamage: {
+        dustBuildUpMultiplier: 0.8,
+        maxExtraHeatCelsius: 18,
+        maxHeatingResponseBonus: 0.65,
+        wearThresholdPercent: 70,
+        maxWearMultiplier: 2.4,
+      },
+    },
+  },
+  {
+    id: 'gpu-passive',
+    name: 'Miner P0 · Passive',
+    style: 'passive',
+    fans: 0,
+    length: 2.65,
+    accent: 'copper',
+    specifications: {
+      idle: { frequencyGhz: 0.4, powerWatts: 15, temperatureCelsius: 30, fanSpeedPercent: 0 },
+      mining: { frequencyGhz: 1.35, powerWatts: 110, temperatureCelsius: 84, fanSpeedPercent: 0 },
+      limits: {
+        minFrequencyGhz: 0.4,
+        frequencyGhz: 1.55,
+        absoluteFrequencyGhz: 1.9,
+        fanSpeedRpm: 0,
+        temperatureCelsius: 95,
+      },
+      thermalResponsePerAction: 0.3,
+      wearPercentPerHour: 0.0035,
+      dustDamage: {
+        dustBuildUpMultiplier: 1.25,
+        maxExtraHeatCelsius: 28,
+        maxHeatingResponseBonus: 1,
+        wearThresholdPercent: 50,
+        maxWearMultiplier: 4,
+      },
+    },
+  },
+  {
+    id: 'gpu-liquid',
+    name: 'Miner L0 · Hydro',
+    style: 'liquid',
+    fans: 0,
+    length: 2.65,
+    accent: 'blue',
+    specifications: {
+      idle: { frequencyGhz: 0.55, powerWatts: 38, temperatureCelsius: 32, fanSpeedPercent: 10 },
+      mining: { frequencyGhz: 2, powerWatts: 290, temperatureCelsius: 63, fanSpeedPercent: 60 },
+      limits: {
+        minFrequencyGhz: 0.55,
+        frequencyGhz: 2.3,
+        absoluteFrequencyGhz: 2.9,
+        fanSpeedRpm: 2800,
+        temperatureCelsius: 86,
+      },
+      thermalResponsePerAction: 0.55,
+      wearPercentPerHour: 0.004,
+      dustDamage: {
+        dustBuildUpMultiplier: 0.9,
+        maxExtraHeatCelsius: 16,
+        maxHeatingResponseBonus: 0.55,
+        wearThresholdPercent: 65,
+        maxWearMultiplier: 2.5,
+      },
+    },
+  },
+  {
+    id: 'gpu-proart',
+    name: 'Miner A3 · Atelier',
+    style: 'proart',
+    fans: 3,
+    length: 2.9,
+    accent: 'gold',
+    specifications: {
+      idle: { frequencyGhz: 0.5, powerWatts: 35, temperatureCelsius: 33, fanSpeedPercent: 18 },
+      mining: { frequencyGhz: 1.9, powerWatts: 240, temperatureCelsius: 68, fanSpeedPercent: 70 },
+      limits: {
+        minFrequencyGhz: 0.5,
+        frequencyGhz: 2.2,
+        absoluteFrequencyGhz: 2.7,
+        fanSpeedRpm: 4500,
+        temperatureCelsius: 89,
+      },
+      thermalResponsePerAction: 0.42,
+      wearPercentPerHour: 0.005,
+      dustDamage: {
+        dustBuildUpMultiplier: 0.9,
+        maxExtraHeatCelsius: 18,
+        maxHeatingResponseBonus: 0.65,
+        wearThresholdPercent: 65,
+        maxWearMultiplier: 2.5,
+      },
+    },
+  },
+  {
+    id: 'gpu-nitro',
+    name: 'Miner N3 · Neon',
+    style: 'nitro',
+    fans: 3,
+    length: 3.2,
+    accent: 'orange',
+    specifications: {
+      idle: { frequencyGhz: 0.55, powerWatts: 45, temperatureCelsius: 35, fanSpeedPercent: 20 },
+      mining: { frequencyGhz: 2.1, powerWatts: 320, temperatureCelsius: 78, fanSpeedPercent: 75 },
+      limits: {
+        minFrequencyGhz: 0.55,
+        frequencyGhz: 2.35,
+        absoluteFrequencyGhz: 3,
+        fanSpeedRpm: 5200,
+        temperatureCelsius: 96,
+      },
+      thermalResponsePerAction: 0.48,
+      wearPercentPerHour: 0.007,
+      dustDamage: {
+        dustBuildUpMultiplier: 1.1,
+        maxExtraHeatCelsius: 25,
+        maxHeatingResponseBonus: 0.9,
+        wearThresholdPercent: 55,
+        maxWearMultiplier: 3.5,
+      },
+    },
+  },
+  {
+    id: 'gpu-workstation',
+    name: 'Miner W2 · Workstation',
+    style: 'workstation',
+    fans: 2,
+    length: 2.85,
+    accent: 'gold',
+    specifications: {
+      idle: { frequencyGhz: 0.55, powerWatts: 42, temperatureCelsius: 34, fanSpeedPercent: 22 },
+      mining: { frequencyGhz: 2, powerWatts: 290, temperatureCelsius: 72, fanSpeedPercent: 70 },
+      limits: {
+        minFrequencyGhz: 0.55,
+        frequencyGhz: 2.3,
+        absoluteFrequencyGhz: 2.85,
+        fanSpeedRpm: 4800,
+        temperatureCelsius: 92,
+      },
+      thermalResponsePerAction: 0.44,
+      wearPercentPerHour: 0.0055,
+      dustDamage: {
+        dustBuildUpMultiplier: 0.9,
+        maxExtraHeatCelsius: 20,
+        maxHeatingResponseBonus: 0.7,
+        wearThresholdPercent: 65,
+        maxWearMultiplier: 2.8,
+      },
+    },
+  },
+  {
+    id: 'gpu-low-profile',
+    name: 'Miner LP2 · Slim',
+    style: 'low-profile',
+    fans: 2,
+    length: 1.8,
+    accent: 'steel',
+    specifications: {
+      idle: { frequencyGhz: 0.45, powerWatts: 18, temperatureCelsius: 32, fanSpeedPercent: 25 },
+      mining: { frequencyGhz: 1.45, powerWatts: 105, temperatureCelsius: 66, fanSpeedPercent: 82 },
+      limits: {
+        minFrequencyGhz: 0.45,
+        frequencyGhz: 1.65,
+        absoluteFrequencyGhz: 2,
+        fanSpeedRpm: 3200,
+        temperatureCelsius: 85,
+      },
+      thermalResponsePerAction: 0.36,
+      wearPercentPerHour: 0.004,
+      dustDamage: {
+        dustBuildUpMultiplier: 1.2,
+        maxExtraHeatCelsius: 26,
+        maxHeatingResponseBonus: 1,
+        wearThresholdPercent: 50,
+        maxWearMultiplier: 3.8,
+      },
+    },
+  },
+  {
+    id: 'gpu-hybrid',
+    name: 'Miner H1 · Hybrid',
+    style: 'hybrid',
+    fans: 1,
+    length: 2.8,
+    accent: 'blue',
+    specifications: {
+      idle: { frequencyGhz: 0.5, powerWatts: 32, temperatureCelsius: 32, fanSpeedPercent: 15 },
+      mining: { frequencyGhz: 1.8, powerWatts: 200, temperatureCelsius: 67, fanSpeedPercent: 65 },
+      limits: {
+        minFrequencyGhz: 0.5,
+        frequencyGhz: 2,
+        absoluteFrequencyGhz: 2.6,
+        fanSpeedRpm: 4200,
+        temperatureCelsius: 90,
+      },
+      thermalResponsePerAction: 0.5,
+      wearPercentPerHour: 0.0045,
+      dustDamage: {
+        dustBuildUpMultiplier: 0.95,
+        maxExtraHeatCelsius: 18,
+        maxHeatingResponseBonus: 0.65,
+        wearThresholdPercent: 65,
+        maxWearMultiplier: 2.6,
+      },
+    },
+  },
+] as const;
+
+export type GpuModelId = (typeof GPU_MODELS)[number]['id'];
+export type GpuModelConfig = (typeof GPU_MODELS)[number];
+export const GPU_MODELS_BY_ID = Object.fromEntries(
+  GPU_MODELS.map((model) => [model.id, model]),
+) as Record<GpuModelId, GpuModelConfig>;
+
+export const GPU_DEFAULT_MODEL_ID: GpuModelId = 'gpu-passive';
+export const GPU_FALLBACK_MODEL_ID: GpuModelId = 'gpu-compact';
+
+/** Regole condivise tra modelli; le prestazioni della GPU stanno nelle specifiche sopra. */
+export const GPU_RUNTIME_CONFIG = {
+  cooldownMs: 5_000,
+  benchCoolingMs: 30_000,
+  fanCoolingCelsiusPerPercent: 0.15,
+  maintenance: {
+    thermalServiceIntervalHours: 24,
+    dustPercentPerHour: 0.2,
+    heatEffectStartCelsius: 78,
+  },
+} as const;

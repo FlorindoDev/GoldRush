@@ -1,163 +1,68 @@
-/** Valori da modificare per bilanciare gioco, inquadrature e scena. */
+import { CLOCK_CONFIG, ECONOMY_CONFIG } from './economy-config';
+import { FAN_MODELS_BY_ID, GPU_FAN_KITS } from './fan-config';
+import {
+  GPU_DEFAULT_MODEL_ID,
+  GPU_FALLBACK_MODEL_ID,
+  GPU_MODELS_BY_ID,
+  GPU_RUNTIME_CONFIG,
+} from './gpu-config';
+import { GAMEPLAY_RIG_MODEL_ID, GAMEPLAY_RIG_SETUP, RIG_FAN_TUNING } from './rig-config';
+import { RIG_COOLING_METHODS } from './cooling-config';
+import { RIG_DUST_SYSTEMS } from './dust-filter-config';
+import {
+  ANIMATION_CONFIG,
+  CAMERA_CONFIG,
+  LAYOUT_CONFIG,
+  SCENE_CONFIG,
+  TOOL_STATIONS_CONFIG,
+} from './scene-config';
+import { EDITOR_CONFIG, SCRIPTING_CONFIG } from './runtime-config';
+import { MINING_CONFIG, WORLD_CONFIG } from './world-config';
+
+const startingGpu = GPU_MODELS_BY_ID[GPU_DEFAULT_MODEL_ID];
+
+/** Facade di configurazione mantenuta per i sistemi di gioco esistenti. */
 export const GAME_BALANCE = {
-  world: {
-    plotCount: 6,
-    rigsPerPlot: 6,
-    gpusPerRig: 4,
-    startingRigCount: 1,
-    startingGpuCount: 2,
-    // Progresso aggiunto da una GPU: 80 / numero totale di GPU.
-    progressPerGpuAtFullFarm: 80,
-    blockRewardSatoshis: 1_000_000,
-    satoshisPerBitcoin: 100_000_000,
+  models: {
+    startingRigId: GAMEPLAY_RIG_MODEL_ID,
+    startingGpuId: GPU_DEFAULT_MODEL_ID,
+    fallbackGpuId: GPU_FALLBACK_MODEL_ID,
+    startingRigFanId: GAMEPLAY_RIG_SETUP.fanId,
   },
+  world: WORLD_CONFIG,
   gpu: {
-    model: 'Blockcraft Miner X1',
-    idle: {
-      frequencyGhz: 0.5,
-      powerWatts: 32,
-      temperatureCelsius: 34,
-      fanSpeedPercent: 20,
-    },
-    mining: {
-      frequencyGhz: 1.8,
-      powerWatts: 205,
-      temperatureCelsius: 72,
-      fanSpeedPercent: 70,
-    },
-    limits: {
-      minFrequencyGhz: 0.5,
-      frequencyGhz: 2,
-      absoluteFrequencyGhz: 2.6,
-      fanSpeedRpm: 3200,
-      temperatureCelsius: 90,
-    },
-    cooldownMs: 5_000,
-    benchCoolingMs: 30_000,
-    thermalResponsePerAction: 0.4,
-    fanCoolingCelsiusPerPercent: 0.15,
-    wearPercentPerHour: 0.005,
+    model: startingGpu.name,
+    ...startingGpu.specifications,
+    dustDamage: startingGpu.specifications.dustDamage,
+    ...GPU_RUNTIME_CONFIG,
     maintenance: {
-      thermalServiceIntervalHours: 24,
-      dustPercentPerHour: 0.2,
-      dustWearThresholdPercent: 60,
-      dustMaxExtraHeatCelsius: 22,
-      dustMaxHeatingResponseBonus: 0.8,
-      dustMaxWearMultiplier: 3,
-      heatEffectStartCelsius: 78,
+      ...GPU_RUNTIME_CONFIG.maintenance,
+      // Alias mantenuti per i componenti esistenti; i valori per GPU sono in dustDamage.
+      dustWearThresholdPercent: startingGpu.specifications.dustDamage.wearThresholdPercent,
+      dustMaxExtraHeatCelsius: startingGpu.specifications.dustDamage.maxExtraHeatCelsius,
+      dustMaxHeatingResponseBonus:
+        startingGpu.specifications.dustDamage.maxHeatingResponseBonus,
+      dustMaxWearMultiplier: startingGpu.specifications.dustDamage.maxWearMultiplier,
     },
-    fanKits: {
-      stock: { label: 'Originale', coolingCelsius: 0, extraPowerWatts: 0, maxRpm: 3200 },
-      quiet: { label: 'Silenziosa', coolingCelsius: -3, extraPowerWatts: -4, maxRpm: 2400 },
-      performance: { label: 'Alta portata', coolingCelsius: 9, extraPowerWatts: 12, maxRpm: 4200 },
-    },
+    fanKits: GPU_FAN_KITS,
   },
-  economy: {
-    bitcoinPriceEur: 60_000,
-    electricityPriceEurPerKwh: 0.3,
-    // Un'azione completa simula un'ora di lavoro, indipendentemente dalla velocità UI.
-    simulatedHoursPerAction: 1,
+  rig: {
+    fan: FAN_MODELS_BY_ID[GAMEPLAY_RIG_SETUP.fanId],
+    fanCount: GAMEPLAY_RIG_SETUP.fanCount,
+    fanTuning: RIG_FAN_TUNING,
+    dustSystemId: GAMEPLAY_RIG_SETUP.dustSystemId,
+    dustSystem: RIG_DUST_SYSTEMS[GAMEPLAY_RIG_SETUP.dustSystemId],
+    coolingMethodId: GAMEPLAY_RIG_SETUP.coolingMethodId,
+    coolingMethod: RIG_COOLING_METHODS[GAMEPLAY_RIG_SETUP.coolingMethodId],
   },
-  mining: {
-    actionDurationMs: 850,
-    blockDifficulty: {
-      startingMultiplier: 1,
-      increasePerMinedBlock: 0.1,
-      maxMultiplier: 5,
-    },
-  },
-  editor: {
-    lineEffectDurationMs: 620,
-    maxLogEntries: 100,
-  },
-  scripting: {
-    maxSourceLength: 20_000,
-    maxNestingDepth: 64,
-    maxExecutionSteps: 10_000,
-    yieldEverySteps: 50,
-    maxRepeatCount: 1_000,
-    maxWaitMs: 5_000,
-    maxOutputLength: 2_000,
-    maxCollectionSize: 1_000,
-  },
-  camera: {
-    scene: {
-      fieldOfViewDegrees: 36,
-      near: 0.1,
-      far: 100,
-      panSpeed: 0.6,
-      panLimit: 2.5,
-      minDistance: 7,
-      maxDistance: 32,
-      minPolarAngleRadians: 0.3,
-      maxPolarAngleRadians: Math.PI / 2.3,
-      maxClickMovementPx: 5,
-      editorOffsetMinWidthPx: 1000,
-      editorOffsetWidthRatio: 0.12,
-      rigTarget: [0, 1, -1.5] as const,
-      rigFrontOffset: [12, 10, 23] as const,
-      rigTopOffset: [0, 35, 8.4] as const,
-      toolTopOffset: [0, 18, 3.8] as const,
-    },
-    bitcoinPreview: {
-      fieldOfViewDegrees: 34,
-      near: 0.1,
-      far: 10,
-      position: [0, 0.08, 3.1] as const,
-      exposure: 1.2,
-    },
-  },
-  animation: {
-    transitionSeconds: 1.1,
-    gpuTransferArcHeight: 1.4,
-    gpuFanRadiansPerSecond: 18,
-    gpuMixerTimeScale: 3,
-    particleCount: 28,
-    particleHeight: 3,
-    particlePhaseSpeed: 1.3,
-  },
-  scene: {
-    gpuModelWidth: 2.4,
-    maxPixelRatio: 2,
-    exposure: 1.45,
-    groundSize: 120,
-  },
-  layout: {
-    plots: {
-      rigColumnSpacing: 6.8,
-      rigRowSpacing: 5.6,
-      gridOriginX: -10,
-      gridColumns: 3,
-      gap: 5.4,
-      width: 14.2,
-      depth: 17.2,
-      rigSlotSpacing: 1.12,
-    },
-    toolArea: {
-      width: 16,
-      depth: 18,
-      position: [50.5, 0, -25.2] as const,
-      slotPositions: [
-        [-4.2, 3.8],
-        [4.2, 3.8],
-        [-4.2, -3.8],
-        [4.2, -3.8],
-      ] as const,
-      slotWidth: 6.5,
-      slotDepth: 4.8,
-    },
-    workbench: {
-      width: 5,
-      depth: 3.6,
-      surfaceY: 1.8,
-      bitcoinTrayPosition: [1.6, 1.87, 1.04] as const,
-    },
-  },
-  toolStations: {
-    workbench: {
-      slotIndex: 0,
-      focusTargetOffset: [-0.2, 1.65, 0] as const,
-      cameraOffset: [5.5, 5, 10] as const,
-    },
-  },
+  economy: ECONOMY_CONFIG,
+  clock: CLOCK_CONFIG,
+  mining: MINING_CONFIG,
+  editor: EDITOR_CONFIG,
+  scripting: SCRIPTING_CONFIG,
+  camera: CAMERA_CONFIG,
+  animation: ANIMATION_CONFIG,
+  scene: SCENE_CONFIG,
+  layout: LAYOUT_CONFIG,
+  toolStations: TOOL_STATIONS_CONFIG,
 } as const;

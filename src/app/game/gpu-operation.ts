@@ -44,11 +44,44 @@ export function gpuTemperature(gpu: GpuOperatingState, now: number): number {
   );
 }
 
+export function gpuTemperatureWhilePoweredDown(
+  gpu: GpuOperatingState,
+  now: number,
+  poweredDownAt: number,
+): number {
+  const duration = gpu.onWorkbench ? config.benchCoolingMs : config.cooldownMs;
+  const elapsed = Math.max(0, now - poweredDownAt);
+  const cooling = Math.min(1, elapsed / duration);
+  return gpuTemperature(gpu, poweredDownAt) * (1 - cooling);
+}
+
+export function rigAuxiliaryPowerWattsPerGpu(): number {
+  return (
+    (GAME_BALANCE.rig.fan.powerWatts * GAME_BALANCE.rig.fanCount +
+      GAME_BALANCE.rig.coolingMethod.extraPowerWatts) /
+    GAME_BALANCE.world.gpusPerRig
+  );
+}
+
+function rigFanCoolingCelsius(): number {
+  return Math.min(
+    GAME_BALANCE.rig.fanTuning.maxCoolingCelsius,
+    GAME_BALANCE.rig.fan.airflowCfm *
+      GAME_BALANCE.rig.fanCount *
+      GAME_BALANCE.rig.fanTuning.coolingCelsiusPerCfm,
+  );
+}
+
 export function gpuMiningPowerWatts(gpu: GpuOperatingState): number {
   return (
     config.mining.powerWatts * (gpu.targetFrequencyGhz / config.mining.frequencyGhz) ** 2 +
-    config.fanKits[gpu.fanKit].extraPowerWatts
+    config.fanKits[gpu.fanKit].extraPowerWatts +
+    rigAuxiliaryPowerWattsPerGpu()
   );
+}
+
+export function gpuIdlePowerWatts(): number {
+  return config.idle.powerWatts + rigAuxiliaryPowerWattsPerGpu();
 }
 
 export function isGpuOperational(gpu: GpuOperatingState): boolean {
@@ -106,23 +139,32 @@ export function applyGpuWork(
   const workedHours = economy.simulatedHoursPerAction * fraction;
   const dustPercent = Math.min(
     100,
-    gpu.dustPercent + config.maintenance.dustPercentPerHour * workedHours,
+    gpu.dustPercent +
+      config.maintenance.dustPercentPerHour *
+        config.dustDamage.dustBuildUpMultiplier *
+        (1 - GAME_BALANCE.rig.dustSystem.filterEfficiencyPercent / 100) *
+        workedHours,
   );
   const dustLoad = (gpu.dustPercent + dustPercent) / 200;
   const initialTemperature = gpuTemperature(gpu, startedAt);
   const fanSpeedPercent = gpu.targetFanSpeedPercent ?? config.mining.fanSpeedPercent;
   const fanCooling =
     (config.mining.fanSpeedPercent - fanSpeedPercent) * config.fanCoolingCelsiusPerPercent;
+  const rigDustSystem = GAME_BALANCE.rig.dustSystem;
+  const rigCoolingMethod = GAME_BALANCE.rig.coolingMethod;
   const equilibrium =
     config.idle.temperatureCelsius +
     (config.mining.temperatureCelsius - config.idle.temperatureCelsius) * ratio ** 2 +
     fanCooling +
-    dustLoad * config.maintenance.dustMaxExtraHeatCelsius -
-    config.fanKits[gpu.fanKit].coolingCelsius * (fanSpeedPercent / config.mining.fanSpeedPercent);
+    rigDustSystem.airflowResistanceCelsius +
+    dustLoad * config.dustDamage.maxExtraHeatCelsius -
+    config.fanKits[gpu.fanKit].coolingCelsius * (fanSpeedPercent / config.mining.fanSpeedPercent) -
+    rigCoolingMethod.coolingCelsius -
+    rigFanCoolingCelsius();
   const response =
     1 -
     (1 - config.thermalResponsePerAction) **
-      (fraction * (1 + dustLoad * config.maintenance.dustMaxHeatingResponseBonus));
+      (fraction * (1 + dustLoad * config.dustDamage.maxHeatingResponseBonus));
   const temperatureCelsius = initialTemperature + (equilibrium - initialTemperature) * response;
   const heatStress = Math.max(1, temperatureCelsius / config.mining.temperatureCelsius);
   const wearPercent = Math.min(
@@ -132,7 +174,7 @@ export function applyGpuWork(
         workedHours *
         ratio ** 2 *
         heatStress ** 2 *
-        dustWearMultiplier(dustLoad * 100),
+        dustWearMultiplier(dustLoad * 100, config.dustDamage),
   );
   const fault =
     wearPercent >= 100

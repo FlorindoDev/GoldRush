@@ -76,15 +76,15 @@ describe('GPU maintenance', () => {
   it('fan kits change cooling, power and rpm; they cannot repair or reset cooldown', () => {
     const gpu = { ...createGpuOperatingState(), wearPercent: 12, hoursSinceThermalService: 4 };
     const performance = maintainGpu(gpu, { kind: 'fan', kit: 'performance' });
-    const quiet = maintainGpu(gpu, { kind: 'fan', kit: 'quiet' });
+    const industrial = maintainGpu(gpu, { kind: 'fan', kit: 'industrial' });
     expect(applyGpuWork(performance, 1, 0, 100).temperatureCelsius).toBeLessThan(
       applyGpuWork(gpu, 1, 0, 100).temperatureCelsius,
     );
-    expect(applyGpuWork(quiet, 1, 0, 100).temperatureCelsius).toBeGreaterThan(
-      applyGpuWork(gpu, 1, 0, 100).temperatureCelsius,
+    expect(applyGpuWork(industrial, 1, 0, 100).temperatureCelsius).toBeLessThan(
+      applyGpuWork(performance, 1, 0, 100).temperatureCelsius,
     );
     expect(gpuMiningPowerWatts(performance) - gpuMiningPowerWatts(gpu)).toBe(12);
-    expect(gpuMiningPowerWatts(quiet) - gpuMiningPowerWatts(gpu)).toBe(-4);
+    expect(gpuMiningPowerWatts(industrial) - gpuMiningPowerWatts(gpu)).toBe(24);
     expect(performance.wearPercent).toBe(12);
     expect(performance.hoursSinceThermalService).toBe(4);
     expect(getGpuTelemetry(1, performance).maxFanSpeedRpm).toBe(4200);
