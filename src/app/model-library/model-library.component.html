@@ -1,0 +1,237 @@
+<main class="library">
+  <header class="library-header">
+    <div class="brand">
+      <span class="brand-mark">B/</span><span>BLOCKCRAFT <small>MODEL LIBRARY</small></span>
+    </div>
+    <a href="./">Torna al gioco ↗</a>
+  </header>
+  <section class="intro">
+    <div>
+      <p class="eyebrow">HARDWARE / ASSET COLLECTION</p>
+      <h1>La forma della potenza<span>.</span></h1>
+      <p>Rig modulari, raffreddamento e schede video. Esplora ogni componente in 3D.</p>
+    </div>
+    <div class="total">
+      <strong>{{ catalog()?.models?.length ?? '—' }}</strong
+      ><span>MODELLI<br />PRONTI ALL'USO</span>
+    </div>
+  </section>
+  <div class="workspace">
+    <aside
+      class="catalog"
+      aria-label="Catalogo modelli"
+    >
+      <label class="search"
+        ><span>CERCA MODELLO</span
+        ><input
+          type="search"
+          placeholder="Rig, Hydro, ventola…"
+          [value]="query()"
+          (input)="query.set($any($event.target).value)"
+      /></label>
+      <nav aria-label="Categorie modelli">
+        @for (item of categories; track item.id) {
+          <button
+            type="button"
+            [class.active]="category() === item.id"
+            [attr.aria-pressed]="category() === item.id"
+            (click)="category.set(item.id)"
+          >
+            {{ item.label }}
+          </button>
+        }
+      </nav>
+      <div class="list-heading">
+        <span>COLLEZIONE</span><span>{{ visibleModels().length }} ELEMENTI</span>
+      </div>
+      <div class="model-list">
+        @for (model of visibleModels(); track model.id) {
+          <button
+            type="button"
+            class="model-item"
+            [class.selected]="selected()?.id === model.id"
+            [attr.aria-pressed]="selected()?.id === model.id"
+            (click)="select(model)"
+          >
+            <span
+              class="model-glyph"
+              aria-hidden="true"
+              >{{
+                model.category === 'fans'
+                  ? '✳'
+                  : model.category === 'gpus'
+                    ? '▰'
+                    : model.category === 'filters'
+                      ? '▦'
+                      : '▤'
+              }}</span
+            >
+            <span
+              ><strong>{{ model.name }}</strong
+              ><small>{{
+                model.tier
+                  ? 'LIVELLO ' + model.tier + ' / ' + fanTierCount()
+                  : model.slots
+                    ? model.slots + ' SLOT GPU'
+                    : model.category === 'coins'
+                      ? model.ticker
+                      : 'COMPONENTE MODULARE'
+              }}</small></span
+            >
+            <span
+              class="item-arrow"
+              aria-hidden="true"
+              >↗</span
+            >
+          </button>
+        } @empty {
+          <p class="empty">Nessun modello trovato.</p>
+        }
+      </div>
+    </aside>
+    <section
+      class="detail"
+      aria-label="Anteprima modello"
+    >
+      <div
+        class="viewer"
+        [attr.aria-busy]="loading()"
+        [attr.data-model-id]="selected()?.id"
+      >
+        <div class="viewer-label">
+          <span class="status-dot"></span> {{ selectedCategory() }} <span>/ LIVE 3D</span>
+        </div>
+        <canvas
+          #canvas
+          aria-label="Modello 3D: trascina per ruotare, usa la rotella per lo zoom"
+          tabindex="0"
+        ></canvas>
+        @if (loading() || error()) {
+          <p
+            class="viewer-message"
+            role="status"
+          >
+            {{ error() || 'Caricamento modello…' }}
+          </p>
+        }
+        <div class="viewer-bottom">
+          <span>TRASCINA PER RUOTARE · SCORRI PER ZOOM</span>
+          <div>
+            <button
+              type="button"
+              (click)="toggleFans()"
+              [attr.aria-pressed]="spinning()"
+            >
+              {{ spinning() ? 'Ferma ventole' : 'Avvia ventole' }}
+            </button>
+            <button
+              type="button"
+              (click)="resetCamera()"
+            >
+              Centra
+            </button>
+          </div>
+        </div>
+      </div>
+      @if (selected(); as model) {
+        <article class="model-info">
+          <div class="model-title">
+            <div>
+              <p class="eyebrow">{{ selectedCategory() }}</p>
+              <h2>{{ model.name }}</h2>
+            </div>
+            <a
+              class="download"
+              [href]="model.path"
+              [attr.download]="model.path.endsWith('.glb') ? model.id + '.glb' : null"
+              >{{ model.path.endsWith('.glb') ? 'Scarica GLB ↓' : 'Apri glTF ↗' }}</a
+            >
+          </div>
+          <p class="description">{{ model.description }}</p>
+          <dl class="specs">
+            @if (model.ticker) {
+              <div>
+                <dt>VALUTA</dt>
+                <dd>{{ model.ticker }}</dd>
+              </div>
+            }
+            @if (model.algorithm) {
+              <div>
+                <dt>ALGORITMO</dt>
+                <dd class="dimensions">{{ model.algorithm }}</dd>
+              </div>
+            }
+            @if (model.slots) {
+              <div>
+                <dt>CAPACITÀ</dt>
+                <dd>{{ model.slots }} <small>GPU</small></dd>
+              </div>
+            }
+            @if (model.rpm) {
+              <div>
+                <dt>VELOCITÀ</dt>
+                <dd>{{ model.rpm }} <small>RPM</small></dd>
+              </div>
+            }
+            @if (model.airflowCfm) {
+              <div>
+                <dt>PORTATA</dt>
+                <dd>{{ model.airflowCfm }} <small>CFM</small></dd>
+              </div>
+            }
+            @if (model.powerWatts) {
+              <div>
+                <dt>CONSUMO</dt>
+                <dd>{{ model.powerWatts }} <small>W</small></dd>
+              </div>
+            }
+            @if (model.fanCount !== undefined) {
+              <div>
+                <dt>VENTOLE</dt>
+                <dd>{{ model.fanCount }}</dd>
+              </div>
+            }
+            @if (model.dimensions; as size) {
+              <div>
+                <dt>INGOMBRO · UNITÀ GIOCO</dt>
+                <dd class="dimensions">{{ size[0] }} × {{ size[1] }} × {{ size[2] }}</dd>
+              </div>
+            }
+          </dl>
+          @if (model.licensePath) {
+            <a [href]="model.licensePath">Attribuzione e licenza CC BY 4.0 ↗</a>
+          }
+          @if (model.source) {
+            <p>
+              <a
+                [href]="model.source"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Progetto e mining ↗</a
+              >
+            </p>
+          }
+          @if (model.tier) {
+            <p class="note">
+              Valori nominali per la progressione di gioco, non specifiche di prodotti reali.
+            </p>
+          }
+        </article>
+      }
+    </section>
+  </div>
+  <footer>
+    <span>GEOMETRIE ORIGINALI · STILE LOW POLY</span>
+    <details>
+      <summary>Riferimenti di design</summary>
+      @for (reference of catalog()?.references ?? []; track reference.url) {
+        <a
+          [href]="reference.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          >{{ reference.name }} ↗</a
+        >
+      }
+    </details>
+  </footer>
+</main>

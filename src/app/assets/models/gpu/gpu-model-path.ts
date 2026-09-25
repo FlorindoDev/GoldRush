@@ -1,1 +1,3 @@
-export const GPU_MODEL_PATH = 'models/modello-gpu/scene.gltf';
+import { GAME_BALANCE } from '../../../config/game-balance';
+
+export const GPU_MODEL_PATH = `assets/models/gpus/${GAME_BALANCE.models.startingGpuId}.glb`;

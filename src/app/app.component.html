@@ -1,1 +1,7 @@
-<app-hud />
+@if (showModels) {
+  @defer (on immediate) {
+    <app-model-library />
+  }
+} @else {
+  <app-hud />
+}

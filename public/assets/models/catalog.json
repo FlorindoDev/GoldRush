@@ -1,0 +1,1125 @@
+{
+  "version": 2,
+  "units": "game units",
+  "upAxis": "Y",
+  "description": "Modelli originali low poly. Specifiche delle ventole fittizie per progressione di gioco; nessuna modifica automatica al bilanciamento della partita.",
+  "references": [
+    {
+      "name": "GPU professionali · NVIDIA RTX PRO",
+      "url": "https://www.nvidia.com/en-us/products/workstations/professional-desktop-gpus/rtx-pro-6000-family/"
+    },
+    {
+      "name": "GPU compatte · ASUS ProArt",
+      "url": "https://www.asus.com/us/motherboards-components/graphics-cards/proart/proart-rtx5080-o16g/"
+    },
+    {
+      "name": "GPU con carenatura metallica · Sapphire NITRO+",
+      "url": "https://www.sapphiretech.com/en/consumer/nitro-radeon-rx-9070-xt-16g-gddr6"
+    },
+    {
+      "name": "Ventole spesse · Phanteks T30",
+      "url": "https://phanteks.com/product/t30-120/"
+    },
+    {
+      "name": "Bitcoin · mining",
+      "url": "https://bitcoin.org/en/how-it-works"
+    },
+    {
+      "name": "Litecoin · mining",
+      "url": "https://litecoin.info/docs/key-concepts/proof-of-work"
+    },
+    {
+      "name": "Dogecoin · mining",
+      "url": "https://dogecoin.com/dogepedia/how-tos/mining-dogecoin/"
+    },
+    {
+      "name": "Monero · mining",
+      "url": "https://www.getmonero.org/get-started/mining/"
+    },
+    {
+      "name": "Ethereum Classic · mining",
+      "url": "https://www.ethereumclassic.org/faqs/miners/"
+    },
+    {
+      "name": "Kaspa · mining",
+      "url": "https://kaspa.org/"
+    },
+    {
+      "name": "Ravencoin · mining",
+      "url": "https://ravencoin.org/about/"
+    },
+    {
+      "name": "Ergo · mining",
+      "url": "https://learn.ergoplatform.com/mining/"
+    },
+    {
+      "name": "Telai aperti 8 GPU · Veddha",
+      "url": "https://www.ricardo.ch/de/a/mining-rig-frame-veddha-minercase-v4-8-bay-1246445272/"
+    },
+    {
+      "name": "Ventole · Noctua NF-A12x25",
+      "url": "https://www.noctua.at/en/products/nf-a12x25-pwm"
+    },
+    {
+      "name": "Filtri magnetici · DEMCiflex",
+      "url": "https://www.demcifilter.com/How-to-choose"
+    },
+    {
+      "name": "Radiatori esterni · Watercool MO-RA IV",
+      "url": "https://shop.watercool.de/MO-RA-IV-200-Black_1"
+    },
+    {
+      "name": "GPU dual fan · ASUS Dual",
+      "url": "https://www.asus.com/ie/motherboards-components/graphics-cards/dual/dual-rtx4060-o8g/"
+    },
+    {
+      "name": "GPU a liquido · MSI SUPRIM LIQUID",
+      "url": "https://www.msi.com/Graphics-Card/GeForce-RTX-4090-SUPRIM-LIQUID-X-24G"
+    }
+  ],
+  "models": [
+    {
+      "id": "rig-8-none-none",
+      "name": "Rig 8 · Aperto / Air",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-none-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        3.66
+      ],
+      "bytes": 2094184,
+      "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
+      "slots": 8,
+      "filter": "none",
+      "cooling": "none",
+      "populated": true
+    },
+    {
+      "id": "rig-8-mesh-none",
+      "name": "Rig 8 · Rete / Air",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-mesh-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        3.935
+      ],
+      "bytes": 2153780,
+      "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
+      "slots": 8,
+      "filter": "mesh",
+      "cooling": "none",
+      "populated": true
+    },
+    {
+      "id": "rig-8-pleated-none",
+      "name": "Rig 8 · Cartuccia / Air",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-pleated-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        4.005
+      ],
+      "bytes": 2145444,
+      "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
+      "slots": 8,
+      "filter": "pleated",
+      "cooling": "none",
+      "populated": true
+    },
+    {
+      "id": "rig-8-carbon-none",
+      "name": "Rig 8 · Doppio filtro / Air",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-carbon-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        4.005
+      ],
+      "bytes": 2155572,
+      "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
+      "slots": 8,
+      "filter": "carbon",
+      "cooling": "none",
+      "populated": true
+    },
+    {
+      "id": "rig-8-none-air",
+      "name": "Rig 8 · Aperto / Air Wall",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-none-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.66
+      ],
+      "bytes": 3058828,
+      "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
+      "slots": 8,
+      "filter": "none",
+      "cooling": "air",
+      "populated": true
+    },
+    {
+      "id": "rig-8-mesh-air",
+      "name": "Rig 8 · Rete / Air Wall",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-mesh-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.935
+      ],
+      "bytes": 3118244,
+      "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
+      "slots": 8,
+      "filter": "mesh",
+      "cooling": "air",
+      "populated": true
+    },
+    {
+      "id": "rig-8-pleated-air",
+      "name": "Rig 8 · Cartuccia / Air Wall",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-pleated-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        4.005
+      ],
+      "bytes": 3109908,
+      "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
+      "slots": 8,
+      "filter": "pleated",
+      "cooling": "air",
+      "populated": true
+    },
+    {
+      "id": "rig-8-carbon-air",
+      "name": "Rig 8 · Doppio filtro / Air Wall",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-carbon-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        4.005
+      ],
+      "bytes": 3120036,
+      "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
+      "slots": 8,
+      "filter": "carbon",
+      "cooling": "air",
+      "populated": true
+    },
+    {
+      "id": "rig-8-none-liquid",
+      "name": "Rig 8 · Aperto / Hydro",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-none-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        3.66
+      ],
+      "bytes": 1678648,
+      "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
+      "slots": 8,
+      "filter": "none",
+      "cooling": "liquid",
+      "populated": true
+    },
+    {
+      "id": "rig-8-mesh-liquid",
+      "name": "Rig 8 · Rete / Hydro",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-mesh-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        3.935
+      ],
+      "bytes": 1738240,
+      "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
+      "slots": 8,
+      "filter": "mesh",
+      "cooling": "liquid",
+      "populated": true
+    },
+    {
+      "id": "rig-8-pleated-liquid",
+      "name": "Rig 8 · Cartuccia / Hydro",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-pleated-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        4.005
+      ],
+      "bytes": 1729908,
+      "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
+      "slots": 8,
+      "filter": "pleated",
+      "cooling": "liquid",
+      "populated": true
+    },
+    {
+      "id": "rig-8-carbon-liquid",
+      "name": "Rig 8 · Doppio filtro / Hydro",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-carbon-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        4.005
+      ],
+      "bytes": 1740036,
+      "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
+      "slots": 8,
+      "filter": "carbon",
+      "cooling": "liquid",
+      "populated": true
+    },
+    {
+      "id": "rig-8-frame-none",
+      "name": "Rig 8 · Telaio base",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-frame-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        3.66
+      ],
+      "bytes": 177568,
+      "description": "Telaio vuoto con otto riser, scheda madre, due PSU e attacchi per ventole e filtri.",
+      "slots": 8,
+      "cooling": "none",
+      "filter": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-8-frame-bracket",
+      "name": "Rig 8 · Telaio con supporto esterno",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-frame-bracket.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.66
+      ],
+      "bytes": 192256,
+      "description": "Telaio vuoto con otto riser, scheda madre, due PSU e attacchi per ventole e filtri.",
+      "slots": 8,
+      "cooling": "bracket",
+      "filter": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-8-frame-filtered",
+      "name": "Rig 8 · Telaio filtrato con supporto",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-frame-filtered.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.935
+      ],
+      "bytes": 251836,
+      "description": "Telaio da otto GPU con filtro magnetico e staffe laterali per raffreddamento esterno.",
+      "slots": 8,
+      "filter": "mesh",
+      "cooling": "bracket",
+      "populated": false
+    },
+    {
+      "id": "fan-airflow-120",
+      "name": "Flow 120",
+      "category": "fans",
+      "path": "assets/models/fans/fan-airflow-120.glb",
+      "dimensions": [
+        1,
+        1,
+        0.259
+      ],
+      "bytes": 92580,
+      "description": "Livello 1/7. Rotore indipendente, supporti antivibrazione. Valori nominali di gioco.",
+      "tier": 1,
+      "rpm": 1500,
+      "airflowCfm": 58,
+      "powerWatts": 2.4,
+      "diameterMm": 120
+    },
+    {
+      "id": "fan-pressure-140",
+      "name": "Pressure 140",
+      "category": "fans",
+      "path": "assets/models/fans/fan-pressure-140.glb",
+      "dimensions": [
+        1.16,
+        1.16,
+        0.311
+      ],
+      "bytes": 92600,
+      "description": "Livello 2/7. Rotore indipendente, supporti antivibrazione. Valori nominali di gioco.",
+      "tier": 2,
+      "rpm": 2200,
+      "airflowCfm": 92,
+      "powerWatts": 4.8,
+      "diameterMm": 140
+    },
+    {
+      "id": "fan-industrial-140",
+      "name": "Forge 140",
+      "category": "fans",
+      "path": "assets/models/fans/fan-industrial-140.glb",
+      "dimensions": [
+        1.16,
+        1.16,
+        0.475
+      ],
+      "bytes": 132604,
+      "description": "Livello 3/7. Rotore indipendente, supporti antivibrazione e griglia protettiva. Valori nominali di gioco.",
+      "tier": 3,
+      "rpm": 3200,
+      "airflowCfm": 135,
+      "powerWatts": 9.6,
+      "diameterMm": 140
+    },
+    {
+      "id": "fan-turbine-200",
+      "name": "Cyclone 200",
+      "category": "fans",
+      "path": "assets/models/fans/fan-turbine-200.glb",
+      "dimensions": [
+        1.66,
+        1.66,
+        0.564
+      ],
+      "bytes": 141808,
+      "description": "Livello 4/7. Rotore indipendente, supporti antivibrazione e griglia protettiva. Valori nominali di gioco.",
+      "tier": 4,
+      "rpm": 4200,
+      "airflowCfm": 210,
+      "powerWatts": 18,
+      "diameterMm": 200
+    },
+    {
+      "id": "fan-rgb-200",
+      "name": "Prism 200",
+      "category": "fans",
+      "path": "assets/models/fans/fan-rgb-200.glb",
+      "dimensions": [
+        1.66,
+        1.66,
+        0.644
+      ],
+      "bytes": 142712,
+      "description": "Livello 5/7. Rotore indipendente, supporti antivibrazione e griglia protettiva. Valori nominali di gioco.",
+      "tier": 5,
+      "rpm": 4600,
+      "airflowCfm": 245,
+      "powerWatts": 23,
+      "diameterMm": 200
+    },
+    {
+      "id": "fan-counter-200",
+      "name": "Counter 200",
+      "category": "fans",
+      "path": "assets/models/fans/fan-counter-200.glb",
+      "dimensions": [
+        1.66,
+        1.66,
+        0.944
+      ],
+      "bytes": 184212,
+      "description": "Livello 6/7. Rotore indipendente, supporti antivibrazione e griglia protettiva. Valori nominali di gioco.",
+      "tier": 6,
+      "rpm": 5200,
+      "airflowCfm": 300,
+      "powerWatts": 34,
+      "diameterMm": 200
+    },
+    {
+      "id": "fan-server-240",
+      "name": "Server Jet 240",
+      "category": "fans",
+      "path": "assets/models/fans/fan-server-240.glb",
+      "dimensions": [
+        2,
+        2,
+        0.901
+      ],
+      "bytes": 208476,
+      "description": "Livello 7/7. Rotore indipendente, supporti antivibrazione e griglia protettiva. Valori nominali di gioco.",
+      "tier": 7,
+      "rpm": 6500,
+      "airflowCfm": 390,
+      "powerWatts": 48,
+      "diameterMm": 240
+    },
+    {
+      "id": "gpu-compact",
+      "name": "Miner S1 · Compact",
+      "category": "gpus",
+      "path": "assets/models/gpus/gpu-compact.glb",
+      "dimensions": [
+        1.753,
+        0.509,
+        1.396
+      ],
+      "bytes": 131192,
+      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
+      "fanCount": 1,
+      "cooling": "compact"
+    },
+    {
+      "id": "gpu-dual",
+      "name": "Miner D2 · Dual",
+      "category": "gpus",
+      "path": "assets/models/gpus/gpu-dual.glb",
+      "dimensions": [
+        2.754,
+        0.509,
+        1.396
+      ],
+      "bytes": 183384,
+      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
+      "fanCount": 2,
+      "cooling": "dual"
+    },
+    {
+      "id": "gpu-triple",
+      "name": "Miner T3 · Triple",
+      "category": "gpus",
+      "path": "assets/models/gpus/gpu-triple.glb",
+      "dimensions": [
+        3.203,
+        0.509,
+        1.396
+      ],
+      "bytes": 267420,
+      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
+      "fanCount": 3,
+      "cooling": "triple"
+    },
+    {
+      "id": "gpu-blower",
+      "name": "Miner B1 · Blower",
+      "category": "gpus",
+      "path": "assets/models/gpus/gpu-blower.glb",
+      "dimensions": [
+        2.754,
+        0.547,
+        1.396
+      ],
+      "bytes": 117848,
+      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
+      "fanCount": 1,
+      "cooling": "blower"
+    },
+    {
+      "id": "gpu-passive",
+      "name": "Miner P0 · Passive",
+      "category": "gpus",
+      "path": "assets/models/gpus/gpu-passive.glb",
+      "dimensions": [
+        2.754,
+        0.701,
+        1.396
+      ],
+      "bytes": 74500,
+      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
+      "fanCount": 0,
+      "cooling": "passive"
+    },
+    {
+      "id": "gpu-liquid",
+      "name": "Miner L0 · Hydro",
+      "category": "gpus",
+      "path": "assets/models/gpus/gpu-liquid.glb",
+      "dimensions": [
+        2.754,
+        0.616,
+        1.396
+      ],
+      "bytes": 85000,
+      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
+      "fanCount": 0,
+      "cooling": "liquid"
+    },
+    {
+      "id": "gpu-proart",
+      "name": "Miner A3 · Atelier",
+      "category": "gpus",
+      "path": "assets/models/gpus/gpu-proart.glb",
+      "dimensions": [
+        3.004,
+        0.509,
+        1.396
+      ],
+      "bytes": 293984,
+      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
+      "fanCount": 3,
+      "cooling": "proart"
+    },
+    {
+      "id": "gpu-nitro",
+      "name": "Miner N3 · Neon",
+      "category": "gpus",
+      "path": "assets/models/gpus/gpu-nitro.glb",
+      "dimensions": [
+        3.304,
+        0.509,
+        1.396
+      ],
+      "bytes": 266512,
+      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
+      "fanCount": 3,
+      "cooling": "nitro"
+    },
+    {
+      "id": "gpu-workstation",
+      "name": "Miner W2 · Workstation",
+      "category": "gpus",
+      "path": "assets/models/gpus/gpu-workstation.glb",
+      "dimensions": [
+        2.953,
+        0.618,
+        1.396
+      ],
+      "bytes": 194888,
+      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
+      "fanCount": 2,
+      "cooling": "workstation"
+    },
+    {
+      "id": "gpu-low-profile",
+      "name": "Miner LP2 · Slim",
+      "category": "gpus",
+      "path": "assets/models/gpus/gpu-low-profile.glb",
+      "dimensions": [
+        1.903,
+        0.366,
+        0.907
+      ],
+      "bytes": 182316,
+      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
+      "fanCount": 2,
+      "cooling": "low-profile"
+    },
+    {
+      "id": "gpu-hybrid",
+      "name": "Miner H1 · Hybrid",
+      "category": "gpus",
+      "path": "assets/models/gpus/gpu-hybrid.glb",
+      "dimensions": [
+        2.903,
+        0.921,
+        1.396
+      ],
+      "bytes": 152628,
+      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
+      "fanCount": 1,
+      "cooling": "hybrid"
+    },
+    {
+      "id": "filter-mesh",
+      "name": "Filtro magnetico a rete",
+      "category": "filters",
+      "path": "assets/models/filters/filter-mesh.glb",
+      "dimensions": [
+        5.55,
+        1.1,
+        0.18
+      ],
+      "bytes": 59912,
+      "description": "Pannello estraibile compatibile con il punto filter-mount di ogni rig da otto GPU.",
+      "filter": "mesh"
+    },
+    {
+      "id": "filter-pleated",
+      "name": "Filtro a cartuccia pieghettata",
+      "category": "filters",
+      "path": "assets/models/filters/filter-pleated.glb",
+      "dimensions": [
+        5.55,
+        1.1,
+        0.32
+      ],
+      "bytes": 51572,
+      "description": "Pannello estraibile compatibile con il punto filter-mount di ogni rig da otto GPU.",
+      "filter": "pleated"
+    },
+    {
+      "id": "filter-carbon",
+      "name": "Filtro a doppio strato",
+      "category": "filters",
+      "path": "assets/models/filters/filter-carbon.glb",
+      "dimensions": [
+        5.55,
+        1.1,
+        0.32
+      ],
+      "bytes": 62036,
+      "description": "Pannello estraibile compatibile con il punto filter-mount di ogni rig da otto GPU.",
+      "filter": "carbon"
+    },
+    {
+      "id": "cooling-bracket",
+      "name": "Supporto esterno universale",
+      "category": "cooling",
+      "path": "assets/models/cooling/cooling-bracket.glb",
+      "dimensions": [
+        1.82,
+        3.315,
+        2.9
+      ],
+      "bytes": 13756,
+      "description": "Basamento, montanti e attacco per moduli esterni ad aria o liquido.",
+      "cooling": "bracket"
+    },
+    {
+      "id": "cooling-air",
+      "name": "Modulo esterno · Air Wall",
+      "category": "cooling",
+      "path": "assets/models/cooling/cooling-air.glb",
+      "dimensions": [
+        1.85,
+        3.315,
+        2.9
+      ],
+      "bytes": 290116,
+      "description": "Due ventole industriali su telaio esterno con piedini e staffe.",
+      "cooling": "air"
+    },
+    {
+      "id": "cooling-liquid",
+      "name": "Modulo esterno · Hydro Tower",
+      "category": "cooling",
+      "path": "assets/models/cooling/cooling-liquid.glb",
+      "dimensions": [
+        2.26,
+        3.315,
+        2.9
+      ],
+      "bytes": 260424,
+      "description": "Radiatore verticale, due ventole, serbatoio, pompa e raccordi.",
+      "cooling": "liquid"
+    },
+    {
+      "id": "rig-gameplay",
+      "name": "Rig 4 · Modular",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        3.66
+      ],
+      "bytes": 592636,
+      "description": "Rig della partita: telaio modulare nello stesso stile della famiglia da otto GPU.",
+      "slots": 4,
+      "populated": false
+    },
+    {
+      "id": "rig-gameplay-none-none",
+      "name": "Rig 4 · Aperto / Air",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay-none-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        3.66
+      ],
+      "bytes": 592656,
+      "description": "Rig della partita con GPU montate solo quando sbloccate.",
+      "slots": 4,
+      "filter": "none",
+      "cooling": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-gameplay-mesh-none",
+      "name": "Rig 4 · Rete / Air",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay-mesh-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        3.935
+      ],
+      "bytes": 652224,
+      "description": "Rig della partita con GPU montate solo quando sbloccate.",
+      "slots": 4,
+      "filter": "mesh",
+      "cooling": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-gameplay-pleated-none",
+      "name": "Rig 4 · Cartuccia / Air",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay-pleated-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        4.005
+      ],
+      "bytes": 643892,
+      "description": "Rig della partita con GPU montate solo quando sbloccate.",
+      "slots": 4,
+      "filter": "pleated",
+      "cooling": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-gameplay-carbon-none",
+      "name": "Rig 4 · Doppio filtro / Air",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay-carbon-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        4.005
+      ],
+      "bytes": 654012,
+      "description": "Rig della partita con GPU montate solo quando sbloccate.",
+      "slots": 4,
+      "filter": "carbon",
+      "cooling": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-gameplay-none-air",
+      "name": "Rig 4 · Aperto / Air Wall",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay-none-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.66
+      ],
+      "bytes": 883760,
+      "description": "Rig della partita con GPU montate solo quando sbloccate.",
+      "slots": 4,
+      "filter": "none",
+      "cooling": "air",
+      "populated": false
+    },
+    {
+      "id": "rig-gameplay-mesh-air",
+      "name": "Rig 4 · Rete / Air Wall",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay-mesh-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.935
+      ],
+      "bytes": 943156,
+      "description": "Rig della partita con GPU montate solo quando sbloccate.",
+      "slots": 4,
+      "filter": "mesh",
+      "cooling": "air",
+      "populated": false
+    },
+    {
+      "id": "rig-gameplay-pleated-air",
+      "name": "Rig 4 · Cartuccia / Air Wall",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay-pleated-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        4.005
+      ],
+      "bytes": 934820,
+      "description": "Rig della partita con GPU montate solo quando sbloccate.",
+      "slots": 4,
+      "filter": "pleated",
+      "cooling": "air",
+      "populated": false
+    },
+    {
+      "id": "rig-gameplay-carbon-air",
+      "name": "Rig 4 · Doppio filtro / Air Wall",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay-carbon-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        4.005
+      ],
+      "bytes": 944944,
+      "description": "Rig della partita con GPU montate solo quando sbloccate.",
+      "slots": 4,
+      "filter": "carbon",
+      "cooling": "air",
+      "populated": false
+    },
+    {
+      "id": "rig-gameplay-none-liquid",
+      "name": "Rig 4 · Aperto / Hydro",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay-none-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        3.66
+      ],
+      "bytes": 854108,
+      "description": "Rig della partita con GPU montate solo quando sbloccate.",
+      "slots": 4,
+      "filter": "none",
+      "cooling": "liquid",
+      "populated": false
+    },
+    {
+      "id": "rig-gameplay-mesh-liquid",
+      "name": "Rig 4 · Rete / Hydro",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay-mesh-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        3.935
+      ],
+      "bytes": 913684,
+      "description": "Rig della partita con GPU montate solo quando sbloccate.",
+      "slots": 4,
+      "filter": "mesh",
+      "cooling": "liquid",
+      "populated": false
+    },
+    {
+      "id": "rig-gameplay-pleated-liquid",
+      "name": "Rig 4 · Cartuccia / Hydro",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay-pleated-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        4.005
+      ],
+      "bytes": 905348,
+      "description": "Rig della partita con GPU montate solo quando sbloccate.",
+      "slots": 4,
+      "filter": "pleated",
+      "cooling": "liquid",
+      "populated": false
+    },
+    {
+      "id": "rig-gameplay-carbon-liquid",
+      "name": "Rig 4 · Doppio filtro / Hydro",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay-carbon-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        4.005
+      ],
+      "bytes": 915472,
+      "description": "Rig della partita con GPU montate solo quando sbloccate.",
+      "slots": 4,
+      "filter": "carbon",
+      "cooling": "liquid",
+      "populated": false
+    },
+    {
+      "id": "workbench",
+      "name": "Banco da elettronico",
+      "category": "workshop",
+      "path": "assets/models/workshop/workbench.glb",
+      "dimensions": [
+        5,
+        4.203,
+        3.6
+      ],
+      "bytes": 458824,
+      "description": "Banco GLB con attrezzi, oscilloscopio e punti di montaggio per GPU e monete."
+    },
+    {
+      "id": "tool-area",
+      "name": "Area officina",
+      "category": "environment",
+      "path": "assets/models/environment/tool-area.glb",
+      "dimensions": [
+        16.065,
+        0.14,
+        18.065
+      ],
+      "bytes": 445508,
+      "description": "Pavimento e postazioni officina."
+    },
+    {
+      "id": "plot",
+      "name": "Plot universale",
+      "category": "environment",
+      "path": "assets/models/environment/plot.glb",
+      "dimensions": [
+        23.665,
+        0.06,
+        20.465
+      ],
+      "bytes": 171468,
+      "description": "Plot a sei slot, dimensionato per tutti i rig del catalogo."
+    },
+    {
+      "id": "rig-slot",
+      "name": "Slot rig universale",
+      "category": "environment",
+      "path": "assets/models/environment/rig-slot.glb",
+      "dimensions": [
+        10.065,
+        0.145,
+        5.465
+      ],
+      "bytes": 98224,
+      "description": "Piazzola compatibile con rig aperti, filtrati e con moduli esterni."
+    },
+    {
+      "id": "world-floor",
+      "name": "Pavimento della farm",
+      "category": "environment",
+      "path": "assets/models/environment/world-floor.glb",
+      "dimensions": [
+        240,
+        0.03,
+        240
+      ],
+      "bytes": 26032,
+      "description": "Suolo e griglia della scena."
+    },
+    {
+      "id": "bitcoin",
+      "name": "Bitcoin · BTC",
+      "category": "coins",
+      "path": "assets/models/coins/bitcoin.glb",
+      "dimensions": [
+        0.9,
+        0.9,
+        0.079
+      ],
+      "bytes": 536528,
+      "description": "Moneta con forma, diametro e spessore del Bitcoin. SHA-256.",
+      "ticker": "BTC",
+      "algorithm": "SHA-256",
+      "source": "https://bitcoin.org/en/how-it-works",
+      "licensePath": "assets/models/coins/bitcoin-license.txt"
+    },
+    {
+      "id": "litecoin",
+      "name": "Litecoin · LTC",
+      "category": "coins",
+      "path": "assets/models/coins/litecoin.glb",
+      "dimensions": [
+        0.9,
+        0.9,
+        0.079
+      ],
+      "bytes": 197948,
+      "description": "Moneta con forma, diametro e spessore del Bitcoin. Scrypt.",
+      "ticker": "LTC",
+      "algorithm": "Scrypt",
+      "source": "https://litecoin.info/docs/key-concepts/proof-of-work"
+    },
+    {
+      "id": "dogecoin",
+      "name": "Dogecoin · DOGE",
+      "category": "coins",
+      "path": "assets/models/coins/dogecoin.glb",
+      "dimensions": [
+        0.9,
+        0.9,
+        0.079
+      ],
+      "bytes": 204740,
+      "description": "Moneta con forma, diametro e spessore del Bitcoin. Scrypt.",
+      "ticker": "DOGE",
+      "algorithm": "Scrypt",
+      "source": "https://dogecoin.com/dogepedia/how-tos/mining-dogecoin/"
+    },
+    {
+      "id": "monero",
+      "name": "Monero · XMR",
+      "category": "coins",
+      "path": "assets/models/coins/monero.glb",
+      "dimensions": [
+        0.9,
+        0.9,
+        0.079
+      ],
+      "bytes": 198812,
+      "description": "Moneta con forma, diametro e spessore del Bitcoin. RandomX.",
+      "ticker": "XMR",
+      "algorithm": "RandomX",
+      "source": "https://www.getmonero.org/get-started/mining/"
+    },
+    {
+      "id": "ethereum-classic",
+      "name": "Ethereum Classic · ETC",
+      "category": "coins",
+      "path": "assets/models/coins/ethereum-classic.glb",
+      "dimensions": [
+        0.9,
+        0.9,
+        0.079
+      ],
+      "bytes": 196932,
+      "description": "Moneta con forma, diametro e spessore del Bitcoin. Etchash.",
+      "ticker": "ETC",
+      "algorithm": "Etchash",
+      "source": "https://www.ethereumclassic.org/faqs/miners/"
+    },
+    {
+      "id": "kaspa",
+      "name": "Kaspa · KAS",
+      "category": "coins",
+      "path": "assets/models/coins/kaspa.glb",
+      "dimensions": [
+        0.9,
+        0.9,
+        0.079
+      ],
+      "bytes": 198040,
+      "description": "Moneta con forma, diametro e spessore del Bitcoin. kHeavyHash.",
+      "ticker": "KAS",
+      "algorithm": "kHeavyHash",
+      "source": "https://kaspa.org/"
+    },
+    {
+      "id": "ravencoin",
+      "name": "Ravencoin · RVN",
+      "category": "coins",
+      "path": "assets/models/coins/ravencoin.glb",
+      "dimensions": [
+        0.9,
+        0.9,
+        0.079
+      ],
+      "bytes": 194948,
+      "description": "Moneta con forma, diametro e spessore del Bitcoin. KAWPOW.",
+      "ticker": "RVN",
+      "algorithm": "KAWPOW",
+      "source": "https://ravencoin.org/about/"
+    },
+    {
+      "id": "ergo",
+      "name": "Ergo · ERG",
+      "category": "coins",
+      "path": "assets/models/coins/ergo.glb",
+      "dimensions": [
+        0.9,
+        0.9,
+        0.079
+      ],
+      "bytes": 198820,
+      "description": "Moneta con forma, diametro e spessore del Bitcoin. Autolykos.",
+      "ticker": "ERG",
+      "algorithm": "Autolykos",
+      "source": "https://learn.ergoplatform.com/mining/"
+    }
+  ]
+}

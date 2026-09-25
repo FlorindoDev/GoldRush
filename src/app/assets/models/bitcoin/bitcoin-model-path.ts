@@ -1,1 +1,1 @@
-export const BITCOIN_MODEL_PATH = 'models/bitcoin/scene.gltf';
+export const BITCOIN_MODEL_PATH = 'assets/models/coins/bitcoin.glb';
