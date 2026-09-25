@@ -15,6 +15,14 @@ export interface MiningSettlement {
   readonly balanceAfterSatoshis: number;
 }
 
+export interface ElectricityBill {
+  readonly gameDay: number;
+  readonly energyKwh: number;
+  readonly electricitySatoshis: number;
+  readonly balanceBeforeSatoshis: number;
+  readonly balanceAfterSatoshis: number;
+}
+
 export function satoshisToEuros(satoshis: number): number {
   return (satoshis / GAME_BALANCE.world.satoshisPerBitcoin) * GAME_BALANCE.economy.bitcoinPriceEur;
 }

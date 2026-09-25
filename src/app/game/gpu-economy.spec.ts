@@ -4,6 +4,7 @@ import { satoshisToEuros } from './electricity';
 import { gpuTemperature } from './gpu-operation';
 import { getGpuTelemetry } from './gpu-telemetry';
 import {
+  billElectricityForDay,
   BLOCK_REWARD,
   createWorld,
   expandWorld,
@@ -18,7 +19,7 @@ import {
 } from './mining-world';
 
 describe('GPU operation and electricity', () => {
-  it('accumulates energy without charging until the block is complete', () => {
+  it('accumulates energy without charging before the game day ends', () => {
     const world = mineGpu(createWorld(), 1, 0);
     expect(world.satoshis).toBe(0);
     expect(world.electricity.energyKwh).toBeCloseTo(0.237);
@@ -27,28 +28,34 @@ describe('GPU operation and electricity', () => {
     expect(satoshisToEuros(BLOCK_REWARD)).toBe(600);
   });
 
-  it('settles the final action once, rounding to a whole satoshi', () => {
+  it('pays the block reward at completion and bills electricity at day end', () => {
     let world = createWorld();
     world = { ...world, blocks: [{ id: 1, progress: 99.9 }] };
     const settled = mineGpu(world, 1, 0);
-    expect(settled.electricity.paidSatoshis).toBe(119);
-    expect(settled.satoshis).toBe(BLOCK_REWARD - 119);
+    expect(settled.electricity.paidSatoshis).toBe(0);
+    expect(settled.electricity.pendingKwh).toBeGreaterThan(0);
+    expect(settled.satoshis).toBe(BLOCK_REWARD);
     expect(settled.lastSettlement).toMatchObject({
       blockId: 1,
-      electricitySatoshis: 119,
+      electricitySatoshis: 0,
       rewardSatoshis: BLOCK_REWARD,
     });
-    expect(settled.electricity.pendingKwh).toBe(0);
     expect(() => mineGpu(settled, 1, 0)).toThrow('completato');
     const next = mineGpu(expandWorld(settled), 1, 0);
-    expect(next.electricity.paidSatoshis).toBe(119);
+    expect(next.electricity.paidSatoshis).toBe(0);
     expect(next.satoshis).toBe(settled.satoshis);
     expect(next.lastSettlement).toBe(settled.lastSettlement);
+
+    const billed = billElectricityForDay(settled, 1);
+    expect(billed.electricity.paidSatoshis).toBe(119);
+    expect(billed.electricity.pendingKwh).toBe(0);
+    expect(billed.satoshis).toBe(BLOCK_REWARD - 119);
+    expect(billed.lastElectricityBill).toMatchObject({ gameDay: 1, electricitySatoshis: 119 });
   });
 
-  it('retains debt when electricity costs more than the available reward', () => {
+  it('retains debt when the day-end electricity bill exceeds the available balance', () => {
     const world = createWorld();
-    const settled = mineGpu(
+    const rewarded = mineGpu(
       {
         ...world,
         blocks: [{ id: 1, progress: 99.9 }],
@@ -57,8 +64,11 @@ describe('GPU operation and electricity', () => {
       1,
       0,
     );
-    expect(settled.satoshis).toBeLessThan(0);
-    expect(settled.satoshis + settled.electricity.paidSatoshis).toBe(BLOCK_REWARD);
+    expect(rewarded.satoshis).toBe(BLOCK_REWARD);
+    expect(rewarded.electricity.paidSatoshis).toBe(0);
+    const billed = billElectricityForDay(rewarded, 1);
+    expect(billed.satoshis).toBeLessThan(0);
+    expect(billed.satoshis + billed.electricity.paidSatoshis).toBe(BLOCK_REWARD);
   });
 
   it('underclock trades lower progress for lower power and wear', () => {
@@ -153,7 +163,9 @@ describe('GPU operation and electricity', () => {
     expect(partial.blocks[0].progress).toBe(0);
     expect(partial.satoshis).toBe(0);
     const settled = mineGpu({ ...partial, blocks: [{ id: 1, progress: 99.9 }] }, 1, 425);
-    expect(settled.electricity.paidSatoshis).toBe(178);
+    expect(settled.electricity.paidSatoshis).toBe(0);
+    expect(settled.electricity.pendingKwh).toBeGreaterThan(partial.electricity.pendingKwh);
+    expect(billElectricityForDay(settled, 1).electricity.paidSatoshis).toBe(178);
   });
 
   it('wear reaching 100 blocks restart until maintenance and a new world resets all state', () => {

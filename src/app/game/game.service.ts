@@ -4,7 +4,7 @@ import { delay, execute } from '../language/interpreter';
 import { ScriptError } from '../language/syntax';
 import { createWorldBindings } from './script-api/world-bindings';
 import { satoshisToEuros } from './electricity';
-import { applyGpuWork } from './gpu-operation';
+import { applyGpuWork, gpuTemperatureWhilePoweredDown } from './gpu-operation';
 import { getGpuTelemetry } from './gpu-telemetry';
 import type { GpuMaintenanceAction } from './gpu-maintenance';
 import type { ElectricityReadings } from './script-api/electricity-script-object';
@@ -18,6 +18,7 @@ import {
 } from './script-storage';
 import {
   canExpand,
+  billElectricityForDay,
   BLOCK_REWARD,
   countUnlockedGpus,
   countUnlockedRigs,
@@ -70,6 +71,7 @@ interface MiningAction {
 @Injectable({ providedIn: 'root' })
 export class GameService {
   readonly world = signal(createWorld());
+  readonly gameElapsedMinutes = signal(0);
   readonly started = signal(false);
   readonly running = signal(false);
   readonly mining = signal(false);
@@ -112,6 +114,8 @@ export class GameService {
   );
   readonly balanceEur = computed(() => satoshisToEuros(this.world().satoshis));
   private controller?: AbortController;
+  private rigPoweredDownAt = Date.now();
+  private billedGameDay = 0;
   private readonly miningControllers = new Map<number, AbortController>();
   private readonly parallelGpuIds = new Map<number, Set<number>>();
   private lineExecutionId = 0;
@@ -131,6 +135,30 @@ export class GameService {
       'success',
     );
     this.log('Esegui il codice per iniziare a minare.');
+  }
+
+  advanceGameTime(realElapsedMilliseconds: number): void {
+    if (!Number.isFinite(realElapsedMilliseconds) || realElapsedMilliseconds <= 0) {
+      return;
+    }
+
+    const elapsedMinutes =
+      this.gameElapsedMinutes() +
+      realElapsedMilliseconds / GAME_BALANCE.clock.millisecondsPerGameMinute;
+    this.gameElapsedMinutes.set(elapsedMinutes);
+
+    const completedDays = Math.floor(elapsedMinutes / GAME_BALANCE.clock.minutesPerDay);
+    while (this.billedGameDay < completedDays) {
+      const gameDay = ++this.billedGameDay;
+      this.world.update((world) => billElectricityForDay(world, gameDay));
+      const bill = this.world().lastElectricityBill;
+      if (bill?.gameDay === gameDay) {
+        this.log(
+          `Bolletta giorno ${gameDay}: −${satoshisToEuros(bill.electricitySatoshis).toFixed(2)} €.`,
+          'warning',
+        );
+      }
+    }
   }
 
   updateCode(code: string): void {
@@ -202,6 +230,7 @@ export class GameService {
       return;
     }
     this.prepareNextBlock();
+    this.powerOnGpus(Date.now());
     const controller = new AbortController();
     this.clearLineEffects();
     this.controller = controller;
@@ -243,6 +272,7 @@ export class GameService {
       this.reportExecutionError(error, controller.signal);
     } finally {
       this.activeLine.set(0);
+      this.rigPoweredDownAt = Date.now();
       this.running.set(false);
       this.mining.set(false);
       this.miningActions.set([]);
@@ -369,7 +399,7 @@ export class GameService {
   }
 
   select(id: number): void {
-    if (!this.running() && isGpuUnlocked(this.world(), id)) {
+    if (isGpuUnlocked(this.world(), id)) {
       this.viewedRigId.set(rigIdForGpu(id));
       this.viewedPlotId.set(plotIdForGpu(id));
       this.selectedGpuId.set(id);
@@ -435,6 +465,8 @@ export class GameService {
     }
     this.returnToRig();
     this.world.set(createWorld());
+    this.gameElapsedMinutes.set(0);
+    this.billedGameDay = 0;
     this.clearLineEffects();
     this.selectedGpuId.set(null);
     this.viewedRigId.set(1);
@@ -542,7 +574,7 @@ export class GameService {
 
     if (block.progress === 100 && this.world().lastSettlement?.blockId === block.id) {
       this.log(
-        `Blocco estratto! +${(BLOCK_REWARD / GAME_BALANCE.world.satoshisPerBitcoin).toFixed(4)} BTC · corrente −${satoshisToEuros(this.world().lastSettlement!.electricitySatoshis).toFixed(2)} €. Saldo netto aggiornato.`,
+        `Blocco estratto! +${(BLOCK_REWARD / GAME_BALANCE.world.satoshisPerBitcoin).toFixed(4)} BTC.`,
         'success',
       );
     }
@@ -556,17 +588,34 @@ export class GameService {
     }
   }
 
+  private powerOnGpus(now: number): void {
+    this.world.update((world) => ({
+      ...world,
+      plots: world.plots.map((plot) => ({
+        ...plot,
+        rigs: plot.rigs.map((rig) => ({
+          ...rig,
+          gpus: rig.gpus.map((gpu) => ({
+            ...gpu,
+            temperatureCelsius: gpuTemperatureWhilePoweredDown(gpu, now, this.rigPoweredDownAt),
+            lastUpdatedAt: now,
+          })),
+        })),
+      })),
+    }));
+  }
+
   /** Telemetria della singola scheda, inclusi calore e usura dell'azione in corso. */
   gpuTelemetry(gpuId: number) {
     const now = Date.now();
     const gpu = getGpu(this.world(), gpuId);
     const action = this.miningActions().find((item) => item.gpuId === gpuId);
     if (!action) {
-      return getGpuTelemetry(0, gpu, now);
+      return getGpuTelemetry(0, gpu, now, this.running(), this.rigPoweredDownAt);
     }
     const fraction = Math.min(1, Math.max(0, (now - action.startedAt) / action.durationMs));
     const projected = applyGpuWork(gpu, fraction, action.startedAt, now);
-    return getGpuTelemetry(1, projected, now);
+    return getGpuTelemetry(1, projected, now, this.running(), this.rigPoweredDownAt);
   }
 
   setGpuFrequencyGhz(gpuId: number, frequencyGhz: number): void {
@@ -599,10 +648,12 @@ export class GameService {
   readElectricity(): ElectricityReadings {
     const world = this.world();
     const actions = this.miningActions();
-    const powerWatts = farmPowerWatts(
-      world,
-      actions.map(({ gpuId }) => gpuId),
-    );
+    const powerWatts = this.running()
+      ? farmPowerWatts(
+          world,
+          actions.map(({ gpuId }) => gpuId),
+        )
+      : 0;
     const liveKwh = actions.reduce((energy, action) => {
       const participants = action.parallelGroupId
         ? Array.from(this.parallelGpuIds.get(action.parallelGroupId) ?? [action.gpuId])

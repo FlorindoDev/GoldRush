@@ -4,6 +4,7 @@ import {
   applyGpuWork,
   clearGpuStop,
   createGpuOperatingState,
+  gpuIdlePowerWatts,
   gpuMiningPowerWatts,
   gpuTemperature,
   isGpuOperational,
@@ -12,6 +13,7 @@ import {
   type GpuOperatingState,
 } from './gpu-operation';
 import {
+  type ElectricityBill,
   createElectricityMeter,
   electricityCostSatoshis,
   type ElectricityMeter,
@@ -49,6 +51,7 @@ export interface MiningWorld {
   readonly satoshis: number;
   readonly electricity: ElectricityMeter;
   readonly lastSettlement: MiningSettlement | null;
+  readonly lastElectricityBill: ElectricityBill | null;
 }
 
 export const PLOT_COUNT = GAME_BALANCE.world.plotCount;
@@ -75,6 +78,7 @@ export function createWorld(): MiningWorld {
     satoshis: 0,
     electricity: createElectricityMeter(),
     lastSettlement: null,
+    lastElectricityBill: null,
   };
 }
 
@@ -137,8 +141,34 @@ export function settleCompletedBlock(world: MiningWorld): MiningWorld {
   if (block.progress < 100 || world.lastSettlement?.blockId === block.id) {
     return world;
   }
-  const electricitySatoshis = electricityCostSatoshis(world.electricity.pendingKwh);
-  const balanceAfterSatoshis = world.satoshis + BLOCK_REWARD - electricitySatoshis;
+  const balanceAfterSatoshis = world.satoshis + BLOCK_REWARD;
+  return {
+    ...world,
+    satoshis: balanceAfterSatoshis,
+    lastSettlement: {
+      blockId: block.id,
+      energyKwh: 0,
+      rewardSatoshis: BLOCK_REWARD,
+      electricitySatoshis: 0,
+      balanceBeforeSatoshis: world.satoshis,
+      balanceAfterSatoshis,
+    },
+  };
+}
+
+export function billElectricityForDay(world: MiningWorld, gameDay: number): MiningWorld {
+  if (
+    !Number.isInteger(gameDay) ||
+    gameDay < 1 ||
+    world.lastElectricityBill?.gameDay === gameDay ||
+    world.electricity.pendingKwh <= 0
+  ) {
+    return world;
+  }
+
+  const energyKwh = world.electricity.pendingKwh;
+  const electricitySatoshis = electricityCostSatoshis(energyKwh);
+  const balanceAfterSatoshis = world.satoshis - electricitySatoshis;
   return {
     ...world,
     satoshis: balanceAfterSatoshis,
@@ -147,10 +177,9 @@ export function settleCompletedBlock(world: MiningWorld): MiningWorld {
       pendingKwh: 0,
       paidSatoshis: world.electricity.paidSatoshis + electricitySatoshis,
     },
-    lastSettlement: {
-      blockId: block.id,
-      energyKwh: world.electricity.pendingKwh,
-      rewardSatoshis: BLOCK_REWARD,
+    lastElectricityBill: {
+      gameDay,
+      energyKwh,
       electricitySatoshis,
       balanceBeforeSatoshis: world.satoshis,
       balanceAfterSatoshis,
@@ -300,9 +329,7 @@ export function farmPowerWatts(
           gpu.unlocked &&
           (activeIds.has(gpu.id) || (!gpu.onWorkbench && isGpuOperational(gpu)))
         ) {
-          watts += activeIds.has(gpu.id)
-            ? gpuMiningPowerWatts(gpu)
-            : GAME_BALANCE.gpu.idle.powerWatts;
+          watts += activeIds.has(gpu.id) ? gpuMiningPowerWatts(gpu) : gpuIdlePowerWatts();
         }
       }
     }

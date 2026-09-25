@@ -112,15 +112,17 @@ describe('Mining controls through MineScript', () => {
     expect(getGpu(game.world(), 1).stopped).toBe(false);
   });
 
-  it('commits settlement and net euro balance at block completion and clears on reset', async () => {
+  it('pays the block reward without billing electricity until day end', async () => {
     const game = createGame('plots[0].rigs[0].gpus[0].mine();');
     game.world.update((world) => ({ ...world, blocks: [{ id: 1, progress: 99.9 }] }));
     const run = game.run();
     await vi.runAllTimersAsync();
     await run;
-    expect(game.world().lastSettlement?.electricitySatoshis).toBe(119);
-    expect(game.balance()).toBe('0.00999881');
-    expect(game.balanceEur()).toBeCloseTo(599.9286);
+    expect(game.world().lastSettlement?.electricitySatoshis).toBe(0);
+    expect(game.world().electricity.paidSatoshis).toBe(0);
+    expect(game.world().electricity.pendingKwh).toBeGreaterThan(0);
+    expect(game.balance()).toBe('0.01');
+    expect(game.balanceEur()).toBe(600);
     game.reset();
     expect(game.world().lastSettlement).toBeNull();
     expect(game.readElectricity().totalCostEur).toBe(0);

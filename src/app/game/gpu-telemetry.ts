@@ -2,7 +2,10 @@ import { GAME_BALANCE } from '../config/game-balance';
 import type { GpuFanKit } from './gpu-maintenance';
 import {
   gpuMiningPowerWatts,
+  gpuIdlePowerWatts,
+  rigAuxiliaryPowerWattsPerGpu,
   gpuTemperature,
+  gpuTemperatureWhilePoweredDown,
   isGpuOperational,
   type GpuOperatingState,
 } from './gpu-operation';
@@ -32,14 +35,22 @@ export function getGpuTelemetry(
   workload: number,
   gpu?: GpuOperatingState,
   now = Date.now(),
+  rigRunning = true,
+  rigPoweredDownAt = now,
 ): GpuTelemetry {
   const operational = !gpu || isGpuOperational(gpu);
-  const load = operational ? Math.min(1, Math.max(0, workload)) : 0;
+  const powered = rigRunning;
+  const load = powered && operational ? Math.min(1, Math.max(0, workload)) : 0;
   const targetFrequencyGhz = gpu?.targetFrequencyGhz ?? mining.frequencyGhz;
-  const frequencyGhz = operational ? interpolate(idle.frequencyGhz, targetFrequencyGhz, load) : 0;
+  const frequencyGhz =
+    powered && operational ? interpolate(idle.frequencyGhz, targetFrequencyGhz, load) : 0;
   const temperatureCelsius = gpu
-    ? gpuTemperature(gpu, now)
-    : interpolate(idle.temperatureCelsius, mining.temperatureCelsius, load);
+    ? rigRunning
+      ? gpuTemperature(gpu, now)
+      : gpuTemperatureWhilePoweredDown(gpu, now, rigPoweredDownAt)
+    : rigRunning
+      ? interpolate(idle.temperatureCelsius, mining.temperatureCelsius, load)
+      : 0;
   const thermalLoad = Math.min(
     1,
     Math.max(
@@ -51,18 +62,23 @@ export function getGpuTelemetry(
   const automaticFanSpeed = gpu
     ? Math.round(interpolate(idle.fanSpeedPercent, 100, thermalLoad))
     : Math.round(interpolate(idle.fanSpeedPercent, mining.fanSpeedPercent, load));
-  const fanSpeed = gpu?.targetFanSpeedPercent ?? automaticFanSpeed;
+  const fanSpeed = powered ? (gpu?.targetFanSpeedPercent ?? automaticFanSpeed) : 0;
   const maxFanSpeedRpm = gpu ? GAME_BALANCE.gpu.fanKits[gpu.fanKit].maxRpm : limits.fanSpeedRpm;
 
   return {
     model,
     frequencyGhz: round(frequencyGhz, 2),
-    powerWatts: operational
-      ? round(
-          interpolate(idle.powerWatts, gpu ? gpuMiningPowerWatts(gpu) : mining.powerWatts, load),
-          2,
-        )
-      : 0,
+    powerWatts:
+      powered && operational
+        ? round(
+            interpolate(
+              gpuIdlePowerWatts(),
+              gpu ? gpuMiningPowerWatts(gpu) : mining.powerWatts + rigAuxiliaryPowerWattsPerGpu(),
+              load,
+            ),
+            2,
+          )
+        : 0,
     temperatureCelsius: round(temperatureCelsius, 2),
     fanSpeed,
     targetFanSpeedPercent: gpu?.targetFanSpeedPercent ?? null,

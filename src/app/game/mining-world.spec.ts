@@ -58,9 +58,9 @@ describe('Mining world', () => {
       world = mineGpu(world, 1);
     }
     expect(world.blocks[0].progress).toBe(100);
-    expect(world.satoshis).toBe(BLOCK_REWARD - world.electricity.paidSatoshis);
-    expect(world.electricity.paidSatoshis).toBeGreaterThan(0);
-    expect(world.electricity.pendingKwh).toBe(0);
+    expect(world.satoshis).toBe(BLOCK_REWARD);
+    expect(world.electricity.paidSatoshis).toBe(0);
+    expect(world.electricity.pendingKwh).toBeGreaterThan(0);
     expect(() => mineGpu(world, 1)).toThrow('completato');
   });
 
@@ -84,7 +84,8 @@ describe('Mining world', () => {
     expect(world.blocks).toHaveLength(13);
     expect(rigCount(world)).toBe(RIG_COUNT);
     expect(plotCount(world)).toBe(PLOT_COUNT);
-    expect(world.satoshis).toBe(BLOCK_REWARD * 12 - world.electricity.paidSatoshis);
+    expect(world.satoshis).toBe(BLOCK_REWARD * 12);
+    expect(world.electricity.paidSatoshis).toBe(0);
     expect(canExpand(world)).toBe(false);
     expect(expandWorld(world)).toBe(world);
   });

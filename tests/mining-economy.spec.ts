@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('complementary', { name: 'Portafoglio Bitcoin' })).toBeVisible();
 });
 
-test('animates the electricity debit and ends on the committed net wallet balance', async ({
+test('pays the block reward immediately and bills accumulated electricity at day end', async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -19,7 +19,7 @@ test('animates the electricity debit and ends on the committed net wallet balanc
     game.world.update((world) => ({
       ...world,
       blocks: [{ id: 1, progress: 99.9 }],
-      electricity: { energyKwh: 100, pendingKwh: 100, paidSatoshis: 0 },
+      electricity: { energyKwh: 1, pendingKwh: 1, paidSatoshis: 0 },
       plots: world.plots.map((plot) => ({
         ...plot,
         rigs: plot.rigs.map((rig) => ({
@@ -35,12 +35,11 @@ test('animates the electricity debit and ends on the committed net wallet balanc
   await page.getByRole('button', { name: 'Avvia codice', exact: true }).click();
   const receipt = page.getByRole('status', { name: 'Riepilogo mining' });
   await expect(receipt).toBeVisible();
-  await expect(receipt).toContainText('100.20 kWh');
-  await expect(page.locator('app-wallet .bitcoin-counter')).toHaveClass(/debit/);
+  await expect(receipt).toContainText('RICOMPENSA');
+  await expect(receipt).not.toContainText('Corrente');
+  await expect(page.locator('app-wallet .bitcoin-counter')).not.toHaveClass(/debit/);
   await page.screenshot({ path: 'test-results/mining-settlement.png' });
-  await expect(page.locator('app-wallet .wallet-amount b')).toHaveText(/569,94/);
-  await expect(page.locator('app-wallet .wallet-amount strong')).toHaveText('0.00949897 BTC');
-  const result = await page.evaluate(() => {
+  const atBlockCompletion = await page.evaluate(() => {
     const debug = window as unknown as {
       ng: { getComponent(element: Element): { game: GameService } };
     };
@@ -51,7 +50,36 @@ test('animates the electricity debit and ends on the committed net wallet balanc
       pending: game.world().electricity.pendingKwh,
     };
   });
-  expect(result).toEqual({ balance: 949897, paid: 50103, pending: 0 });
+  expect(atBlockCompletion.balance).toBe(1_000_000);
+  expect(atBlockCompletion.paid).toBe(0);
+  expect(atBlockCompletion.pending).toBeGreaterThan(1);
+
+  await page.evaluate(() => {
+    const debug = window as unknown as {
+      ng: { getComponent(element: Element): { game: GameService } };
+    };
+    const game = debug.ng.getComponent(document.querySelector('app-hud')!).game;
+    game.advanceGameTime(24 * 60 * 500);
+  });
+  const bill = page.getByRole('status', { name: 'Bolletta elettrica' });
+  await expect(bill).toBeVisible();
+  const atDayEnd = await page.evaluate(() => {
+    const debug = window as unknown as {
+      ng: { getComponent(element: Element): { game: GameService } };
+    };
+    const game = debug.ng.getComponent(document.querySelector('app-hud')!).game;
+    const electricityBill = game.world().lastElectricityBill;
+    return {
+      balance: game.world().satoshis,
+      paid: game.world().electricity.paidSatoshis,
+      pending: game.world().electricity.pendingKwh,
+      bill: electricityBill,
+    };
+  });
+  expect(atDayEnd.bill?.gameDay).toBe(1);
+  expect(atDayEnd.balance).toBe(1_000_000 - atDayEnd.paid);
+  expect(atDayEnd.paid).toBeGreaterThan(0);
+  expect(atDayEnd.pending).toBe(0);
   expect(errors).toEqual([]);
 });
 
