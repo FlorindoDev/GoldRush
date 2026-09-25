@@ -1,0 +1,49 @@
+<aside
+  class="bitcoin-counter"
+  aria-label="Portafoglio Bitcoin"
+  [class.debit]="stage() === 'bill'"
+>
+  <app-bitcoin-model class="bitcoin-icon" />
+  <div
+    class="wallet-amount"
+    aria-hidden="true"
+  >
+    <span>PORTAFOGLIO</span>
+    <strong>{{ bitcoin() }} BTC</strong>
+    <b>{{ euroBalance() }}</b>
+    <small>1 BTC = {{ price }}</small>
+  </div>
+  <span class="sr-only">Saldo: {{ game.balance() }} BTC, {{ formatEuros(game.balanceEur()) }}</span>
+</aside>
+@if (receiptVisible()) {
+  @if (game.world().lastSettlement; as receipt) {
+    <section
+      class="settlement"
+      [class.billing]="stage() === 'bill'"
+      aria-label="Riepilogo mining"
+      role="status"
+    >
+      <div class="receipt-heading">
+        <span>BLOCCO #{{ receipt.blockId }} ESTRATTO</span><span class="receipt-check">✓</span>
+      </div>
+      <div class="receipt-row reward">
+        <span>Ricompensa</span><strong>+{{ formatEuros(toEuros(receipt.rewardSatoshis)) }}</strong>
+      </div>
+      <div class="receipt-row electricity">
+        <span
+          >Corrente <small>{{ receipt.energyKwh.toFixed(2) }} kWh</small></span
+        ><strong>−{{ formatEuros(toEuros(receipt.electricitySatoshis)) }}</strong>
+      </div>
+      <div class="receipt-row net">
+        <span>GUADAGNO NETTO</span
+        ><strong>{{
+          formatEuros(toEuros(receipt.rewardSatoshis - receipt.electricitySatoshis))
+        }}</strong>
+      </div>
+      <div
+        class="receipt-progress"
+        aria-hidden="true"
+      ></div>
+    </section>
+  }
+}

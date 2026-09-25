@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { GPU_MODEL_PATH } from '../assets/models/gpu/gpu-model-path';
 import { GAME_BALANCE } from '../config/game-balance';
-import { GPU_COUNT, isGpuUnlocked, type MiningWorld } from '../game/mining-world';
+import { GPU_COUNT, getGpu, isGpuUnlocked, type MiningWorld } from '../game/mining-world';
+import { isGpuOperational } from '../game/gpu-operation';
 import { easeTransition, transitionProgress } from './animation/scene-transition';
 import { createFallbackGpu } from './models/fallback-gpu';
 import { fitGpuModel, styleGpuModel } from './models/gpu-model';
@@ -25,6 +26,7 @@ interface GpuTransfer {
 interface GpuVisual {
   readonly root: THREE.Group;
   fans: THREE.Object3D[];
+  operational: boolean;
   mixer?: THREE.AnimationMixer;
   transfer?: GpuTransfer;
 }
@@ -49,6 +51,7 @@ export class GpuVisuals {
 
   sync(world: MiningWorld, inspectedGpuId: number | null): void {
     for (const [id, gpu] of this.gpus) {
+      gpu.operational = isGpuOperational(getGpu(world, id));
       if (!isGpuUnlocked(world, id)) {
         this.removeGpu(id, gpu);
       }
@@ -64,7 +67,7 @@ export class GpuVisuals {
       root.userData['gpuId'] = id;
       root.position.copy(pose.position);
       root.quaternion.copy(pose.rotation);
-      const gpu: GpuVisual = { root, fans: [] };
+      const gpu: GpuVisual = { root, fans: [], operational: isGpuOperational(getGpu(world, id)) };
       this.attachModel(gpu);
       this.gpus.set(id, gpu);
       this.scene.add(root);
@@ -78,10 +81,20 @@ export class GpuVisuals {
     }
   }
 
-  update(delta: number, mining: boolean, reducedMotion: boolean): void {
-    for (const gpu of this.gpus.values()) {
+  update(
+    delta: number,
+    mining: boolean,
+    reducedMotion: boolean,
+    activeGpuIds: readonly number[] = [],
+  ): void {
+    for (const [id, gpu] of this.gpus) {
       this.updateTransfer(gpu, delta, reducedMotion);
-      if (!mining || reducedMotion) {
+      if (
+        !mining ||
+        reducedMotion ||
+        !gpu.operational ||
+        (activeGpuIds.length > 0 && !activeGpuIds.includes(id))
+      ) {
         continue;
       }
       gpu.mixer?.update(delta * ANIMATION.gpuMixerTimeScale);

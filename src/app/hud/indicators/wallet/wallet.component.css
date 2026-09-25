@@ -1,0 +1,206 @@
+:host {
+  position: absolute;
+  z-index: 24;
+  top: 24px;
+  left: 24px;
+  width: 280px;
+  pointer-events: none;
+}
+.bitcoin-counter {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 16px;
+  border: 1px solid #b8f57538;
+  border-radius: 12px;
+  background: #131b16ed;
+  backdrop-filter: blur(12px);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.bitcoin-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+}
+.wallet-amount {
+  display: grid;
+  gap: 4px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.wallet-amount span {
+  color: #9cac91;
+  font-size: 9px;
+  letter-spacing: 1.4px;
+}
+.wallet-amount strong {
+  font-size: 14px;
+  color: #e4eddc;
+}
+.wallet-amount b {
+  font-size: 20px;
+  color: #c4f28e;
+  font-weight: 500;
+}
+.wallet-amount small {
+  font-size: 9px;
+  color: #8c9b83;
+}
+.debit {
+  border-color: #fba56a;
+  box-shadow:
+    0 0 28px #ef925229,
+    inset 0 0 25px #ef925211;
+}
+.debit .wallet-amount b {
+  color: #ffb382;
+}
+.settlement {
+  position: absolute;
+  top: calc(100% + 10px);
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #738b58;
+  border-radius: 12px;
+  background: #18231a;
+  box-shadow: 0 18px 60px #0008;
+  animation: receipt-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  font: 12px var(--mono);
+}
+.receipt-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  color: #c4f28e;
+  font-size: 10px;
+  letter-spacing: 0.6px;
+}
+.receipt-check {
+  border-radius: 50%;
+  background: #b8f57520;
+  padding: 4px 7px;
+}
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 16px;
+  color: #c9d6c1;
+}
+.receipt-row strong {
+  white-space: nowrap;
+  font-weight: 500;
+}
+.reward strong {
+  color: #c4f28e;
+}
+.electricity {
+  color: #ffb382;
+  transition: background 0.2s;
+}
+.electricity small {
+  display: block;
+  margin-top: 4px;
+  color: #aa9782;
+  font-size: 10px;
+}
+.billing .electricity {
+  background: #ec9d6319;
+}
+.billing .electricity strong {
+  animation: debit-rise 0.6s ease-out both;
+}
+.net {
+  margin: 8px 0 0;
+  padding-block: 16px;
+  border-top: 1px dashed #738b5855;
+  background: #b8f57509;
+}
+.net span {
+  font-size: 9px;
+  align-self: center;
+}
+.net strong {
+  font-size: 16px;
+  color: #e4eddc;
+}
+.receipt-progress {
+  height: 2px;
+  background: #c4f28e;
+  transform-origin: left;
+  animation: receipt-timer 7s linear forwards;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+@keyframes receipt-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes debit-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(1.12);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes receipt-timer {
+  to {
+    transform: scaleX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+@media (max-width: 900px) {
+  :host {
+    top: 14px;
+    left: 14px;
+  }
+}
+@media (max-width: 600px) {
+  :host {
+    top: 10px;
+    left: 10px;
+    width: 218px;
+  }
+  .bitcoin-counter {
+    padding: 9px 10px;
+    gap: 8px;
+  }
+  .bitcoin-icon {
+    width: 28px;
+    height: 28px;
+  }
+  .wallet-amount strong {
+    font-size: 12px;
+  }
+  .wallet-amount b {
+    font-size: 16px;
+  }
+  .receipt-row {
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+}

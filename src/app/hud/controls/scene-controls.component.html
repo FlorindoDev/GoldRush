@@ -62,13 +62,12 @@
           [attr.aria-label]="
             'GPU ' + gpuNumber(slot.id) + (isGpuUnlocked(slot.id) ? ' sbloccata' : ' bloccata')
           "
-          [attr.aria-pressed]="game.inspectedGpuId() === slot.id"
-          [title]="
-            isGpuUnlocked(slot.id)
-              ? 'Porta GPU ' + gpuNumber(slot.id) + ' al banco'
-              : 'GPU ' + gpuNumber(slot.id) + ' bloccata'
-          "
+          [attr.aria-pressed]="game.selectedGpuId() === slot.id"
+          aria-keyshortcuts="Alt+Enter"
+          [title]="isGpuUnlocked(slot.id) ? null : 'GPU ' + gpuNumber(slot.id) + ' bloccata'"
           (click)="game.select(slot.id)"
+          (dblclick)="game.inspectGpu(slot.id)"
+          (keydown)="handleGpuKey($event, slot.id)"
         >
           @if (isGpuUnlocked(slot.id)) {
             <span
@@ -80,6 +79,7 @@
         </button>
       }
     </div>
+    <p class="gpu-interaction-hint">Clic: seleziona · Doppio clic: banco</p>
     @if (game.inspectedGpuId() !== null) {
       <button
         type="button"

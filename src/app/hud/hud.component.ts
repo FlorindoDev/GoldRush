@@ -21,11 +21,13 @@ import { EditorComponent } from './panels/editor/editor.component';
 import { GameService } from '../game/game.service';
 import { EXAMPLES, LANGUAGE_GUIDE_EXAMPLE } from '../language/examples';
 import { SceneComponent } from '../scene/scene.component';
-import { BitcoinModelComponent } from './indicators/bitcoin-model/bitcoin-model.component';
+import { WalletComponent } from './indicators/wallet/wallet.component';
+import { PowerComponent } from './indicators/power/power.component';
+import { GpuTooltipComponent, type GpuHover } from './indicators/gpu-tooltip/gpu-tooltip.component';
 import { IconComponent } from './icons/icon.component';
 
 type WindowName = 'editor' | 'console';
-type GuideSection = 'examples' | 'functions' | 'gpu' | 'constructs' | 'shortcuts';
+type GuideSection = 'examples' | 'functions' | 'gpu' | 'energy' | 'constructs' | 'shortcuts';
 type ResizeTarget = WindowName | 'docked-console';
 type WindowPosition = { x: number; y: number };
 type WindowDrag = {
@@ -72,15 +74,19 @@ const SHORTCUT_GROUPS = [
     ConsoleComponent,
     EditorComponent,
     SceneComponent,
-    BitcoinModelComponent,
+    WalletComponent,
+    PowerComponent,
+    GpuTooltipComponent,
     IconComponent,
   ],
   templateUrl: './hud.component.html',
   styleUrl: './hud.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:keydown.escape)': 'hoveredGpu.set(null)' },
 })
 export class HudComponent {
   readonly game = inject(GameService);
+  readonly hoveredGpu = signal<GpuHover | null>(null);
   readonly balance = GAME_BALANCE;
   readonly plotCapacity = PLOT_COUNT;
   readonly rigCapacity = RIG_COUNT;

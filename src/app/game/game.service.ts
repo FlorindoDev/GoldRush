@@ -3,6 +3,10 @@ import { GAME_BALANCE } from '../config/game-balance';
 import { delay, execute } from '../language/interpreter';
 import { ScriptError } from '../language/syntax';
 import { createWorldBindings } from './script-api/world-bindings';
+import { satoshisToEuros } from './electricity';
+import { applyGpuWork } from './gpu-operation';
+import { getGpuTelemetry } from './gpu-telemetry';
+import type { ElectricityReadings } from './script-api/electricity-script-object';
 import {
   loadActiveFileId,
   loadLineEffectsEnabled,
@@ -17,6 +21,14 @@ import {
   countUnlockedGpus,
   countUnlockedRigs,
   createWorld,
+  farmPowerWatts,
+  getGpu,
+  recordGpuWork,
+  requireOperationalGpu,
+  settleCompletedBlock,
+  resumeGpu,
+  setGpuFrequency,
+  stopGpu as stopGpuOnWorld,
   expandWorld,
   GPU_COUNT,
   isGpuUnlocked,
@@ -33,7 +45,6 @@ import {
 
 const LINE_EFFECT_DURATION_MS = GAME_BALANCE.editor.lineEffectDurationMs;
 const MINING_DURATION_MS = GAME_BALANCE.mining.actionDurationMs;
-const GPU_COOLDOWN_DURATION_MS = GAME_BALANCE.gpu.cooldownMs;
 const MAX_LOG_ENTRIES = GAME_BALANCE.editor.maxLogEntries;
 
 export type { ScriptFile } from './script-storage';
@@ -45,12 +56,24 @@ export interface LogEntry {
   kind: 'info' | 'success' | 'error' | 'output';
 }
 
+interface MiningAction {
+  readonly gpuId: number;
+  readonly startedAt: number;
+  readonly durationMs: number;
+  readonly parallelGroupId?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class GameService {
   readonly world = signal(createWorld());
   readonly started = signal(false);
   readonly running = signal(false);
   readonly mining = signal(false);
+  readonly miningActions = signal<readonly MiningAction[]>([]);
+  readonly miningAction = computed(() => this.miningActions()[0] ?? null);
+  readonly activeGpuIds = computed(() => this.miningActions().map(({ gpuId }) => gpuId));
+  readonly activeGpuId = computed(() => this.activeGpuIds()[0] ?? null);
+  readonly selectedGpuId = signal<number | null>(null);
   readonly inspectedGpuId = signal<number | null>(null);
   readonly viewedRigId = signal(1);
   readonly viewedPlotId = signal(1);
@@ -81,16 +104,18 @@ export class GameService {
     () => this.world().blocks.filter((block) => block.progress === 100).length,
   );
   readonly balance = computed(() =>
-    (this.world().satoshis / GAME_BALANCE.world.satoshisPerBitcoin).toFixed(4),
+    (this.world().satoshis / GAME_BALANCE.world.satoshisPerBitcoin).toFixed(8),
   );
+  readonly balanceEur = computed(() => satoshisToEuros(this.world().satoshis));
   private controller?: AbortController;
+  private readonly miningControllers = new Map<number, AbortController>();
+  private readonly parallelGpuIds = new Map<number, Set<number>>();
   private lineExecutionId = 0;
   private lineEffectTimers = new Map<number, ReturnType<typeof setTimeout>>();
   private queuedSteps = 0;
   private releaseStepWaiter?: () => void;
   private executionMode: 'continuous' | 'step' = 'continuous';
   private logId = 0;
-  private lastMiningCompletedAt: number | null = null;
 
   start(): void {
     if (this.started()) {
@@ -186,9 +211,17 @@ export class GameService {
         {
           globals: createWorldBindings(
             this.world(),
-            (gpuId) => this.inspectedGpuId() === gpuId,
-            () => this.gpuWorkload(),
-            (gpuId) => this.mineBlock(gpuId, controller.signal),
+            {
+              getGpu: (id) => getGpu(this.world(), id),
+              getTelemetry: (id) => this.gpuTelemetry(id),
+              isSelected: (id) => this.selectedGpuId() === id,
+              mineGpu: (id, parallelGroupId) =>
+                this.mineBlock(id, controller.signal, parallelGroupId),
+              setFrequencyGhz: (id, frequency) => this.setGpuFrequencyGhz(id, frequency),
+              stopGpu: (id) => this.stopGpu(id),
+              clearStop: (id) => this.clearGpuStop(id),
+            },
+            () => this.readElectricity(),
           ),
           print: (message) => this.log(message, 'output'),
           progress: () => this.selected().progress,
@@ -207,6 +240,9 @@ export class GameService {
       this.activeLine.set(0);
       this.running.set(false);
       this.mining.set(false);
+      this.miningActions.set([]);
+      this.miningControllers.clear();
+      this.parallelGpuIds.clear();
       this.waitingForStep.set(false);
       this.stepMode.set(false);
       this.executionMode = 'continuous';
@@ -331,13 +367,19 @@ export class GameService {
     if (!this.running() && isGpuUnlocked(this.world(), id)) {
       this.viewedRigId.set(rigIdForGpu(id));
       this.viewedPlotId.set(plotIdForGpu(id));
+      this.selectedGpuId.set(id);
+    }
+  }
+
+  inspectGpu(id: number): void {
+    if (!this.running() && isGpuUnlocked(this.world(), id)) {
+      this.select(id);
       this.inspectedGpuId.set(id);
     }
   }
 
   returnToRig(): void {
     this.inspectedGpuId.set(null);
-    this.lastMiningCompletedAt = null;
   }
 
   viewRig(id: number): void {
@@ -346,6 +388,7 @@ export class GameService {
     }
     this.viewedRigId.set(id);
     this.viewedPlotId.set(plotIdForRig(id));
+    this.selectedGpuId.set(null);
     this.inspectedGpuId.set(null);
   }
 
@@ -356,6 +399,7 @@ export class GameService {
     const firstRigId = (id - 1) * RIGS_PER_PLOT + 1;
     this.viewedPlotId.set(id);
     this.viewedRigId.set(firstRigId);
+    this.selectedGpuId.set(null);
     this.inspectedGpuId.set(null);
   }
 
@@ -366,6 +410,7 @@ export class GameService {
     this.world.set(createWorld());
     this.clearLineEffects();
     this.inspectedGpuId.set(null);
+    this.selectedGpuId.set(null);
     this.viewedRigId.set(1);
     this.viewedPlotId.set(1);
     this.started.set(false);
@@ -377,30 +422,94 @@ export class GameService {
     this.logs.set([]);
   }
 
-  private async mineBlock(gpuId: number, signal: AbortSignal): Promise<void> {
-    if (this.selected().progress === 100) {
+  private async mineBlock(
+    gpuId: number,
+    signal: AbortSignal,
+    parallelGroupId?: number,
+  ): Promise<void> {
+    signal.throwIfAborted();
+    const groupGpuIds =
+      parallelGroupId === undefined ? undefined : this.parallelGpuIds.get(parallelGroupId);
+    if (this.activeGpuIds().includes(gpuId) || groupGpuIds?.has(gpuId)) {
+      throw new Error(`GPU ${gpuId} sta già minando.`);
+    }
+    requireOperationalGpu(this.world(), gpuId);
+    if (this.selected().progress === 100 && this.activeGpuIds().length === 0) {
       this.prepareNextBlock();
     }
 
+    const startedAt = Date.now();
+    const durationMs = MINING_DURATION_MS / this.speed();
+    if (parallelGroupId !== undefined) {
+      const participants = groupGpuIds ?? new Set<number>();
+      participants.add(gpuId);
+      this.parallelGpuIds.set(parallelGroupId, participants);
+    }
+    const controller = new AbortController();
+    const abort = () => controller.abort(signal.reason);
+    signal.addEventListener('abort', abort, { once: true });
+    this.miningControllers.set(gpuId, controller);
+    this.miningActions.update((actions) => [
+      ...actions,
+      { gpuId, startedAt, durationMs, parallelGroupId },
+    ]);
     this.mining.set(true);
     try {
-      await delay(MINING_DURATION_MS / this.speed(), signal);
+      await delay(durationMs, controller.signal);
+      controller.signal.throwIfAborted();
+      const activeGpuIds =
+        parallelGroupId === undefined
+          ? this.activeGpuIds()
+          : Array.from(this.parallelGpuIds.get(parallelGroupId) ?? [gpuId]);
+      this.world.update((world) =>
+        mineGpuOnWorld(world, gpuId, startedAt, Date.now(), activeGpuIds.length > 1, activeGpuIds),
+      );
+    } catch (error) {
+      const fraction = Math.min(1, Math.max(0, (Date.now() - startedAt) / durationMs));
+      const activeGpuIds =
+        parallelGroupId === undefined
+          ? this.activeGpuIds()
+          : Array.from(this.parallelGpuIds.get(parallelGroupId) ?? [gpuId]);
+      this.world.update((world) =>
+        recordGpuWork(world, gpuId, fraction, startedAt, Date.now(), activeGpuIds),
+      );
+      throw error;
     } finally {
-      this.mining.set(false);
+      signal.removeEventListener('abort', abort);
+      this.miningControllers.delete(gpuId);
+      this.miningActions.update((actions) => actions.filter((action) => action.gpuId !== gpuId));
+      const hasActiveMining = this.activeGpuIds().length > 0;
+      this.mining.set(hasActiveMining);
+      if (!hasActiveMining) {
+        this.world.update(settleCompletedBlock);
+      }
+      if (
+        parallelGroupId !== undefined &&
+        !this.miningActions().some((action) => action.parallelGroupId === parallelGroupId)
+      ) {
+        this.parallelGpuIds.delete(parallelGroupId);
+      }
     }
 
-    // Un'interruzione durante l'animazione non deve assegnare progresso o premi.
-    signal.throwIfAborted();
-    this.world.update((world) => mineGpuOnWorld(world, gpuId));
-    this.lastMiningCompletedAt = Date.now();
+    const gpu = getGpu(this.world(), gpuId);
+    if (gpu.stopped) {
+      this.log(
+        `GPU ${gpuId} arrestata: ${gpu.stopReason}. Raffredda la scheda e usa clearStop().`,
+        'info',
+      );
+      return;
+    }
 
     const block = this.selected();
     const blockNumber = String(block.id).padStart(3, '0');
-    this.log(`GPU ${gpuId} · mine() → blocco #${blockNumber} · ${block.progress}%`, 'output');
+    this.log(
+      `GPU ${gpuId} · mine() → blocco #${blockNumber} · ${block.progress.toFixed(2)}%`,
+      'output',
+    );
 
-    if (block.progress === 100) {
+    if (block.progress === 100 && this.world().lastSettlement?.blockId === block.id) {
       this.log(
-        `Blocco estratto! +${(BLOCK_REWARD / GAME_BALANCE.world.satoshisPerBitcoin).toFixed(4)} BTC al saldo simulato. La farm mantiene le stesse GPU.`,
+        `Blocco estratto! +${(BLOCK_REWARD / GAME_BALANCE.world.satoshisPerBitcoin).toFixed(4)} BTC · corrente −${satoshisToEuros(this.world().lastSettlement!.electricitySatoshis).toFixed(2)} €. Saldo netto aggiornato.`,
         'success',
       );
     }
@@ -414,15 +523,73 @@ export class GameService {
     }
   }
 
-  private gpuWorkload(): number {
-    if (this.mining()) {
-      return 1;
+  /** Telemetria della singola scheda, inclusi calore e usura dell'azione in corso. */
+  gpuTelemetry(gpuId: number) {
+    const now = Date.now();
+    const gpu = getGpu(this.world(), gpuId);
+    const action = this.miningActions().find((item) => item.gpuId === gpuId);
+    if (!action) {
+      return getGpuTelemetry(0, gpu, now);
     }
-    if (this.lastMiningCompletedAt === null) {
-      return 0;
-    }
+    const fraction = Math.min(1, Math.max(0, (now - action.startedAt) / action.durationMs));
+    const projected = applyGpuWork(gpu, fraction, action.startedAt, now);
+    return getGpuTelemetry(1, projected, now);
+  }
 
-    return Math.max(0, 1 - (Date.now() - this.lastMiningCompletedAt) / GPU_COOLDOWN_DURATION_MS);
+  setGpuFrequencyGhz(gpuId: number, frequencyGhz: number): void {
+    if (this.activeGpuIds().includes(gpuId)) {
+      throw new Error('Attendi la fine di mine() prima di cambiare frequenza.');
+    }
+    this.world.update((world) => setGpuFrequency(world, gpuId, frequencyGhz));
+  }
+
+  /** Interrompe anche un mine() in corso; lo stop sopravvive alle esecuzioni successive. */
+  stopGpu(gpuId: number): void {
+    this.world.update((world) => stopGpuOnWorld(world, gpuId));
+    const controller = this.miningControllers.get(gpuId);
+    if (controller) {
+      controller.abort(new Error(`GPU ${gpuId} fermata. Usa clearStop() per riabilitarla.`));
+    }
+  }
+
+  clearGpuStop(gpuId: number): void {
+    if (this.activeGpuIds().includes(gpuId)) {
+      throw new Error('Attendi che il mining sia terminato.');
+    }
+    this.world.update((world) => resumeGpu(world, gpuId));
+  }
+
+  readElectricity(): ElectricityReadings {
+    const world = this.world();
+    const actions = this.miningActions();
+    const powerWatts = farmPowerWatts(
+      world,
+      actions.map(({ gpuId }) => gpuId),
+    );
+    const liveKwh = actions.reduce((energy, action) => {
+      const participants = action.parallelGroupId
+        ? Array.from(this.parallelGpuIds.get(action.parallelGroupId) ?? [action.gpuId])
+        : [action.gpuId];
+      const fraction = Math.min(
+        1,
+        Math.max(0, (Date.now() - action.startedAt) / action.durationMs),
+      );
+      return (
+        energy +
+        (farmPowerWatts(world, participants) / participants.length / 1000) *
+          GAME_BALANCE.economy.simulatedHoursPerAction *
+          fraction
+      );
+    }, 0);
+    const pricePerKwh = GAME_BALANCE.economy.electricityPriceEurPerKwh;
+    const pendingCostEur = (world.electricity.pendingKwh + liveKwh) * pricePerKwh;
+    return {
+      powerWatts,
+      energyKwh: world.electricity.energyKwh + liveKwh,
+      pendingCostEur,
+      totalCostEur: satoshisToEuros(world.electricity.paidSatoshis) + pendingCostEur,
+      pricePerKwh,
+    };
   }
 
   private reportExecutionError(error: unknown, signal: AbortSignal): void {

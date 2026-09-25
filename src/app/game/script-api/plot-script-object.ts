@@ -2,6 +2,7 @@ import { ScriptError, type ScriptObject, type Value } from '../../language/synta
 import { VectorValue } from '../../language/collections/vector';
 import { countUnlockedGpusInRig, type MiningPlot } from '../mining-world';
 import { RigScriptObject } from './rig-script-object';
+import type { GpuScriptControls } from './gpu-script-object';
 import { requireArguments, requireIndex } from './script-api-utils';
 
 export class PlotScriptObject implements ScriptObject {
@@ -10,12 +11,10 @@ export class PlotScriptObject implements ScriptObject {
 
   constructor(
     private readonly plot: MiningPlot,
-    isSelected: (gpuId: number) => boolean,
-    getWorkload: () => number,
-    mineGpu: (gpuId: number) => Promise<void>,
+    controls: GpuScriptControls,
   ) {
     this.rigs = new VectorValue(
-      plot.rigs.map((rig) => new RigScriptObject(rig, isSelected, getWorkload, mineGpu)),
+      plot.rigs.map((rig) => new RigScriptObject(rig, controls)),
       true,
     );
   }

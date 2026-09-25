@@ -1,7 +1,7 @@
 import { ScriptError, type ScriptObject, type Value } from '../../language/syntax';
 import { VectorValue } from '../../language/collections/vector';
 import { countUnlockedGpusInRig, type MiningRig } from '../mining-world';
-import { GpuScriptObject } from './gpu-script-object';
+import { GpuScriptObject, type GpuScriptControls } from './gpu-script-object';
 import { requireArguments, requireIndex } from './script-api-utils';
 
 export class RigScriptObject implements ScriptObject {
@@ -10,14 +10,10 @@ export class RigScriptObject implements ScriptObject {
 
   constructor(
     private readonly rig: MiningRig,
-    isSelected: (gpuId: number) => boolean,
-    getWorkload: () => number,
-    mineGpu: (gpuId: number) => Promise<void>,
+    controls: GpuScriptControls,
   ) {
     this.gpus = new VectorValue(
-      rig.gpus.map(
-        (gpu) => new GpuScriptObject(gpu, rig.unlocked, isSelected, getWorkload, mineGpu),
-      ),
+      rig.gpus.map((gpu) => new GpuScriptObject(gpu.id, rig.unlocked, controls)),
       true,
     );
   }

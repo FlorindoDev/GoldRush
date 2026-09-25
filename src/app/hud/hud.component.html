@@ -1,16 +1,15 @@
 <main class="game-shell">
-  <app-scene class="world-scene" />
+  <app-scene
+    class="world-scene"
+    (gpuHover)="hoveredGpu.set($event)"
+  />
 
-  <aside
-    class="bitcoin-counter"
-    aria-label="Bitcoin minati"
-  >
-    <app-bitcoin-model class="bitcoin-icon" />
-    <div>
-      <span>BTC MINATI</span>
-      <strong>{{ game.balance() }} BTC</strong>
-    </div>
-  </aside>
+  @if (hoveredGpu(); as hover) {
+    <app-gpu-tooltip [hover]="hover" />
+  }
+
+  <app-wallet />
+  <app-power />
 
   <div
     class="utility-actions"
@@ -167,6 +166,16 @@
           GPU
         </button>
         <button
+          id="guide-tab-energy"
+          type="button"
+          role="tab"
+          aria-controls="guide-page-energy"
+          [attr.aria-selected]="guideSection() === 'energy'"
+          (click)="selectGuideSection('energy')"
+        >
+          Corrente
+        </button>
+        <button
           id="guide-tab-shortcuts"
           type="button"
           role="tab"
@@ -237,15 +246,17 @@
           </p>
           <h3>Controlli del laboratorio</h3>
           <p class="guide-note">
-            Trascina la scena per ruotarla e usa la rotella per ingrandire. Clicca la GPU nel rig
-            sbloccato, oppure il pulsante numerato, per portarla al banco con un'animazione. La farm
-            ha {{ rigCapacity }} quadrati di sblocco e {{ gpuCapacity }} alloggiamenti GPU;
-            all'avvio sono sbloccati {{ balance.world.startingRigCount }} rig e
-            {{ balance.world.startingGpuCount }} GPU. Completare un blocco non sblocca rig o GPU.
-            Usa “Torna al quadrato” per rimettere la scheda al suo posto. Trascina la barra del
-            titolo per spostare editor e console. Puoi agganciare la console sotto l'editor o
-            sganciarla per spostarla da sola. Ridimensiona le finestre dal manico nell'angolo; la
-            console agganciata usa il manico sul bordo inferiore.
+            Trascina la scena per ruotarla e usa la rotella per ingrandire. Un clic sulla GPU o sul
+            suo pulsante la seleziona; un doppio clic la porta al banco. Passa il cursore sul
+            modello 3D per temperatura, usura e consumo. Da tastiera, Alt+Invio sul pulsante GPU la
+            porta al banco. La farm ha {{ rigCapacity }} quadrati di sblocco e
+            {{ gpuCapacity }} alloggiamenti GPU; all'avvio sono sbloccati
+            {{ balance.world.startingRigCount }} rig e {{ balance.world.startingGpuCount }} GPU.
+            Completare un blocco non sblocca rig o GPU. Usa “Torna al quadrato” per rimettere la
+            scheda al suo posto. Trascina la barra del titolo per spostare editor e console. Puoi
+            agganciare la console sotto l'editor o sganciarla per spostarla da sola. Ridimensiona le
+            finestre dal manico nell'angolo; la console agganciata usa il manico sul bordo
+            inferiore.
           </p>
           <p class="guide-note">
             Il codice resta salvato in questo browser quando disponibile. La partita è una
@@ -318,7 +329,8 @@
               <span>Quando raggiungi il 100%</span>
             </h3>
             <p>
-              Ricevi 0,0100 BTC simulati, una sola volta per blocco. La chiamata successiva a
+              Ricevi il premio in BTC simulati, meno la bolletta accumulata, una sola volta per
+              blocco. La chiamata successiva a
               <code>gpu.mine()</code>, oppure un nuovo avvio del programma, prepara il blocco
               seguente. Rig e GPU rimangono gli stessi.
             </p>
@@ -548,10 +560,11 @@ print("Progresso: " + progress());</pre>
           role="tabpanel"
           aria-labelledby="guide-tab-gpu"
         >
-          <h2 id="guide-title">Leggere i dati della GPU</h2>
+          <h2 id="guide-title">Gestire la GPU</h2>
           <p class="dialog-intro">
             Una GPU è la scheda che esegue il mining. Dal programma puoi leggere se è disponibile,
-            quanto consuma e come cambiano temperatura e ventole.
+            quanto consuma e come cambiano temperatura e ventole. Puoi impostare la frequenza,
+            controllare l'usura e fermarla.
           </p>
           <h3>Trovare una scheda nella farm</h3>
           <p>
@@ -598,14 +611,17 @@ print("Progresso: " + progress());</pre>
             <code>mine()</code> è un metodo della GPU. <code>gpu.mine()</code> fa lavorare solo la
             scheda indicata. Ogni chiamata aggiunge {{ balance.world.progressPerGpuAtFullFarm }}/{{
               gpuCapacity
-            }}% al blocco attivo e attende che il lavoro finisca prima di proseguire.
+            }}% al blocco attivo alla frequenza di base ({{ balance.gpu.mining.frequencyGhz }} GHz)
+            e attende che il lavoro finisca prima di proseguire. Il progresso cresce in proporzione
+            alla frequenza impostata.
           </p>
           <pre class="guide-code">gpu.mine();</pre>
           <p>
-            Con una GPU servono {{ minesPerBlock }} chiamate a <code>gpu.mine()</code> per
-            completare un blocco. Ogni chiamata dura {{ balance.mining.actionDurationMs }} ms,
-            oppure {{ balance.mining.actionDurationMs / 2 }} ms a velocità 2×. La GPU e il rig
-            devono essere sbloccati. Usa <code>progress()</code> per sapere quando fermare il ciclo.
+            Alla frequenza di base servono {{ minesPerBlock }} chiamate a
+            <code>gpu.mine()</code> per completare un blocco. Ogni chiamata dura
+            {{ balance.mining.actionDurationMs }} ms, oppure
+            {{ balance.mining.actionDurationMs / 2 }} ms a velocità 2×. La GPU e il rig devono
+            essere sbloccati. Usa <code>progress()</code> per sapere quando fermare il ciclo.
           </p>
           <h3>Identità e stato</h3>
           <div class="guide-card-grid">
@@ -620,9 +636,9 @@ print("Progresso: " + progress());</pre>
             <article class="guide-card">
               <h4>Sapere se può minare</h4>
               <p>
-                <code>gpu.unlocked</code>, <code>gpu.working</code> e
-                <code>gpu.isWorking()</code> restituiscono <code>true</code> quando GPU e rig sono
-                entrambi sbloccati; altrimenti restituiscono <code>false</code>.
+                <code>gpu.unlocked</code> indica che GPU e rig sono sbloccati.
+                <code>gpu.working</code> e <code>gpu.isWorking()</code> richiedono anche assenza di
+                stop e usura inferiore al 100%.
               </p>
               <p>
                 <strong>Attenzione al nome:</strong> <code>working</code> indica la disponibilità,
@@ -630,10 +646,11 @@ print("Progresso: " + progress());</pre>
               </p>
             </article>
             <article class="guide-card">
-              <h4>Sapere se è al banco</h4>
+              <h4>Sapere se è selezionata</h4>
               <p>
-                <code>gpu.selected</code> e <code>gpu.isSelected()</code> indicano se questa GPU è
-                al banco: <code>true</code> se è selezionata, <code>false</code> altrimenti.
+                <code>gpu.selected</code> e <code>gpu.isSelected()</code> indicano la selezione
+                corrente: <code>true</code> per la GPU selezionata con un clic,
+                <code>false</code> per le altre. Il trasferimento al banco richiede un doppio clic.
               </p>
             </article>
             <article class="guide-card">
@@ -648,9 +665,10 @@ print("Progresso: " + progress());</pre>
           </div>
           <h3>Frequenza, consumo e raffreddamento</h3>
           <p>
-            Questi valori sono simulati in base al lavoro dell'intera farm. Durante il mining
-            salgono; dopo ogni chiamata a <code>gpu.mine()</code> tornano gradualmente ai valori di
-            riposo. Non misurano l'hardware del tuo computer.
+            Ogni scheda ha stato e telemetria propri. Frequenza e potenza salgono solo sulla GPU che
+            mina; temperatura e usura crescono con il lavoro. A riposo la scheda raffredda in
+            {{ balance.gpu.cooldownMs }} ms, ma l'usura resta. Non misurano l'hardware del tuo
+            computer. I valori sotto descrivono il profilo base: l'overclock li modifica.
           </p>
           <p>
             Puoi leggere ogni dato con un metodo, che usa le parentesi, oppure con il relativo
@@ -757,13 +775,99 @@ print("Progresso: " + progress());</pre>
           >
             <h3>
               <app-icon name="info" />
-              <span>Questi dati sono di sola lettura</span>
+              <span>Impostazioni e telemetria</span>
             </h3>
             <p>
-              Puoi consultarli, ma non cambiare frequenza, consumo o ventole dal programma. I
-              massimi descrivono il modello della scheda.
+              Gli attributi sono di sola lettura. Per cambiare frequenza usa
+              <code>setFrequencyGhz()</code>; consumo, calore e ventole vengono calcolati
+              automaticamente. I comandi sulla GPU restituiscono <code>null</code>; i getter
+              restituiscono numeri, salvo modello e motivo di stop (stringhe).
             </p>
           </aside>
+          <h3>Overclock e limiti</h3>
+          <div class="syntax-list">
+            <article>
+              <h4>Impostare la frequenza</h4>
+              <code>gpu.setFrequencyGhz(2.1);</code>
+              <p>
+                Accetta un numero finito in GHz, almeno {{ balance.gpu.limits.minFrequencyGhz }}.
+                Valori più bassi o di tipo errato producono un errore senza modificare la scheda. Si
+                usa tra due chiamate a <code>mine()</code>, anche su una GPU ferma.
+              </p>
+              <p>
+                Più GHz aumentano il progresso in proporzione e la potenza al quadrato del rapporto
+                con la frequenza base. Oltre il massimo del modello aumenta il rischio di
+                surriscaldamento. A {{ balance.gpu.limits.temperatureCelsius }} °C la GPU va in
+                stop: l'azione che causa il guasto consuma corrente e usura, senza assegnare
+                progresso.
+              </p>
+            </article>
+            <article>
+              <h4>Leggere i limiti del modello</h4>
+              <code>gpu.getMinFrequencyGhz()</code>
+              <p>
+                Minimo: {{ balance.gpu.limits.minFrequencyGhz }} GHz. Attributo:
+                <code>minFrequencyGhz</code>.
+              </p>
+              <code>gpu.getMaxFrequencyGhz()</code>
+              <p>
+                Massimo nominale: {{ balance.gpu.limits.frequencyGhz }} GHz. Attributo:
+                <code>maxFrequencyGhz</code>.
+              </p>
+              <code>gpu.getAbsoluteMaxFrequencyGhz()</code>
+              <p>
+                Limite assoluto incluso: {{ balance.gpu.limits.absoluteFrequencyGhz }} GHz.
+                Attributo: <code>absoluteMaxFrequencyGhz</code>. Un tentativo superiore attiva lo
+                stop e conserva l'ultima frequenza valida. Questo limite non garantisce una
+                temperatura sicura.
+              </p>
+              <code>gpu.getTargetFrequencyGhz()</code>
+              <p>
+                Frequenza impostata, conservata anche a riposo o in stop. Attributo:
+                <code>targetFrequencyGhz</code>. <code>getFrequencyGhz()</code> indica invece quella
+                attuale: {{ balance.gpu.idle.frequencyGhz }} GHz a riposo, zero in stop.
+              </p>
+            </article>
+          </div>
+          <h3>Usura e stop persistente</h3>
+          <div class="syntax-list">
+            <article>
+              <h4>Leggere l'usura</h4>
+              <code>gpu.getWearPercent()</code>
+              <p>
+                Numero da 0 (nuova) a 100 (esaurita), attributo <code>wearPercent</code>. Il lavoro
+                aumenta l'usura; overclock e temperature alte la accelerano. Raffreddamento, stop e
+                nuova esecuzione non la azzerano. Al 100% la scheda non può più minare; nel
+                prototipo si ripristina solo con una nuova partita.
+              </p>
+            </article>
+            <article>
+              <h4>Fermare e riabilitare</h4>
+              <code>gpu.stop();</code>
+              <code>gpu.isStopped()</code>
+              <code>gpu.getStopReason()</code>
+              <code>gpu.clearStop();</code>
+              <p>
+                <code>stop()</code> è ripetibile e mantiene la GPU ferma tra le esecuzioni.
+                <code>isStopped()</code> restituisce un booleano (attributo <code>stopped</code>);
+                <code>getStopReason()</code> restituisce il motivo o una stringa vuota (attributo
+                <code>stopReason</code>).
+              </p>
+              <p>
+                <code>clearStop()</code> rimuove lo stop senza avviare il mining: serve poi
+                <code>mine()</code>. Fallisce se la GPU è ancora troppo calda o esaurita. Abbassare
+                la frequenza da solo non annulla lo stop.
+              </p>
+              <p>
+                Stop e riabilitazione della GPU si comandano solo dal codice, con
+                <code>gpu.stop()</code> e <code>gpu.clearStop()</code>. Gli script sono sequenziali:
+                una chiamata a <code>mine()</code> termina prima di eseguire la riga successiva. Il
+                pannello Corrente e GPU mostra le specifiche della scheda selezionata nel rig. Il
+                pulsante Stop dell'editor interrompe il programma senza impostare lo stop della GPU:
+                l'azione interrotta conserva energia e usura parziali, senza progresso o premio.
+              </p>
+            </article>
+          </div>
           <h3>Consultare plot e rig</h3>
           <p>
             <code>gpuCount</code> conta le GPU utilizzabili, con scheda e rig sbloccati.
@@ -821,6 +925,101 @@ print(gpu.getFanSpeed() + "%");</pre>
         </section>
       }
 
+      @if (guideSection() === 'energy') {
+        <section
+          id="guide-page-energy"
+          class="guide-page guide-reference"
+          role="tabpanel"
+          aria-labelledby="guide-tab-energy"
+        >
+          <h2 id="guide-title">Corrente e portafoglio</h2>
+          <p class="dialog-intro">
+            Controlla la potenza della farm, accumula il consumo e paga la bolletta quando completi
+            il blocco. Il portafoglio mostra BTC e controvalore in euro.
+          </p>
+          <aside
+            class="guide-callout"
+            role="note"
+          >
+            <h3>Economia simulata</h3>
+            <p>
+              1 BTC = {{ balance.economy.bitcoinPriceEur }} €. Tariffa:
+              {{ balance.economy.electricityPriceEurPerKwh }} €/kWh. Ogni
+              <code>mine()</code> completo simula {{ balance.economy.simulatedHoursPerAction }} ora
+              di lavoro, anche a velocità 2×. Il tempo di consumo avanza solo durante il mining:
+              pause, <code>wait()</code> ed editor inattivo non generano bollette.
+            </p>
+          </aside>
+          <p>
+            Energia = watt / 1000 × ore simulate. Paghi la GPU attiva e lo standby delle altre
+            schede sbloccate e accese. Le GPU in stop consumano zero. Abbassare la frequenza riduce
+            la potenza e la resa; alzarla aumenta la potenza più rapidamente della resa.
+          </p>
+          <h3>Metodi di electricity</h3>
+          <p>
+            L'oggetto globale <code>electricity</code> è sempre disponibile. Tutti i metodi sotto
+            richiedono zero argomenti e restituiscono numeri. Gli attributi equivalenti sono di sola
+            lettura; la tariffa è fissa.
+          </p>
+          <div class="syntax-list">
+            <article>
+              <h4>Potenza attuale della farm</h4>
+              <code>electricity.getPowerWatts()</code>
+              <p>
+                W totali delle GPU sbloccate, inclusa la potenza di standby. Attributo:
+                <code>powerWatts</code>.
+              </p>
+            </article>
+            <article>
+              <h4>Energia consumata</h4>
+              <code>electricity.getEnergyKwh()</code>
+              <p>
+                kWh totali dall'inizio della partita, inclusi blocchi già pagati e lavoro
+                interrotto. Attributo: <code>energyKwh</code>.
+              </p>
+            </article>
+            <article>
+              <h4>Bolletta da pagare</h4>
+              <code>electricity.getPendingCostEur()</code>
+              <p>
+                Costo accumulato in euro da saldare al prossimo blocco completato. Si azzera al
+                pagamento. Attributo: <code>pendingCostEur</code>.
+              </p>
+            </article>
+            <article>
+              <h4>Costo complessivo</h4>
+              <code>electricity.getTotalCostEur()</code>
+              <p>Euro già pagati più bolletta pendente. Attributo: <code>totalCostEur</code>.</p>
+            </article>
+            <article>
+              <h4>Prezzo della corrente</h4>
+              <code>electricity.getPricePerKwh()</code>
+              <p>Tariffa in €/kWh. Attributo: <code>pricePerKwh</code>.</p>
+            </article>
+          </div>
+          <h3>Pagamento e riepilogo</h3>
+          <p>
+            Al 100% il gioco accredita il premio e sottrae la bolletta convertita in BTC al cambio
+            fisso, arrotondata una sola volta al satoshi più vicino. Il riepilogo anima ricompensa,
+            corrente e guadagno netto. Un blocco viene saldato una sola volta; l'animazione non
+            modifica i conti.
+          </p>
+          <p>
+            Fermare il codice o lasciare un blocco incompleto conserva la bolletta. In caso di
+            consumi superiori al saldo più premio, il saldo può diventare negativo: il debito resta
+            visibile. La nuova partita azzera consumi, saldo e stato GPU.
+          </p>
+          <pre class="guide-code">
+let gpu = plots[0].rig(0).gpu(0);
+print(electricity.getPricePerKwh());
+gpu.setFrequencyGhz(gpu.getMaxFrequencyGhz());
+gpu.mine();
+print(electricity.getEnergyKwh());
+print(electricity.getPendingCostEur());
+gpu.stop();</pre>
+        </section>
+      }
+
       @if (guideSection() === 'constructs') {
         <section
           id="guide-page-constructs"
@@ -846,6 +1045,10 @@ print(gpu.getFanSpeed() + "%");</pre>
               <li>
                 Racchiudi il corpo di un ciclo o di una condizione tra
                 <code>&lbrace; &rbrace;</code>.
+              </li>
+              <li>
+                In <code>parallel</code> scrivi un comando semplice per riga. Si avviano insieme e
+                il programma prosegue quando hanno finito tutti.
               </li>
               <li>
                 Scrivi <code>//</code> per aggiungere un commento: il resto della riga viene
@@ -926,6 +1129,22 @@ print(gpu.getFanSpeed() + "%");</pre>
                 <li><code>i++</code> aggiorna il contatore dopo il corpo.</li>
               </ol>
               <p>Il corpo viene eseguito cinque volte, con <code>i</code> da 0 a 4.</p>
+            </article>
+            <article>
+              <h3>Avviare più comandi insieme: <code>parallel</code></h3>
+              <p>
+                Prepara una variabile per ogni GPU, poi metti un comando per riga. Partono tutti
+                nello stesso momento; il programma aspetta che abbiano finito prima di continuare.
+              </p>
+              <pre class="guide-code">
+let gpuUno = plots[0].rig(0).gpu(0);
+let gpuDue = plots[0].rig(0).gpu(1);
+
+parallel &lbrace;
+  gpuUno.mine();
+  gpuDue.mine();
+&rbrace;</pre>
+              <p>Usa una volta sola ogni GPU nel blocco.</p>
             </article>
             <article>
               <h3>Scegliere cosa eseguire: <code>if</code> e <code>else</code></h3>

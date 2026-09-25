@@ -13,7 +13,7 @@ npm start
 
 In Windows PowerShell, se l'esecuzione di `npm.ps1` è bloccata, usa `npm.cmd start` (e `npm.cmd` al posto di `npm` per gli altri comandi).
 
-Apri **http://localhost:4200**. I valori iniziali della farm, il progresso per chiamata e il premio sono in `src/app/config/game-balance.ts`. Le GPU sbloccate e le ventole girano durante il mining. Clicca una GPU sbloccata o il pulsante numerato per trasferirla alla workbench; la freccia la rimette sul quadrato. Completare un blocco non sblocca rig o GPU.
+Apri **http://localhost:4200**. I valori iniziali della farm, il progresso per chiamata e il premio sono in `src/app/config/game-balance.ts`. Le GPU sbloccate e le ventole girano durante il mining. Un clic sulla GPU o sul pulsante numerato la seleziona; un doppio clic la trasferisce alla workbench. La freccia la rimette sul quadrato mantenendo la selezione. Completare un blocco non sblocca rig o GPU.
 
 ```sh
 npm run build       # Produzione in dist/blockcraft/browser
@@ -36,7 +36,7 @@ Per orientarti: `src/app/hud/hud.component.ts` coordina la UI sovrapposta; `src/
 
 ## Bilanciamento
 
-Modifica `src/app/config/game-balance.ts`. I gruppi `world`, `gpu`, `mining`, `scripting`, `camera`, `animation`, `scene`, `layout` e `toolStations` raccolgono i valori modificabili. Frequenze, temperature, consumi e ventole hanno profili `idle` e `mining` e limiti in `gpu.limits`. Tempi sono in millisecondi, la transizione in secondi, gli angoli polari in radianti e il campo visivo in gradi. Le capacità totali e il progresso per GPU derivano dalle dimensioni della farm; guida ed esempio del ciclo `for` si aggiornano con questi valori. Dopo modifiche al numero di rig o slot, verifica che i modelli 3D restino dentro i plot.
+Modifica `src/app/config/game-balance.ts`. I gruppi `world`, `gpu`, `economy`, `mining`, `scripting`, `camera`, `animation`, `scene`, `layout` e `toolStations` raccolgono i valori modificabili. Frequenze, temperature, consumi e ventole hanno profili `idle` e `mining` e limiti in `gpu.limits`. `economy` configura cambio BTC/EUR, tariffa elettrica e ore simulate per azione. `gpu.thermalResponsePerAction` e `gpu.wearPercentPerHour` controllano calore e usura. Tempi sono in millisecondi, la transizione in secondi, gli angoli polari in radianti e il campo visivo in gradi. Le capacità totali e il progresso per GPU derivano dalle dimensioni della farm; guida ed esempio del ciclo `for` si aggiornano con questi valori. Dopo modifiche al numero di rig o slot, verifica che i modelli 3D restino dentro i plot.
 
 ## Moduli
 
@@ -78,6 +78,7 @@ while (progress() < 100) {
 - `print(valore)`: scrive in console.
 - `wait(ms)`: pausa interrompibile entro il limite configurato. La velocità 2× riguarda solo `gpu.mine()`.
 - `repeat(n) { ... }`: intero non negativo entro il limite configurato.
+- `parallel { gpuUno.mine(); gpuDue.mine(); }`: lancia insieme i comandi semplici nel blocco e aspetta che siano tutti terminati. Dichiara prima le variabili; usa una sola volta ogni GPU.
 - `for (let i = 0; i < 5; i++) { ... }`, `while (...) { ... }`, `if (...) { ... } else { ... }`.
 - Variabili `let`, assegnazione, `++`, `--`, numeri, stringhe, booleani, vettori, attributi, metodi, `+ - * / %`, confronti `== != < <= > >=`, `&& || !` e parentesi.
 - Commenti `//`; punto e virgola obbligatorio per istruzioni semplici. Variabili in un unico ambito per esecuzione; vengono azzerate al run successivo. Le dichiarazioni dentro i cicli possono riassegnarle.
@@ -93,23 +94,29 @@ while (progress() < 100) {
 
 ### GPU
 
-Accedi a una GPU tramite `plots[plotIndex].rig(rigIndex).gpu(gpuIndex)` oppure indicizza il vettore `gpus`. Gli indici partono da zero. GPU è utilizzabile solo se è sbloccato anche il rig. Non esistono ancora metodi per sbloccare o configurare l'hardware.
+Accedi a una GPU tramite `plots[plotIndex].rig(rigIndex).gpu(gpuIndex)` oppure indicizza il vettore `gpus`. Gli indici partono da zero. GPU è utilizzabile solo se è sbloccato anche il rig. Non esistono ancora metodi per sbloccare l'hardware.
 
-| Attributo               | Getter MineScript            | Significato                     |
-| ----------------------- | ---------------------------- | ------------------------------- |
-| `model`                 | `getModel()`                 | Modello configurato             |
-| `frequencyGhz`          | `getFrequencyGhz()`          | Frequenza attuale in GHz        |
-| `powerWatts`            | `getPowerWatts()`            | Consumo attuale in W            |
-| `temperatureCelsius`    | `getTemperatureCelsius()`    | Temperatura attuale in °C       |
-| `fanSpeed`              | `getFanSpeed()`              | Velocità ventole in percentuale |
-| `currentFanSpeedRpm`    | `getCurrentFanSpeedRpm()`    | Velocità attuale ventole in RPM |
-| `maxFrequencyGhz`       | `getMaxFrequencyGhz()`       | Frequenza massima configurata   |
-| `maxFanSpeedRpm`        | `getMaxFanSpeedRpm()`        | Velocità massima configurata    |
-| `maxTemperatureCelsius` | `getMaxTemperatureCelsius()` | Temperatura massima configurata |
+| Attributo                 | Getter MineScript              | Significato                                 |
+| ------------------------- | ------------------------------ | ------------------------------------------- |
+| `model`                   | `getModel()`                   | Modello configurato                         |
+| `frequencyGhz`            | `getFrequencyGhz()`            | Frequenza attuale in GHz                    |
+| `powerWatts`              | `getPowerWatts()`              | Consumo attuale in W                        |
+| `temperatureCelsius`      | `getTemperatureCelsius()`      | Temperatura attuale in °C                   |
+| `fanSpeed`                | `getFanSpeed()`                | Velocità ventole in percentuale             |
+| `currentFanSpeedRpm`      | `getCurrentFanSpeedRpm()`      | Velocità attuale ventole in RPM             |
+| `maxFrequencyGhz`         | `getMaxFrequencyGhz()`         | Frequenza massima configurata               |
+| `maxFanSpeedRpm`          | `getMaxFanSpeedRpm()`          | Velocità massima configurata                |
+| `maxTemperatureCelsius`   | `getMaxTemperatureCelsius()`   | Temperatura massima configurata             |
+| `minFrequencyGhz`         | `getMinFrequencyGhz()`         | Frequenza minima del modello, 0,5 GHz       |
+| `absoluteMaxFrequencyGhz` | `getAbsoluteMaxFrequencyGhz()` | Limite assoluto incluso, 2,6 GHz            |
+| `targetFrequencyGhz`      | `getTargetFrequencyGhz()`      | Frequenza impostata per il mining           |
+| `wearPercent`             | `getWearPercent()`             | Usura da 0 (nuova) a 100 (esaurita)         |
+| `stopped`                 | `isStopped()`                  | Booleano: stop manuale o automatico attivo  |
+| `stopReason`              | `getStopReason()`              | Motivo dello stop, stringa vuota se assente |
 
-GPU espone anche `id`, `rigId`, `plotId`, `unlocked`, `working` e `selected`, oltre a `type` che vale `GPU`. I metodi `isWorking()` e `isSelected()` corrispondono agli attributi `working` e `selected`. Per ora `working` indica che GPU e rig sono sbloccati, non che stiano minando in quell'istante; `selected` indica che GPU è al banco.
+GPU espone anche `id`, `rigId`, `plotId`, `unlocked`, `working` e `selected`, oltre a `type` che vale `GPU`. I metodi `isWorking()` e `isSelected()` corrispondono agli attributi `working` e `selected`. `working` indica che GPU e rig sono sbloccati, la scheda non è in stop e l'usura è inferiore al 100%; non indica un mining in corso. `selected` indica la GPU selezionata con un clic, indipendentemente dalla posizione sul banco. Tutti i getter richiedono zero argomenti e leggono lo stato corrente anche se l'oggetto script è stato ottenuto prima di una modifica.
 
-La telemetria è simulata sul carico complessivo: i valori di riposo e mining sono in `gpu.idle` e `gpu.mining`. La telemetria scende durante il raffreddamento.
+La telemetria è indipendente per ogni GPU: i valori di riposo e mining sono in `gpu.idle` e `gpu.mining`. Frequenza e potenza passano al profilo di riposo dopo il lavoro; calore e ventole scendono gradualmente. Il raffreddamento completo richiede 5 secondi di inattività. Le schede in stop mostrano 0 W e 0 GHz; le ventole restano disponibili per il raffreddamento. L'usura non diminuisce.
 
 ```js
 let gpu = plots[0].rig(0).gpu(0);
@@ -127,11 +134,72 @@ print(
 );
 ```
 
+### Overclock, usura e stop GPU
+
+| Metodo                     | Input e risultato                        | Vincoli ed effetti                                                                                                                                                                                                   |
+| -------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gpu.setFrequencyGhz(ghz)` | Numero finito in GHz; restituisce `null` | Minimo 0,5 GHz. Un valore inferiore o non numerico genera un errore senza modifiche. Nominale massimo 2 GHz, assoluto 2,6 GHz incluso. Un tentativo oltre 2,6 attiva lo stop, conservando l'ultima frequenza valida. |
+| `gpu.stop()`               | Nessun argomento; `null`                 | Ferma la GPU; ripetibile. Lo stop sopravvive ai successivi avvii del programma.                                                                                                                                      |
+| `gpu.clearStop()`          | Nessun argomento; `null`                 | Annulla lo stop senza avviare il mining. Fallisce con temperatura >= 90 °C o usura al 100%. Ripetibile su una scheda sana.                                                                                           |
+
+I comandi richiedono scheda e rig sbloccati. Imposta la frequenza tra due azioni di mining, anche su una scheda ferma. La frequenza impostata resta memorizzata a riposo; `getFrequencyGhz()` restituisce quella effettiva, `getTargetFrequencyGhz()` quella richiesta. Impostare una frequenza valida non annulla uno stop esistente.
+
+Il progresso per azione cresce linearmente con `GHz / 1,8`. La potenza sotto carico e l'aumento termico di equilibrio crescono con il quadrato di quel rapporto. La temperatura si avvicina all'equilibrio con il lavoro e aumenta le ventole. A 90 °C o usura 100%, scatta uno stop automatico: l'azione che causa il guasto viene conteggiata nei consumi e nell'usura, ma non produce progresso. Dopo uno stop termico, riduci i GHz, attendi il raffreddamento e chiama `clearStop()`. Un limite di frequenza accettato non garantisce stabilità termica.
+
+L'usura parte da zero e cresce di base di 0,005 punti percentuali per ora simulata, moltiplicati per il quadrato del rapporto di frequenza e per lo stress termico. Non si azzera con stop, raffreddamento o nuovo script. Al 100% la GPU non può ripartire: riparazione e sostituzione non sono ancora implementate; una nuova partita ripristina tutto.
+
+```js
+let gpu = plots[0].rig(0).gpu(0);
+gpu.setFrequencyGhz(gpu.getMaxFrequencyGhz());
+gpu.mine();
+print(gpu.getWearPercent());
+gpu.stop();
+print(gpu.isStopped()); // true
+print(gpu.getStopReason());
+gpu.setFrequencyGhz(1.8);
+wait(5000);
+gpu.clearStop();
+gpu.mine();
+```
+
+MineScript è sequenziale: `mine()` attende il completamento prima di eseguire la riga dopo. Stop e riabilitazione della GPU si comandano solo dal codice, con `gpu.stop()` e `gpu.clearStop()`. Il pannello **Corrente e GPU** mostra consumi della farm e specifiche della GPU selezionata nel rig: modello, rig e plot, frequenze, potenza, temperatura, ventole, usura e limiti del modello. Senza selezione invita a scegliere una scheda; non passa automaticamente alla GPU che sta minando. Il pulsante Stop dell'editor annulla soltanto il programma: l'azione interrotta non assegna progresso o premio, ma conserva energia e usura della frazione lavorata.
+
+### Corrente e portafoglio
+
+Il cambio iniziale è **1 BTC = 60.000 €**, statico e configurabile. Il portafoglio mostra il saldo netto a otto decimali BTC e in euro. La tariffa iniziale è **0,30 €/kWh**. Un `mine()` completo rappresenta **un'ora simulata**, indipendentemente dalla velocità 1×/2×; un'interruzione ne conta la frazione trascorsa. Il tempo economico avanza durante le azioni di mining: pause, attese e inattività non aggiungono consumi.
+
+Il consumo include la GPU attiva e lo standby delle altre GPU sbloccate e operative. Le schede fermate non consumano. L'oggetto globale `electricity` espone questi getter senza argomenti (risultato numerico) e gli attributi equivalenti di sola lettura:
+
+| Metodo                            | Attributo        | Unità e significato                                                   |
+| --------------------------------- | ---------------- | --------------------------------------------------------------------- |
+| `electricity.getPowerWatts()`     | `powerWatts`     | W istantanei dell'intera farm, incluso standby                        |
+| `electricity.getEnergyKwh()`      | `energyKwh`      | kWh complessivi della partita, incluso lavoro già pagato o interrotto |
+| `electricity.getPendingCostEur()` | `pendingCostEur` | Euro da pagare al completamento del blocco                            |
+| `electricity.getTotalCostEur()`   | `totalCostEur`   | Euro pagati più costo pendente                                        |
+| `electricity.getPricePerKwh()`    | `pricePerKwh`    | Tariffa fissa in €/kWh                                                |
+
+`kWh = W / 1000 × ore simulate`. Alla frequenza di base, una sola GPU consuma 0,205 kWh per azione (0,0615 €). I consumi restano pendenti anche tra script diversi o dopo un errore. A blocco completato il premio lordo viene accreditato e la bolletta viene convertita in BTC al cambio fisso, arrotondata una sola volta al satoshi più vicino e sottratta al saldo. Il saldo può diventare negativo se la bolletta supera saldo e premio: il debito resta visibile. Un blocco viene pagato una sola volta e azzera solo il consumo pendente.
+
+Il riepilogo anima prima il premio, poi l'addebito della corrente e il netto. L'animazione osserva il saldo già aggiornato: annullarla o iniziare un nuovo blocco non modifica i conti. Rispetta `prefers-reduced-motion`. Riferimento per il feedback visivo di acquisti e ricompense: [Game UI design](https://www.gamedeveloper.com/design/game-ui-design).
+
+```js
+print(electricity.getPricePerKwh());
+let gpu = plots[0].rig(0).gpu(0);
+gpu.mine();
+print(electricity.getPowerWatts());
+print(electricity.getEnergyKwh());
+print(electricity.getPendingCostEur());
+```
+
+`gpu-operation.ts` contiene regole pure di frequenza, temperatura, usura e stop; `electricity.ts` contiene conversione monetaria e tipi dei contatori. `mining-world.ts` applica azioni e saldi immutabili. `GameService` coordina azioni interrompibili e letture live. Wallet e pannello corrente si occupano soltanto di presentazione. Stato, consumi e stop restano in memoria fino a ricaricamento o nuova partita.
+
 L'interprete analizza il programma prima di eseguirlo. Non usa `eval`, `Function` né accesso alle API del browser. I limiti sono in `scripting` e `editor.maxLogEntries`. Gli errori riportano la riga. Un errore di runtime conserva le azioni già completate. Stop annulla anche il mining pendente senza attribuire ricompense.
 
 ## Interazione e limiti del prototipo
 
-- Trascina per ruotare, rotella per zoomare; seleziona la GPU montata nel rig sbloccato o usa i pulsanti accessibili. La selezione sposta la GPU al banco; il ritorno la rimonta nel rig. Camera e GPU si muovono insieme, rispettando la preferenza di movimento ridotto del browser.
+- Trascina per ruotare, rotella per zoomare. Un clic sulla GPU nella scena o sul pulsante HUD aggiorna selezione e specifiche senza spostare scheda o camera; un doppio clic la porta al banco. Il ritorno la rimonta nel rig mantenendo la selezione. Camera e GPU si muovono insieme, rispettando la preferenza di movimento ridotto del browser.
+- Passa il cursore sul modello 3D della GPU per leggere temperatura, usura e consumo aggiornati. Il tooltip si chiude uscendo dalla scheda o con Esc; i pulsanti HUD non lo aprono. Da tastiera, Invio/Spazio selezionano la GPU e ne mostrano le specifiche nel pannello «Corrente e GPU»; Alt+Invio la porta al banco. Cambiare rig, plot o partita azzera la selezione.
+- Tooltip e pannello corrente usano superfici opache, separatori sottili e un'apertura di 150 ms con dissolvenza e breve scorrimento, disattivata con `prefers-reduced-motion`. Riferimenti: [tooltip Carbon](https://carbondesignsystem.com/components/tooltip/style/) e [movimento Carbon](https://carbondesignsystem.com/elements/motion/overview/).
 - All'avvio è mostrato il primo rig con GPU 1; gli altri rig restano bloccati e sono rappresentati dai quadrati a terra. Non esiste ancora un metodo per sbloccare rig o GPU. Completare blocchi non aggiunge hardware. Il banco resta un singolo arredo sulla destra. La GPU esaminata è distinta dal blocco attivo del programma.
 - Ctrl/Cmd + Invio esegue; Tab aggiunge due spazi; Esc poi Tab permette di uscire dall'editor. Durante il run, codice e selezione sono bloccati.
 - Il codice viene salvato in `localStorage` se disponibile; la partita resta in memoria. Ricaricando la pagina si riparte dal primo blocco. **Nuova partita** mantiene il codice.

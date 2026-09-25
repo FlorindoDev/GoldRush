@@ -5,7 +5,7 @@ export const GAME_BALANCE = {
     rigsPerPlot: 6,
     gpusPerRig: 4,
     startingRigCount: 1,
-    startingGpuCount: 1,
+    startingGpuCount: 2,
     // Progresso aggiunto da una GPU: 80 / numero totale di GPU.
     progressPerGpuAtFullFarm: 80,
     blockRewardSatoshis: 1_000_000,
@@ -26,11 +26,21 @@ export const GAME_BALANCE = {
       fanSpeedPercent: 70,
     },
     limits: {
+      minFrequencyGhz: 0.5,
       frequencyGhz: 2,
+      absoluteFrequencyGhz: 2.6,
       fanSpeedRpm: 3200,
       temperatureCelsius: 90,
     },
     cooldownMs: 5_000,
+    thermalResponsePerAction: 0.4,
+    wearPercentPerHour: 0.005,
+  },
+  economy: {
+    bitcoinPriceEur: 60_000,
+    electricityPriceEurPerKwh: 0.3,
+    // Un'azione completa simula un'ora di lavoro, indipendentemente dalla velocità UI.
+    simulatedHoursPerAction: 1,
   },
   mining: {
     actionDurationMs: 850,

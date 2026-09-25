@@ -1,7 +1,10 @@
-<section class="viewport" aria-label="Mondo di mining 3D">
+<section
+  class="viewport"
+  aria-label="Mondo di mining 3D"
+>
   <canvas
     #canvas
-    aria-label="Laboratorio 3D. Clicca una GPU nel mining rig per portarla al banco. Trascina per ruotare, tasto destro e trascina per spostare la visuale, rotella per zoom."
+    aria-label="Laboratorio 3D. Clicca una GPU per selezionarla, doppio clic per portarla al banco. Passa il cursore sulla scheda per temperatura, usura e consumo. Trascina per ruotare, tasto destro e trascina per spostare la visuale, rotella per zoom."
     tabindex="0"
   ></canvas>
 
@@ -13,7 +16,10 @@
   />
 
   @if (unavailable()) {
-    <div class="webgl-error" role="alert">
+    <div
+      class="webgl-error"
+      role="alert"
+    >
       <app-icon name="info" />
       <strong>Vista 3D non disponibile</strong>
       <p>Attiva l'accelerazione grafica del browser.</p>

@@ -1,0 +1,26 @@
+@if (telemetry(); as stats) {
+  <aside
+    id="gpu-hover-tooltip"
+    class="gpu-tooltip"
+    role="tooltip"
+    [style.left.px]="position().x"
+    [style.top.px]="position().y"
+  >
+    <strong class="tooltip-heading">GPU {{ hover().gpuId }}</strong>
+    <dl>
+      <div>
+        <dt>Temperatura</dt>
+        <dd>{{ stats.temperatureCelsius.toFixed(1) }} °C</dd>
+      </div>
+      <div>
+        <dt>Usura</dt>
+        <dd>{{ stats.wearPercent.toFixed(2) }}%</dd>
+      </div>
+      <div>
+        <dt>Consumo</dt>
+        <dd>{{ stats.powerWatts.toFixed(0) }} W</dd>
+      </div>
+    </dl>
+    <p>Doppio clic per il banco</p>
+  </aside>
+}

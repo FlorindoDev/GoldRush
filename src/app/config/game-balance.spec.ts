@@ -15,6 +15,15 @@ describe('game balance', () => {
     expect(world.progressPerGpuAtFullFarm).toBeLessThanOrEqual(gpuCount * 100);
     expect(gpu.idle.frequencyGhz).toBeLessThanOrEqual(gpu.mining.frequencyGhz);
     expect(gpu.mining.frequencyGhz).toBeLessThanOrEqual(gpu.limits.frequencyGhz);
+    expect(gpu.limits.minFrequencyGhz).toBeGreaterThan(0);
+    expect(gpu.limits.minFrequencyGhz).toBeLessThanOrEqual(gpu.mining.frequencyGhz);
+    expect(gpu.limits.frequencyGhz).toBeLessThan(gpu.limits.absoluteFrequencyGhz);
+    expect(gpu.wearPercentPerHour).toBeGreaterThan(0);
+    expect(gpu.thermalResponsePerAction).toBeGreaterThan(0);
+    expect(gpu.thermalResponsePerAction).toBeLessThanOrEqual(1);
+    expect(GAME_BALANCE.economy.bitcoinPriceEur).toBeGreaterThan(0);
+    expect(GAME_BALANCE.economy.electricityPriceEurPerKwh).toBeGreaterThanOrEqual(0);
+    expect(GAME_BALANCE.economy.simulatedHoursPerAction).toBeGreaterThan(0);
     expect(gpu.idle.temperatureCelsius).toBeLessThanOrEqual(gpu.mining.temperatureCelsius);
     expect(gpu.mining.temperatureCelsius).toBeLessThanOrEqual(gpu.limits.temperatureCelsius);
     expect(gpu.idle.fanSpeedPercent).toBeGreaterThanOrEqual(0);

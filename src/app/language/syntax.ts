@@ -1,7 +1,12 @@
 export interface ScriptObject {
   readonly objectType: string;
   getAttribute(name: string, line: number): Value;
-  callMethod(name: string, args: Value[], line: number): Value | Promise<Value>;
+  callMethod(
+    name: string,
+    args: Value[],
+    line: number,
+    parallelGroupId?: number,
+  ): Value | Promise<Value>;
   toDisplayString(): string;
 }
 
@@ -34,6 +39,7 @@ export type Statement =
   | { kind: 'expression'; expression: Expression; line: number }
   | { kind: 'assign'; name: string; value: Expression; declare: boolean; line: number }
   | { kind: 'repeat'; count: Expression; body: Statement[]; line: number }
+  | { kind: 'parallel'; body: Statement[]; line: number }
   | { kind: 'while'; condition: Expression; body: Statement[]; line: number }
   | {
       kind: 'for';

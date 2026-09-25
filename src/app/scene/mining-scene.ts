@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { GAME_BALANCE } from '../config/game-balance';
 import {
   GPUS_PER_RIG,
+  getGpu,
   isGpuUnlocked,
   MiningWorld,
   plotCount,
@@ -29,6 +30,12 @@ const PARTICLE_COUNT = ANIMATION.particleCount;
 const PARTICLE_HEIGHT = ANIMATION.particleHeight;
 const GPU_FAN_SPEED = ANIMATION.gpuFanRadiansPerSecond;
 
+interface GpuInteractions {
+  select(id: number): void;
+  inspect(id: number): void;
+  hover(id: number | null, x: number, y: number): void;
+}
+
 export class MiningScene {
   private readonly scene = createSceneEnvironment();
   private readonly camera = new THREE.PerspectiveCamera(
@@ -53,7 +60,11 @@ export class MiningScene {
   private selectedToolStationId: ToolStationId | null = null;
   private cameraPreset: CameraPreset = 'front';
   private inspectedGpuId: number | null = null;
+  private selectedGpuId: number | null = null;
+  private lastClickedGpuId: number | null = null;
+  private previousClickedGpuId: number | null = null;
   private isMining = false;
+  private activeGpuIds: readonly number[] = [];
   private disposed = false;
   private lastFrame = 0;
   private particleElapsed = 0;
@@ -62,7 +73,7 @@ export class MiningScene {
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    private readonly onSelect: (id: number) => void,
+    private readonly interactions: GpuInteractions,
   ) {
     this.renderer = this.createRenderer();
     this.cameraController = new SceneCameraController(canvas, this.camera, this.reducedMotion);
@@ -83,6 +94,12 @@ export class MiningScene {
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(canvas);
     canvas.addEventListener('pointerup', this.handlePointerUp);
+    canvas.addEventListener('dblclick', this.handleDoubleClick);
+    canvas.addEventListener('pointermove', this.handleGpuHover);
+    canvas.addEventListener('pointerdown', this.clearGpuHover);
+    canvas.addEventListener('pointerleave', this.clearGpuHover);
+    canvas.addEventListener('pointercancel', this.clearGpuHover);
+    canvas.addEventListener('wheel', this.clearGpuHover);
     this.resize();
     void this.gpuVisuals.loadModel();
     void this.loadBitcoin();
@@ -97,6 +114,8 @@ export class MiningScene {
     viewedRigId: number,
     cameraPreset: CameraPreset,
     selectedToolStationId: ToolStationId | null,
+    activeGpuIds: readonly number[] = [],
+    selectedGpuId: number | null = null,
   ): void {
     const inspection =
       inspectedGpuId !== null && isGpuUnlocked(world, inspectedGpuId) ? inspectedGpuId : null;
@@ -106,7 +125,9 @@ export class MiningScene {
     const cameraPresetChanged = cameraPreset !== this.cameraPreset;
     const toolStationChanged = selectedToolStationId !== this.selectedToolStationId;
     this.inspectedGpuId = inspection;
+    this.selectedGpuId = selectedGpuId;
     this.isMining = mining;
+    this.activeGpuIds = activeGpuIds;
     this.viewedPlotId = viewedPlotId;
     this.viewedRigId = viewedRigId;
     this.cameraPreset = cameraPreset;
@@ -144,6 +165,12 @@ export class MiningScene {
     this.observer.disconnect();
     this.cameraController.dispose();
     this.canvas.removeEventListener('pointerup', this.handlePointerUp);
+    this.canvas.removeEventListener('dblclick', this.handleDoubleClick);
+    this.canvas.removeEventListener('pointermove', this.handleGpuHover);
+    this.canvas.removeEventListener('pointerdown', this.clearGpuHover);
+    this.canvas.removeEventListener('pointerleave', this.clearGpuHover);
+    this.canvas.removeEventListener('pointercancel', this.clearGpuHover);
+    this.canvas.removeEventListener('wheel', this.clearGpuHover);
     this.gpuVisuals.dispose();
     // Clones share their model's geometry and materials; only the template owns them.
     disposeObject(this.scene, true);
@@ -259,17 +286,28 @@ export class MiningScene {
         const gpuId = (rigId - 1) * GPUS_PER_RIG + index + 1;
         const unlocked = isGpuUnlocked(world, gpuId);
         const inspecting = gpuId === this.inspectedGpuId;
-        const mining = this.isMining && unlocked;
-        const color = !unlocked ? 0x283630 : inspecting ? 0xe7c77e : 0xb8f575;
+        const selected = gpuId === this.selectedGpuId;
+        const stopped = unlocked && getGpu(world, gpuId).stopped;
+        const mining = this.isMining && this.activeGpuIds.includes(gpuId) && !stopped;
+        const color = !unlocked
+          ? 0x283630
+          : stopped
+            ? 0xe68c5a
+            : selected || inspecting
+              ? 0xe7c77e
+              : 0xb8f575;
         slot.indicator.material.color.set(color);
         slot.indicator.material.emissive.set(color);
         slot.indicator.material.emissiveIntensity = mining ? 2 : unlocked ? 0.45 : 0;
-        slot.outline.visible = inspecting || mining;
+        slot.outline.visible = selected || inspecting || mining;
         slot.cable.visible = unlocked && !inspecting;
       }
     }
 
-    const miningOnBench = this.isMining && this.inspectedGpuId !== null;
+    const miningOnBench =
+      this.isMining &&
+      this.inspectedGpuId !== null &&
+      this.activeGpuIds.includes(this.inspectedGpuId);
     this.workbench.outline.visible = this.inspectedGpuId !== null;
     this.workbench.beam.visible = miningOnBench;
     this.workbench.light.intensity = miningOnBench ? 5 : 0;
@@ -310,7 +348,7 @@ export class MiningScene {
   private animate(time: number): void {
     const delta = Math.min((time - this.lastFrame) / 1000, 0.05);
     this.lastFrame = time;
-    this.gpuVisuals.update(delta, this.isMining, this.reducedMotion.matches);
+    this.gpuVisuals.update(delta, this.isMining, this.reducedMotion.matches, this.activeGpuIds);
     this.cameraController.update(delta);
     this.particles.visible = this.isMining;
     if (this.isMining) {
@@ -329,7 +367,9 @@ export class MiningScene {
   private animateParticles(delta: number): void {
     this.particleElapsed += delta;
     const positions = this.particles.geometry.getAttribute('position');
-    const gpus = this.gpuVisuals.objects;
+    const gpus = this.gpuVisuals.objects.filter((gpu) =>
+      this.activeGpuIds.includes(gpu.userData['gpuId']),
+    );
     if (gpus.length === 0) {
       return;
     }
@@ -361,16 +401,40 @@ export class MiningScene {
   }
 
   private readonly handlePointerUp = (event: PointerEvent): void => {
+    this.previousClickedGpuId = this.lastClickedGpuId;
+    this.lastClickedGpuId = null;
     if (!this.cameraController.finishPointer(event)) {
       return;
     }
     const gpuId = this.findGpuAtPointer(event);
     if (gpuId !== undefined) {
-      this.onSelect(gpuId);
+      this.lastClickedGpuId = gpuId;
+      this.interactions.select(gpuId);
     }
   };
 
-  private findGpuAtPointer(event: PointerEvent): number | undefined {
+  private readonly handleDoubleClick = (event: MouseEvent): void => {
+    const gpuId = this.lastClickedGpuId;
+    // I due pointerup hanno già verificato hit e trascinamento usando coordinate precise.
+    if (event.button === 0 && gpuId !== null && gpuId === this.previousClickedGpuId) {
+      this.clearGpuHover();
+      this.interactions.inspect(gpuId);
+    }
+  };
+
+  private readonly handleGpuHover = (event: PointerEvent): void => {
+    if (event.buttons !== 0 || event.pointerType === 'touch') {
+      this.clearGpuHover();
+      return;
+    }
+    this.interactions.hover(this.findGpuAtPointer(event) ?? null, event.clientX, event.clientY);
+  };
+
+  private readonly clearGpuHover = (): void => {
+    this.interactions.hover(null, 0, 0);
+  };
+
+  private findGpuAtPointer(event: Pick<MouseEvent, 'clientX' | 'clientY'>): number | undefined {
     const rect = this.canvas.getBoundingClientRect();
     this.pointer.set(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,

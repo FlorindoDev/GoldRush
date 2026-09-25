@@ -17,38 +17,6 @@ app-scene.world-scene {
   inset: 0;
   z-index: 0;
 }
-.bitcoin-counter {
-  position: absolute;
-  z-index: 10;
-  top: 24px;
-  left: 24px;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 11px 15px;
-  border: 1px solid #b8f57528;
-  border-radius: 9px;
-  background: #131b16d9;
-  backdrop-filter: blur(12px);
-  pointer-events: none;
-}
-.bitcoin-icon {
-  width: 34px;
-  height: 34px;
-}
-.bitcoin-counter > div {
-  display: grid;
-  gap: 3px;
-}
-.bitcoin-counter span {
-  color: #8fa97b;
-  font: 8px var(--mono);
-  letter-spacing: 1px;
-}
-.bitcoin-counter strong {
-  color: #e1ebd9;
-  font: 15px var(--mono);
-}
 .utility-actions {
   position: absolute;
   z-index: 10;
@@ -141,7 +109,7 @@ app-scene.world-scene {
   height: 100%;
 }
 .console-window {
-  top: 150px;
+  top: 236px;
   right: auto;
   bottom: auto;
   left: 24px;
@@ -172,8 +140,10 @@ dialog::backdrop {
   backdrop-filter: blur(6px);
 }
 .guide-dialog {
-  width: min(720px, calc(100vw - 32px));
-  height: min(800px, 85dvh);
+  width: min(1080px, calc(100vw - 32px));
+  height: min(920px, calc(100dvh - 32px));
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
   overflow: hidden;
 }
 .guide-frame {
@@ -226,7 +196,7 @@ dialog::backdrop {
 }
 .guide-navigation {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 5px;
   margin: 0 22px 11px;
   padding: 5px;
@@ -685,10 +655,6 @@ dialog h3 {
   accent-color: var(--accent);
 }
 @media (max-width: 900px) {
-  .bitcoin-counter {
-    top: 14px;
-    left: 14px;
-  }
   .utility-actions {
     top: 14px;
     right: 14px;
@@ -702,19 +668,6 @@ dialog h3 {
   }
 }
 @media (max-width: 600px) {
-  .bitcoin-counter {
-    top: 10px;
-    left: 10px;
-    gap: 7px;
-    padding: 7px 9px;
-  }
-  .bitcoin-icon {
-    width: 26px;
-    height: 26px;
-  }
-  .bitcoin-counter strong {
-    font-size: 12px;
-  }
   .utility-actions {
     top: 10px;
     right: 10px;
@@ -725,7 +678,7 @@ dialog h3 {
     height: 34px;
   }
   .editor-window {
-    top: 62px;
+    top: 202px;
     right: 12px;
     width: calc(100vw - 24px);
     height: min(430px, calc(100dvh - 210px));
@@ -742,6 +695,10 @@ dialog h3 {
   }
   .dialog-content {
     padding: 22px;
+  }
+  .guide-dialog {
+    width: calc(100vw - 16px);
+    height: calc(100dvh - 16px);
   }
   .dialog-heading {
     padding: 8px 14px;

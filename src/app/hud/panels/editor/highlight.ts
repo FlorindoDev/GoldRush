@@ -1,7 +1,7 @@
 const HIGHLIGHT_PATTERNS = [
   /\/\/[^\n]*/,
   /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/,
-  /\b(?:repeat|for|while|if|else|let|true|false)\b/,
+  /\b(?:parallel|repeat|for|while|if|else|let|true|false)\b/,
   /\b(?:mine|print|wait|progress)(?=\s*\()/,
   /\b\d+(?:\.\d+)?\b/,
 ];

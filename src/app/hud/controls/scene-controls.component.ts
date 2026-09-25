@@ -62,6 +62,13 @@ export class SceneControlsComponent {
     return String(id).padStart(3, '0');
   }
 
+  handleGpuKey(event: KeyboardEvent, id: number): void {
+    if (event.altKey && event.key === 'Enter') {
+      event.preventDefault();
+      this.game.inspectGpu(id);
+    }
+  }
+
   setCameraPreset(preset: CameraPreset): void {
     this.cameraPresetChange.emit(preset);
   }

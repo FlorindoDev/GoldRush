@@ -18,6 +18,7 @@ const BUILTIN_ARGUMENT_COUNTS: Record<string, number> = {
   stack: 0,
   queue: 0,
 };
+let nextParallelGroupId = 0;
 
 export interface ScriptHost {
   globals?: Readonly<Record<string, Value>>;
@@ -54,6 +55,7 @@ class Interpreter {
   private readonly variables: Map<string, Value>;
   private readonly globalNames: ReadonlySet<string>;
   private steps = 0;
+  private parallelGroupId?: number;
 
   constructor(
     private readonly host: ScriptHost,
@@ -125,6 +127,9 @@ class Interpreter {
         }
         break;
       }
+      case 'parallel':
+        await this.executeParallel(statement.body);
+        break;
       case 'while':
         while (await this.evaluateExpression(statement.condition)) {
           await this.checkExecutionLimit(statement.line);
@@ -146,6 +151,27 @@ class Interpreter {
             : statement.otherwise,
         );
         break;
+    }
+  }
+
+  private async executeParallel(statements: Statement[]): Promise<void> {
+    this.parallelGroupId = ++nextParallelGroupId;
+    try {
+      const results = await Promise.allSettled(
+        statements.map(async (statement) => {
+          await this.checkExecutionLimit(statement.line);
+          if (statement.kind !== 'expression') {
+            throw new ScriptError('parallel accetta solo comandi semplici.', statement.line);
+          }
+          await this.evaluateExpression(statement.expression);
+        }),
+      );
+      const failure = results.find((result) => result.status === 'rejected');
+      if (failure?.status === 'rejected') {
+        throw failure.reason;
+      }
+    } finally {
+      this.parallelGroupId = undefined;
     }
   }
 
@@ -219,7 +245,12 @@ class Interpreter {
         for (const arg of expression.args) {
           args.push(await this.evaluateExpression(arg));
         }
-        return await object.callMethod(expression.name, args, expression.line);
+        return await object.callMethod(
+          expression.name,
+          args,
+          expression.line,
+          this.parallelGroupId,
+        );
       }
     }
   }

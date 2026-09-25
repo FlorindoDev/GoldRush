@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GAME_BALANCE } from '../config/game-balance';
-import { createWorld, type MiningWorld } from '../game/mining-world';
+import { createWorld, stopGpu, type MiningWorld } from '../game/mining-world';
 import { GpuVisuals, type GpuPose } from './gpu-visuals';
 
 const visualsToDispose: GpuVisuals[] = [];
@@ -71,6 +71,20 @@ function expectAtMount(gpu: THREE.Group, mount: THREE.Object3D): void {
 }
 
 describe('GPU visuals', () => {
+  it('only spins the active GPU and stops its fans after a stop', () => {
+    const { visuals } = setup();
+    const world = worldWithGpus(1, 2);
+    visuals.sync(world, null);
+    const firstFan = visuals.objects[0].getObjectByName('gpu-fan-rotor')!;
+    const secondFan = visuals.objects[1].getObjectByName('gpu-fan-rotor')!;
+    visuals.update(0.1, true, false, 1);
+    expect(firstFan.rotation.y).toBeLessThan(0);
+    expect(secondFan.rotation.y).toBe(0);
+    const rotation = firstFan.rotation.y;
+    visuals.sync(stopGpu(world, 1), null);
+    visuals.update(0.1, true, false, 1);
+    expect(firstFan.rotation.y).toBe(rotation);
+  });
   it('synchronizes available GPUs without replacing surviving instances', () => {
     const { visuals, scene } = setup();
     visuals.sync(worldWithGpus(1, 2), null);

@@ -4,7 +4,18 @@ import { Expression, ScriptError, Statement, Token } from './syntax';
 
 const MAX_NESTING_DEPTH = GAME_BALANCE.scripting.maxNestingDepth;
 const UNARY_PRECEDENCE = 7;
-const RESERVED_WORDS = ['true', 'false', 'null', 'let', 'if', 'else', 'for', 'while', 'repeat'];
+const RESERVED_WORDS = [
+  'true',
+  'false',
+  'null',
+  'let',
+  'if',
+  'else',
+  'for',
+  'while',
+  'repeat',
+  'parallel',
+];
 
 const PRECEDENCE: Record<string, number> = {
   '||': 1,
@@ -76,6 +87,16 @@ class Parser {
   private parseStatement(): Statement {
     return this.withNestingLimit(() => {
       const { text, line } = this.current;
+      if (this.match('parallel')) {
+        const body = this.parseBlock();
+        if (body.some((statement) => statement.kind !== 'expression')) {
+          throw new ScriptError(
+            'parallel accetta solo comandi semplici, come gpu.mine();. Dichiara le variabili prima del blocco.',
+            line,
+          );
+        }
+        return { kind: 'parallel', body, line };
+      }
       if (text === 'repeat' || text === 'while' || text === 'if') {
         this.advance();
         this.expect('(');

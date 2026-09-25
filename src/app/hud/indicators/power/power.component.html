@@ -1,0 +1,116 @@
+<details class="power-panel">
+  <summary>
+    <app-icon
+      class="power-bolt"
+      name="bolt"
+    />
+    <span class="power-title">Corrente e GPU</span>
+    <app-icon
+      class="power-chevron"
+      name="down"
+    />
+    <span class="power-overview">
+      <span class="power-reading">
+        <span class="reading-label">Farm</span>
+        <strong>{{ readings().powerWatts.toFixed(0) }} <small>W</small></strong>
+      </span>
+      <span class="power-reading">
+        <span class="reading-label">Da addebitare</span>
+        <strong>{{ readings().pendingCostEur.toFixed(2) }} <small>€</small></strong>
+      </span>
+    </span>
+  </summary>
+  <div class="power-content">
+    <div class="meter-row">
+      <span>Tariffa</span><strong>{{ readings().pricePerKwh.toFixed(2) }} €/kWh</strong>
+    </div>
+    <div class="meter-row">
+      <span>Energia totale</span><strong>{{ readings().energyKwh.toFixed(3) }} kWh</strong>
+    </div>
+    <p class="power-note">Addebito a fine blocco. Consumo conteggiato durante il mining.</p>
+    @if (gpu(); as selectedGpu) {
+      @if (telemetry(); as stats) {
+        <section aria-label="Specifiche GPU selezionata">
+          <div class="gpu-heading">
+            <strong>GPU {{ selectedGpu.id }}</strong>
+            <span [class.stopped]="selectedGpu.stopped">{{
+              selectedGpu.stopped
+                ? 'FERMA'
+                : game.activeGpuIds().includes(selectedGpu.id)
+                  ? 'MINING'
+                  : 'PRONTA'
+            }}</span>
+          </div>
+          <p class="gpu-context">
+            Selezionata · Rig {{ selectedGpu.rigId }} · Plot {{ selectedGpu.plotId }}
+          </p>
+          <p class="gpu-model">{{ stats.model }}</p>
+          <div class="meter-row">
+            <span>Frequenza attuale</span><strong>{{ stats.frequencyGhz.toFixed(2) }} GHz</strong>
+          </div>
+          <div class="meter-row">
+            <span>Frequenza impostata</span
+            ><strong>{{ stats.targetFrequencyGhz.toFixed(2) }} GHz</strong>
+          </div>
+          <div class="meter-row">
+            <span>Consumo GPU</span><strong>{{ stats.powerWatts.toFixed(0) }} W</strong>
+          </div>
+          <div class="meter-row">
+            <span>Temperatura</span><strong>{{ stats.temperatureCelsius.toFixed(1) }} °C</strong>
+          </div>
+          <meter
+            aria-label="Temperatura GPU"
+            [value]="stats.temperatureCelsius"
+            min="34"
+            max="110"
+            low="75"
+            [high]="stats.maxTemperatureCelsius"
+            optimum="34"
+          ></meter>
+          <div class="meter-row">
+            <span>Ventole</span
+            ><strong>{{ stats.currentFanSpeedRpm }} RPM · {{ stats.fanSpeed }}%</strong>
+          </div>
+          <div class="meter-row">
+            <span>Usura</span><strong>{{ stats.wearPercent.toFixed(2) }}%</strong>
+          </div>
+          <meter
+            aria-label="Usura GPU"
+            [value]="stats.wearPercent"
+            min="0"
+            max="100"
+            low="50"
+            high="80"
+            optimum="0"
+          ></meter>
+          <details class="gpu-limits">
+            <summary>Limiti del modello</summary>
+            <div class="meter-row">
+              <span>Frequenza minima</span
+              ><strong>{{ stats.minFrequencyGhz.toFixed(2) }} GHz</strong>
+            </div>
+            <div class="meter-row">
+              <span>Massimo nominale</span
+              ><strong>{{ stats.maxFrequencyGhz.toFixed(2) }} GHz</strong>
+            </div>
+            <div class="meter-row">
+              <span>Massimo assoluto</span
+              ><strong>{{ stats.absoluteMaxFrequencyGhz.toFixed(2) }} GHz</strong>
+            </div>
+            <div class="meter-row">
+              <span>Temperatura massima</span><strong>{{ stats.maxTemperatureCelsius }} °C</strong>
+            </div>
+            <div class="meter-row">
+              <span>Ventole massime</span><strong>{{ stats.maxFanSpeedRpm }} RPM</strong>
+            </div>
+          </details>
+          @if (selectedGpu.stopped) {
+            <p class="stop-reason">{{ selectedGpu.stopReason }}</p>
+          }
+        </section>
+      }
+    } @else {
+      <p class="gpu-empty">Seleziona una GPU nel rig per vedere le sue specifiche.</p>
+    }
+  </div>
+</details>
