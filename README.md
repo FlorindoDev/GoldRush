@@ -13,7 +13,7 @@ npm start
 
 In Windows PowerShell, se l'esecuzione di `npm.ps1` è bloccata, usa `npm.cmd start` (e `npm.cmd` al posto di `npm` per gli altri comandi).
 
-Apri **http://localhost:4200**. I valori iniziali della farm, il progresso per chiamata e il premio sono in `src/app/config/game-balance.ts`. Le GPU sbloccate e le ventole girano durante il mining. Un clic sulla GPU o sul pulsante numerato la seleziona; un doppio clic la trasferisce alla workbench. La freccia la rimette sul quadrato mantenendo la selezione. Completare un blocco non sblocca rig o GPU.
+Apri **http://localhost:4200**. Le configurazioni della farm sono in `src/app/config`; `game-balance.ts` le compone. Le GPU sbloccate e le ventole girano durante il mining. Un clic sulla GPU o sul pulsante numerato la seleziona; un doppio clic la trasferisce alla workbench. La freccia la rimette sul quadrato mantenendo la selezione. Completare un blocco non sblocca rig o GPU.
 
 ```sh
 npm run build       # Produzione in dist/blockcraft/browser
@@ -36,7 +36,18 @@ Per orientarti: `src/app/hud/hud.component.ts` coordina la UI sovrapposta; `src/
 
 ## Bilanciamento
 
-Modifica `src/app/config/game-balance.ts`. I gruppi `world`, `gpu`, `economy`, `mining`, `scripting`, `camera`, `animation`, `scene`, `layout` e `toolStations` raccolgono i valori modificabili. Frequenze, temperature, consumi e ventole hanno profili `idle` e `mining` e limiti in `gpu.limits`. `economy` configura cambio BTC/EUR, tariffa elettrica e ore simulate per azione. `gpu.thermalResponsePerAction` e `gpu.wearPercentPerHour` controllano calore e usura. Tempi sono in millisecondi, la transizione in secondi, gli angoli polari in radianti e il campo visivo in gradi. Le capacità totali e il progresso per GPU derivano dalle dimensioni della farm; guida ed esempio del ciclo `for` si aggiornano con questi valori. Dopo modifiche al numero di rig o slot, verifica che i modelli 3D restino dentro i plot.
+`src/app/config/game-balance.ts` compone i gruppi di configurazione usati dal gioco. Modifica il file del componente che vuoi bilanciare:
+
+- `gpu-config.ts`: profilo idle/mining, limiti, calore, usura e danni della polvere per ogni GPU. In `specifications.dustDamage` regoli accumulo relativo (`dustBuildUpMultiplier`), calore aggiuntivo massimo (`maxExtraHeatCelsius`), velocità di riscaldamento (`maxHeatingResponseBonus`), soglia d'usura (`wearThresholdPercent`) e usura massima (`maxWearMultiplier`). `GPU_DEFAULT_MODEL_ID` sceglie GPU di partenza.
+- `fan-config.ts`: specifiche e geometria di ogni ventola; `GPU_FAN_KITS` configura i kit GPU.
+- `cooling-config.ts`: potenza, portata e riduzione termica dei metodi di raffreddamento del rig.
+- `dust-filter-config.ts`: efficienza, resistenza al flusso e dimensioni dei filtri antipolvere.
+- `rig-config.ts`: ventola, filtro e raffreddamento selezionati per il rig iniziale (`GAMEPLAY_RIG_SETUP`).
+- `world-config.ts` e `economy-config.ts`: capacità della farm, progressione, ricompense, prezzi e tempo simulato.
+- `scene-config.ts`: camera, animazioni, superfici e dimensioni della scena.
+- `runtime-config.ts`: limiti di editor e interprete MineScript.
+
+La selezione iniziale di filtro e raffreddamento influenza sia il rig caricato sia accumulo di polvere, temperatura e consumi. Dopo modifiche a dimensioni o geometrie dei modelli, rigenera i GLB con `npm run models:generate`. Tempi sono in millisecondi, transizioni in secondi e temperature in °C.
 
 ## Moduli
 
@@ -44,12 +55,12 @@ Modifica `src/app/config/game-balance.ts`. I gruppi `world`, `gpu`, `economy`, `
 
 Il doppio clic su una GPU apre il pannello officina a destra. Editor e console ricompaiono quando la scheda viene rimontata nel rig.
 
-- **Pulizia:** rimuove lo sporco, che cresce solo durante il lavoro della singola GPU. Più polvere significa riscaldamento più rapido; oltre il 60% aumenta anche l'usura, fino a 3 volte al 100% di sporco.
+- **Pulizia:** rimuove lo sporco, che cresce solo durante il lavoro della singola GPU. Più polvere significa riscaldamento più rapido; soglia e danni cambiano in base al profilo `dustDamage` della GPU in `gpu-config.ts` (la GPU iniziale supera la soglia al 60% e arriva a 3 volte l'usura al 100%). La velocità base di accumulo si regola in `GPU_RUNTIME_CONFIG.maintenance.dustPercentPerHour`; il filtro del rig la riduce.
 - **Pasta e pad:** azzerano l'usura. Dopo ogni intervento servono 24 ore simulate di mining sulla stessa scheda prima di ripeterlo. Le azioni interrotte contano in proporzione; attesa, banco e lavoro delle altre GPU non contano.
-- **Ventole:** kit originale, silenzioso (−4 W, +3 °C) o alta portata (+12 W, −9 °C a regime). La velocità manuale e il ritorno alla modalità automatica si impostano con MineScript; HUD e banco mostrano la telemetria senza comandi di velocità.
+- **Ventole:** kit originale, alta portata (+12 W, −9 °C), industriale (+24 W, −15 °C) e Server Jet (+40 W, −21 °C). La velocità manuale e il ritorno alla modalità automatica si impostano con MineScript; HUD e banco mostrano la telemetria senza comandi di velocità.
 - **Effetti 3D:** deposito di polvere, particelle durante la pulizia, scie e tinta calda sopra 78 °C, dettagli dei kit ventole. Ogni istanza ha effetti indipendenti, conserva gli interventi tornando nel rig e rispetta la preferenza di movimento ridotto.
 
-Una GPU sul banco non può minare. Mentre è sul banco, la temperatura si raffredda gradualmente fino a 0 °C; la durata si configura in `gpu.benchCoolingMs`. Dopo un arresto per calore o usura va riabilitata, una volta raffreddata o riparata. Bilanciamento in `gpu.maintenance` e `gpu.fanKits` di `game-balance.ts`. Stato della partita mantenuto in memoria, come nel resto del prototipo.
+Una GPU sul banco non può minare. Mentre è sul banco, la temperatura si raffredda gradualmente fino a 0 °C; la durata si configura in `gpu.benchCoolingMs`. Dopo un arresto per calore o usura va riabilitata, una volta raffreddata o riparata. Regole condivise in `gpu.maintenance`, danni della polvere per modello in `gpu.dustDamage` e kit in `gpu.fanKits` di `game-balance.ts`. Stato della partita mantenuto in memoria, come nel resto del prototipo.
 
 Regole pure in `game/gpu-maintenance.ts`, UI in `hud/panels/workbench`, effetti adattati ai limiti del modello in `scene/gpu-condition-effects.ts`. Geometrie e texture restano condivise; ogni GPU possiede e rilascia i propri materiali ed effetti.
 
@@ -75,9 +86,26 @@ Componenti Angular standalone organizzati per funzionalità; nessun NgModule nec
 | `src/app/scene/models`         | Costruzione e preparazione dei modelli Three.js                                          |
 | `src/app/scene/geometry`       | Primitive geometriche riutilizzate da modelli e strumenti                                |
 | `src/app/assets/models`        | Percorsi degli asset 3D usati da HUD e scena                                             |
-| `modelli/`                     | File GLTF, BIN e licenze originali, copiati sotto `/models` in build                     |
+| `public/assets/models/`        | Tutti i modelli GLB, licenze e catalogo, pubblicati sotto `/assets/models`               |
+| `scripts/models/`              | Sorgenti e generatore dei modelli 3D e delle combinazioni                                |
+| `src/app/model-library/`       | Catalogo interattivo con anteprima 3D, ricerca e download                                |
 
 `GameService` coordina dominio e interprete; `MiningScene` riceve uno snapshot del mondo. `shared` indicava codice riutilizzabile, ma mescolava elementi diversi: ora ogni elemento vive nella cartella della sua responsabilità. I percorsi dei file 3D sono in `assets/models`, la logica dei modelli in `scene/models`, le forme riutilizzabili in `scene/geometry`.
+
+## Libreria modelli 3D
+
+Apri [il catalogo 3D](http://localhost:4200/?models=1): 65 GLB con anteprima,
+rotazione, zoom e download. Include 28 rig e combinazioni, 7 livelli di ventole,
+11 GPU, 3 filtri, 3 moduli esterni, banco, ambiente e 8 criptovalute.
+Rig, GPU, banco, plot, piazzole, pavimento e Bitcoin della partita sono caricati
+dai GLB. I generatori Three.js sono usati solo per esportare gli asset.
+Le piazzole sono dimensionate per l'intera famiglia di rig, compresi i moduli
+laterali. Le monete BTC, LTC, DOGE, XMR, ETC, KAS, RVN ed ERG condividono le
+dimensioni del Bitcoin; il sistema economico della partita continua a usare BTC.
+
+File e documentazione in [`public/assets/models/`](public/assets/models/README.md).
+Rigenera i GLB con `npm run models:generate`. Riferimenti online, attribuzioni,
+formato e punti di montaggio sono documentati nel README della libreria.
 
 ## MineScript
 
@@ -227,9 +255,7 @@ L'interprete analizza il programma prima di eseguirlo. Non usa `eval`, `Function
 
 ## Crediti
 
-This work is based on [“GPU Low Poly”](https://sketchfab.com/3d-models/gpu-low-poly-934115a6f28440668b5ff70aa5a88b1d) by [N1shor](https://sketchfab.com/N1shor), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Modifiche in scena: scala, orientamento e colore. File originali e licenza in `modelli/modello-gpu/`.
-
-This work is based on [“Low Poly Bitcoin”](https://sketchfab.com/3d-models/low-poly-bitcoin-ec0b85df2dde42eda90b571c12a7cd47) by [Gohar.Munir](https://sketchfab.com/Gohar.Munir), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Modifiche in scena: scala e orientamento. File originali e licenza in `modelli/bitcoin/`.
+This work is based on [“Low Poly Bitcoin”](https://sketchfab.com/3d-models/low-poly-bitcoin-ec0b85df2dde42eda90b571c12a7cd47) by [Gohar.Munir](https://sketchfab.com/Gohar.Munir), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Convertito in GLB e normalizzato. Sorgenti in `scripts/models/source/bitcoin/`, modello e attribuzione in `public/assets/models/coins/`.
 
 Font DM Sans e IBM Plex Mono distribuiti tramite i rispettivi pacchetti Fontsource, con licenze incluse. Geometrie dei blocchi e icone del progetto create in codice.
 
@@ -237,4 +263,4 @@ Il banco da elettronico è un modello originale costruito in Three.js: piano in 
 
 Riferimenti: [compatibilità Angular](https://angular.dev/reference/versions), [documentazione Three.js](https://threejs.org/docs/).
 
-Il modello del mining rig è costruito in Three.js e mostrato nella scena con GPU 1 montata; le piazzole bloccate sono quadrati a terra. I riferimenti consultati sono [Crypto Farm / Mining Rig di Michael V](https://sketchfab.com/3d-models/crypto-farm-mining-rig-049f02ffd15c41ca8cb8020feb43993f), [Mining Rig di Cem Gürbüz](https://sketchfab.com/3d-models/mining-rig-a131eb6aca5f4b4fb16d6572a853912e) e [Mining Rig Frame 6x video card](https://sketchfab.com/3d-models/mining-rig-frame-6x-video-card-3e83a16d2b2c4d7398389afdcd752a08). Nessuna geometria o texture dei rig di riferimento è inclusa.
+Rig e GPU sono modelli originali esportati in GLB e caricati direttamente nel gioco. Riferimenti hardware e fonti ufficiali sulle criptovalute sono raccolti nel [README degli asset](public/assets/models/README.md) e nel catalogo JSON.
