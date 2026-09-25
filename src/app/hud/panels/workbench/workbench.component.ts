@@ -32,6 +32,7 @@ export class WorkbenchComponent implements OnDestroy {
   readonly feedback = signal('');
   readonly feedbackError = signal(false);
   readonly config = GAME_BALANCE.gpu.maintenance;
+  readonly dustDamage = GAME_BALANCE.gpu.dustDamage;
   readonly fanKits = Object.entries(GAME_BALANCE.gpu.fanKits).map(([id, kit]) => ({
     ...kit,
     id: id as GpuFanKit,
@@ -64,7 +65,7 @@ export class WorkbenchComponent implements OnDestroy {
     this.perform(
       () => this.game.serviceInspectedGpu(action),
       action.kind === 'clean'
-        ? 'Pulizia completata. Dissipatore libero dalla polvere.'
+        ? 'Pulizia completata.'
         : action.kind === 'thermal'
           ? 'Pasta e pad sostituiti. Usura azzerata.'
           : `Ventole ${GAME_BALANCE.gpu.fanKits[action.kit].label.toLowerCase()} installate.`,

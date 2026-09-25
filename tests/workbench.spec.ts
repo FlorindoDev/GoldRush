@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { GAME_BALANCE } from '../src/app/config/game-balance';
 import type { GameService } from '../src/app/game/game.service';
 import type { GpuOperatingState } from '../src/app/game/gpu-operation';
 import type { Scene } from 'three';
@@ -70,12 +71,12 @@ test('workbench services one GPU, enforces cooldown and retains upgrades in the 
   await panel.getByRole('button', { name: 'Pulisci scheda', exact: true }).click();
   await expect(panel.getByTestId('bench-dust')).toHaveText('0.0%');
   await expect(panel.getByTestId('bench-wear')).toHaveText('28.00%');
-  await panel.getByRole('button', { name: /02 Pasta e pad termici/ }).click();
+  await panel.getByRole('button', { name: 'Pasta e pad', exact: true }).click();
   await panel.getByRole('button', { name: 'Sostituisci pasta e pad', exact: true }).click();
   await expect(panel.getByTestId('bench-wear')).toHaveText('0.00%');
   await expect(panel.getByRole('button', { name: 'In attesa di utilizzo' })).toBeDisabled();
   await expect(panel).toContainText('24.0 h');
-  await panel.getByRole('button', { name: /03 Ventole/ }).click();
+  await panel.getByRole('button', { name: 'Ventole', exact: true }).click();
   await panel.getByRole('button', { name: /Alta portata/ }).click();
   await expect.poll(async () => (await state(page)).fanKitVisible).toBe(true);
   await expect(panel.getByRole('slider')).toHaveCount(0);
@@ -86,7 +87,7 @@ test('workbench services one GPU, enforces cooldown and retains upgrades in the 
   expect((await state(page)).first.fanKit).toBe('performance');
   expect((await state(page)).second).toEqual(before.second);
   await firstSlot.dblclick();
-  await panel.getByRole('button', { name: /02 Pasta e pad termici/ }).click();
+  await panel.getByRole('button', { name: 'Pasta e pad', exact: true }).click();
   await expect(panel.getByRole('button', { name: 'In attesa di utilizzo' })).toBeDisabled();
   await panel.getByRole('button', { name: /Rimonta nel rig/ }).click();
   await page.evaluate(async () => {
@@ -99,7 +100,7 @@ test('workbench services one GPU, enforces cooldown and retains upgrades in the 
   });
   expect((await state(page)).first.hoursSinceThermalService).toBe(1);
   await firstSlot.dblclick();
-  await panel.getByRole('button', { name: /02 Pasta e pad termici/ }).click();
+  await panel.getByRole('button', { name: 'Pasta e pad', exact: true }).click();
   await expect(panel).toContainText('23.0 h');
   expect(errors).toEqual([]);
 });
@@ -117,15 +118,19 @@ test('condition effects react to heat; compact workbench keeps all actions reach
   await seedGpu(page, { dustPercent: 90, wearPercent: 45, temperatureCelsius: 100 });
   await expect.poll(async () => (await state(page)).heatVisible).toBe(true);
   await page.screenshot({ path: 'test-results/workbench-heat.png' });
-  await expect.poll(async () => (await state(page)).heatVisible).toBe(false);
+  await expect
+    .poll(async () => (await state(page)).heatVisible, {
+      timeout: GAME_BALANCE.gpu.benchCoolingMs,
+    })
+    .toBe(false);
   await page.setViewportSize({ width: 390, height: 844 });
   const panel = page.getByRole('complementary', { name: 'GPU 001' });
   const bounds = await panel.boundingBox();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
   expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
-  await panel.getByRole('button', { name: /03 Ventole/ }).click();
-  await panel.getByRole('button', { name: /Silenziosa/ }).click();
+  await panel.getByRole('button', { name: 'Ventole', exact: true }).click();
+  await panel.getByRole('button', { name: /Industriale/ }).click();
   await page.screenshot({ path: 'test-results/workbench-mobile.png' });
   await panel.getByRole('button', { name: /Rimonta nel rig/ }).click();
   await expect(panel).toHaveCount(0);

@@ -1,9 +1,7 @@
 :host {
-  position: absolute;
+  position: relative;
   z-index: 24;
-  top: 24px;
-  left: 24px;
-  width: 280px;
+  width: 100%;
   pointer-events: none;
 }
 .bitcoin-counter {
@@ -47,6 +45,38 @@
 .wallet-amount small {
   font-size: 9px;
   color: #8c9b83;
+}
+.game-clock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 5px 8px;
+  border: 1px solid #344134;
+  border-radius: 4px;
+  background: #0d130f;
+}
+.clock-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #9cac91;
+  font-size: 8px;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+.clock-label app-icon {
+  width: 13px;
+  height: 13px;
+  color: #b5c39e;
+}
+.game-clock time {
+  color: #e7ba68;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
 }
 .debit {
   border-color: #fba56a;
@@ -175,15 +205,12 @@
 }
 @media (max-width: 900px) {
   :host {
-    top: 14px;
-    left: 14px;
+    width: 100%;
   }
 }
 @media (max-width: 600px) {
   :host {
-    top: 10px;
-    left: 10px;
-    width: 218px;
+    width: 100%;
   }
   .bitcoin-counter {
     padding: 9px 10px;

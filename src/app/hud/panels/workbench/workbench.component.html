@@ -5,7 +5,7 @@
       aria-labelledby="workbench-title"
     >
       <header class="bench-heading">
-        <span><app-icon name="tool" /> OFFICINA / 01</span>
+        <span>Officina</span>
         <button
           type="button"
           class="close-button"
@@ -18,21 +18,15 @@
 
       <div class="bench-body">
         <div class="card-identity">
-          <p class="eyebrow">MANUTENZIONE</p>
           <h2 id="workbench-title">
             GPU <span>{{ card.id.toString().padStart(3, '0') }}</span>
           </h2>
-          <p class="model-name">{{ stats.model }}</p>
-          <div class="location-line">
-            <span>RIG {{ card.rigId.toString().padStart(2, '0') }}</span
-            ><span>SUL BANCO</span>
-          </div>
         </div>
 
         <dl class="diagnostics">
           <div
             class="reading"
-            [class.warning]="card.dustPercent >= config.dustWearThresholdPercent"
+            [class.warning]="card.dustPercent >= dustDamage.wearThresholdPercent"
           >
             <dt>Sporco</dt>
             <dd data-testid="bench-dust">{{ card.dustPercent.toFixed(1) }}<small>%</small></dd>
@@ -88,7 +82,6 @@
           </div>
         }
 
-        <p class="section-label">INTERVENTI</p>
         <div
           class="interventions"
           role="group"
@@ -98,45 +91,31 @@
             type="button"
             class="intervention"
             [class.active]="selected() === 'clean'"
-            [attr.aria-expanded]="selected() === 'clean'"
+            [attr.aria-pressed]="selected() === 'clean'"
             aria-controls="intervention-details"
             (click)="select('clean')"
           >
-            <span class="number">01</span
-            ><span class="intervention-copy"
-              ><strong>Pulizia</strong><small>Aria compressa · dissipatore</small></span
-            ><app-icon name="chevron" />
+            Pulizia
           </button>
           <button
             type="button"
             class="intervention"
             [class.active]="selected() === 'thermal'"
-            [attr.aria-expanded]="selected() === 'thermal'"
+            [attr.aria-pressed]="selected() === 'thermal'"
             aria-controls="intervention-details"
             (click)="select('thermal')"
           >
-            <span class="number">02</span
-            ><span class="intervention-copy"
-              ><strong>Pasta e pad termici</strong
-              ><small>{{
-                remainingHours() > 0
-                  ? 'Disponibile tra ' + remainingHours().toFixed(1) + ' h di utilizzo'
-                  : 'Ripristino dell’usura'
-              }}</small></span
-            ><app-icon [name]="remainingHours() > 0 ? 'lock' : 'chevron'" />
+            Pasta e pad
           </button>
           <button
             type="button"
             class="intervention"
             [class.active]="selected() === 'fan'"
-            [attr.aria-expanded]="selected() === 'fan'"
+            [attr.aria-pressed]="selected() === 'fan'"
             aria-controls="intervention-details"
             (click)="select('fan')"
           >
-            <span class="number">03</span
-            ><span class="intervention-copy"
-              ><strong>Ventole</strong><small>Kit di raffreddamento</small></span
-            ><app-icon name="chevron" />
+            Ventole
           </button>
         </div>
 
@@ -147,10 +126,10 @@
         >
           @switch (selected()) {
             @case ('clean') {
-              <h3>Libera il passaggio dell’aria.</h3>
+              <h3>Pulizia della scheda</h3>
               <p>
-                La polvere fa scaldare la scheda più in fretta. Oltre il
-                {{ config.dustWearThresholdPercent }}% aumenta anche l’usura.
+                Rimuove la polvere dal dissipatore. Lo sporco aumenta la temperatura e, oltre il
+                {{ dustDamage.wearThresholdPercent }}%, anche l’usura.
               </p>
               <dl class="effect-list">
                 <div>
@@ -158,7 +137,7 @@
                   <dd>0%</dd>
                 </div>
                 <div>
-                  <dt>Usura da sporco attuale</dt>
+                  <dt>Usura dovuta allo sporco</dt>
                   <dd>×{{ wearMultiplier().toFixed(2) }}</dd>
                 </div>
               </dl>
@@ -173,10 +152,10 @@
               </button>
             }
             @case ('thermal') {
-              <h3>Rinnova il contatto termico.</h3>
+              <h3>Pasta e pad termici</h3>
               <p>
-                Sostituisci pasta e pad per azzerare l’usura. Ripetibile dopo
-                {{ config.thermalServiceIntervalHours }} ore simulate di mining con questa GPU.
+                Azzera l’usura della scheda. Puoi ripetere l’intervento ogni
+                {{ config.thermalServiceIntervalHours }} ore simulate di mining.
               </p>
               <dl class="effect-list">
                 <div>
@@ -184,7 +163,7 @@
                   <dd>0%</dd>
                 </div>
                 <div>
-                  <dt>Utilizzo ancora richiesto</dt>
+                  <dt>Prossimo cambio tra</dt>
                   <dd>{{ remainingHours().toFixed(1) }} h</dd>
                 </div>
               </dl>
@@ -194,9 +173,7 @@
                   [max]="config.thermalServiceIntervalHours"
                   aria-label="Utilizzo prima del prossimo cambio pasta"
                 ></progress>
-                <p class="detail-note">
-                  Il tempo sul banco non conta. Rimonta la scheda e falla lavorare.
-                </p>
+                <p class="detail-note">Contano solo le ore di mining di questa GPU.</p>
               }
               <button
                 type="button"
@@ -215,7 +192,7 @@
               </button>
             }
             @case ('fan') {
-              <h3>Scegli il raffreddamento.</h3>
+              <h3>Kit di raffreddamento</h3>
               <div
                 class="fan-kits"
                 role="group"
@@ -229,8 +206,18 @@
                     [disabled]="game.running()"
                     (click)="service({ kind: 'fan', kit: kit.id })"
                   >
-                    <span>{{ kit.label }}</span
-                    ><small>{{ kit.maxRpm }} rpm</small>
+                    <span class="fan-kit-copy">
+                      <strong>{{ kit.label }}</strong>
+                      <span class="fan-kit-specs">
+                        <span>{{ kit.maxRpm }} rpm</span>
+                        @if (kit.id !== 'stock') {
+                          <span class="fan-kit-impact">
+                            · {{ kit.extraPowerWatts > 0 ? '+' : '' }}{{ kit.extraPowerWatts }} W ·
+                            {{ kit.coolingCelsius < 0 ? '+' : '' }}{{ -kit.coolingCelsius }} °C
+                          </span>
+                        }
+                      </span>
+                    </span>
                     @if (card.fanKit === kit.id) {
                       <app-icon name="check" />
                     }
@@ -238,8 +225,8 @@
                 }
               </div>
               <p class="detail-note">
-                Silenziosa: −4 W, +3 °C. Alta portata: +12 W, −9 °C a regime. Kit visibile sulla
-                scheda.
+                Consumi e temperature a regime, rispetto al kit originale. La ventola cambia anche
+                sulla scheda.
               </p>
             }
           }
@@ -258,8 +245,7 @@
           class="return-button"
           (click)="game.returnToRig()"
         >
-          <app-icon name="arrow" /><span>Rimonta nel rig</span
-          ><span class="return-rig">{{ card.rigId.toString().padStart(2, '0') }}</span>
+          <app-icon name="arrow" /><span>Rimonta nel RIG-{{ card.rigId }}</span>
         </button>
       </footer>
     </aside>

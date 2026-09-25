@@ -8,8 +8,10 @@
     <app-gpu-tooltip [hover]="hover" />
   }
 
-  <app-wallet />
-  <app-power />
+  <div class="status-panels">
+    <app-power />
+    <app-wallet />
+  </div>
 
   @if (game.inspectedGpuId(); as gpuId) {
     @for (id of [gpuId]; track id) {
@@ -60,15 +62,13 @@
           (toggleDock)="toggleConsoleDock()"
         />
         <button
-          class="window-resize-handle vertical-resize-handle"
+          class="console-border-resize"
           type="button"
           aria-label="Ridimensiona console agganciata"
-          title="Ridimensiona console agganciata: trascina o usa le frecce su e giù"
+          title="Ridimensiona console trascinando il bordo o usando le frecce su e giù"
           (pointerdown)="startWindowResize($event, 'docked-console')"
           (keydown)="resizeWindowWithKeyboard($event, 'docked-console')"
-        >
-          <app-icon name="resizeY" />
-        </button>
+        ></button>
       </div>
     }
     <button
@@ -263,8 +263,7 @@
             Completare un blocco non sblocca rig o GPU. Usa “Torna al quadrato” per rimettere la
             scheda al suo posto. Trascina la barra del titolo per spostare editor e console. Puoi
             agganciare la console sotto l'editor o sganciarla per spostarla da sola. Ridimensiona le
-            finestre dal manico nell'angolo; la console agganciata usa il manico sul bordo
-            inferiore.
+            finestre dal manico nell'angolo. Per la console agganciata, trascina il bordo inferiore.
           </p>
           <p class="guide-note">
             Il codice resta salvato in questo browser quando disponibile. La partita è una
@@ -870,7 +869,7 @@ print("Progresso: " + progress());</pre>
               <p>
                 Numero da 0 (pulita) a 100, attributo <code>dustPercent</code>. La polvere si
                 accumula con il mining e accelera il riscaldamento. Oltre il
-                {{ balance.gpu.maintenance.dustWearThresholdPercent }}% aumenta anche l'usura. Il
+                {{ balance.gpu.dustDamage.wearThresholdPercent }}% aumenta anche l'usura. Il
                 pannello a destra del banco permette di pulire la scheda, sostituire pasta e pad,
                 scegliere il kit ventole e regolarne la velocità. Rimonta la GPU nel rig prima di
                 minare: l'attesa sul banco non riduce il tempo richiesto tra i cambi di pasta.
@@ -969,8 +968,8 @@ print(gpu.getFanSpeed() + "%");</pre>
         >
           <h2 id="guide-title">Corrente e portafoglio</h2>
           <p class="dialog-intro">
-            Controlla la potenza della farm, accumula il consumo e paga la bolletta quando completi
-            il blocco. Il portafoglio mostra BTC e controvalore in euro.
+            Controlla la potenza della farm. Il consumo si accumula durante il mining e la bolletta
+            viene addebitata ogni 24 ore di gioco. Il portafoglio mostra BTC e controvalore in euro.
           </p>
           <aside
             class="guide-callout"
@@ -981,8 +980,10 @@ print(gpu.getFanSpeed() + "%");</pre>
               1 BTC = {{ balance.economy.bitcoinPriceEur }} €. Tariffa:
               {{ balance.economy.electricityPriceEurPerKwh }} €/kWh. Ogni
               <code>mine()</code> completo simula {{ balance.economy.simulatedHoursPerAction }} ora
-              di lavoro, anche a velocità 2×. Il tempo di consumo avanza solo durante il mining:
-              pause, <code>wait()</code> ed editor inattivo non generano bollette.
+              di lavoro, anche a velocità 2×. Il clock avanza di
+              {{ 1000 / balance.clock.millisecondsPerGameMinute }} minuti di gioco al secondo e la
+              bolletta scatta ogni 24 ore. Pause, <code>wait()</code> ed editor inattivo non
+              aggiungono consumo.
             </p>
           </aside>
           <p>
@@ -1286,7 +1287,7 @@ parallel &lbrace;
             }
           </div>
           <p class="guide-note">
-            Per la console agganciata, il manico accetta solo freccia su e freccia giù.
+            Per la console agganciata, seleziona il bordo inferiore e usa freccia su o freccia giù.
           </p>
         </section>
       }

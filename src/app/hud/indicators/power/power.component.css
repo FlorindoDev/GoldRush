@@ -1,9 +1,7 @@
 :host {
-  position: absolute;
-  top: 152px;
-  left: 24px;
+  position: relative;
   z-index: 12;
-  width: 280px;
+  width: 100%;
   color: #e5e7df;
   font: 11px/1.5 var(--mono);
 }
@@ -203,15 +201,12 @@ meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
 }
 @media (max-width: 900px) {
   :host {
-    top: 142px;
-    left: 14px;
+    width: 100%;
   }
 }
 @media (max-width: 600px) {
   :host {
-    top: 122px;
-    left: 10px;
-    width: 218px;
+    width: 100%;
   }
   .power-content {
     max-height: calc(100dvh - 235px);

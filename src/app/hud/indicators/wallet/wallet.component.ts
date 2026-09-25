@@ -4,28 +4,50 @@ import {
   computed,
   effect,
   inject,
+  OnDestroy,
   signal,
 } from '@angular/core';
 import { GAME_BALANCE } from '../../../config/game-balance';
-import { satoshisToEuros } from '../../../game/electricity';
+import { satoshisToEuros, type MiningSettlement } from '../../../game/electricity';
 import { GameService } from '../../../game/game.service';
+import { IconComponent } from '../../icons/icon.component';
 import { BitcoinModelComponent } from '../bitcoin-model/bitcoin-model.component';
 
 const euros = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
+const CLOCK_REFRESH_MS = 200;
 
 @Component({
   selector: 'app-wallet',
-  imports: [BitcoinModelComponent],
+  imports: [BitcoinModelComponent, IconComponent],
   templateUrl: './wallet.component.html',
   styleUrl: './wallet.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class WalletComponent {
+export class WalletComponent implements OnDestroy {
   readonly game = inject(GameService);
+  private clockUpdatedAt = performance.now();
+  private readonly clockTimer = setInterval(() => {
+    const now = performance.now();
+    this.game.advanceGameTime(now - this.clockUpdatedAt);
+    this.clockUpdatedAt = now;
+  }, CLOCK_REFRESH_MS);
   readonly displayedSatoshis = signal(0);
   readonly stage = signal<'idle' | 'reward' | 'bill' | 'net'>('idle');
   readonly receiptVisible = signal(false);
+  readonly billVisible = signal(false);
   readonly settlement = computed(() => this.game.world().lastSettlement);
+  readonly dailyBill = computed(() => this.game.world().lastElectricityBill);
+  readonly gameDay = computed(
+    () => Math.floor(this.game.gameElapsedMinutes() / GAME_BALANCE.clock.minutesPerDay) + 1,
+  );
+  readonly gameDayLabel = computed(() => String(this.gameDay()).padStart(2, '0'));
+  readonly gameTime = computed(() => {
+    const totalMinutes = Math.floor(this.game.gameElapsedMinutes());
+    const minutesToday = totalMinutes % GAME_BALANCE.clock.minutesPerDay;
+    const hours = Math.floor(minutesToday / 60);
+    const minutes = minutesToday % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  });
   readonly formatEuros = (amount: number) => euros.format(amount);
   readonly bitcoin = computed(() =>
     (this.displayedSatoshis() / GAME_BALANCE.world.satoshisPerBitcoin).toFixed(8),
@@ -35,10 +57,17 @@ export class WalletComponent {
   );
   readonly price = this.formatEuros(GAME_BALANCE.economy.bitcoinPriceEur);
   readonly toEuros = satoshisToEuros;
+  private lastAnimatedSettlement: MiningSettlement | null = null;
 
   constructor() {
     effect((onCleanup) => {
       const settlement = this.settlement();
+      this.dailyBill();
+      if (settlement === this.lastAnimatedSettlement) {
+        this.displayedSatoshis.set(this.game.world().satoshis);
+        return;
+      }
+      this.lastAnimatedSettlement = settlement;
       this.receiptVisible.set(Boolean(settlement));
       if (!settlement) {
         this.displayedSatoshis.set(this.game.world().satoshis);
@@ -48,21 +77,22 @@ export class WalletComponent {
       const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       let frame = 0;
       const start = performance.now();
-      const gross = settlement.balanceBeforeSatoshis + settlement.rewardSatoshis;
       const animate = (now: number) => {
         const elapsed = now - start;
-        if (reducedMotion || elapsed >= 2300) {
-          this.displayedSatoshis.set(settlement.balanceAfterSatoshis);
-          this.stage.set('net');
+        if (reducedMotion || elapsed >= 1000) {
+          this.displayedSatoshis.set(this.game.world().satoshis);
+          this.stage.set(this.billVisible() ? 'bill' : 'net');
           return;
         }
-        const billing = elapsed >= 1100;
-        this.stage.set(billing ? 'bill' : 'reward');
-        const progress = Math.min(1, (elapsed - (billing ? 1100 : 0)) / (billing ? 1000 : 700));
+        this.stage.set('reward');
+        const progress = Math.min(1, elapsed / 1000);
         const eased = 1 - (1 - progress) ** 3;
-        const from = billing ? gross : settlement.balanceBeforeSatoshis;
-        const to = billing ? settlement.balanceAfterSatoshis : gross;
-        this.displayedSatoshis.set(Math.round(from + (to - from) * eased));
+        this.displayedSatoshis.set(
+          Math.round(
+            settlement.balanceBeforeSatoshis +
+              (settlement.balanceAfterSatoshis - settlement.balanceBeforeSatoshis) * eased,
+          ),
+        );
         frame = requestAnimationFrame(animate);
       };
       animate(start);
@@ -72,5 +102,30 @@ export class WalletComponent {
         clearTimeout(dismiss);
       });
     });
+
+    effect((onCleanup) => {
+      const bill = this.dailyBill();
+      if (!bill) {
+        this.billVisible.set(false);
+        if (this.stage() === 'bill') {
+          this.stage.set('idle');
+        }
+        return;
+      }
+
+      this.displayedSatoshis.set(this.game.world().satoshis);
+      this.stage.set('bill');
+      this.receiptVisible.set(false);
+      this.billVisible.set(true);
+      const dismiss = setTimeout(() => {
+        this.billVisible.set(false);
+        this.stage.set('idle');
+      }, 7000);
+      onCleanup(() => clearTimeout(dismiss));
+    });
+  }
+
+  ngOnDestroy(): void {
+    clearInterval(this.clockTimer);
   }
 }

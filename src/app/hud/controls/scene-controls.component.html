@@ -39,7 +39,7 @@
           [class.locked]="!isRigUnlocked(id)"
           [attr.aria-label]="'Visualizza Rig ' + id + (isRigUnlocked(id) ? '' : ' bloccato')"
           [attr.aria-pressed]="game.viewedRigId() === id"
-          [disabled]="!isRigUnlocked(id) || game.running()"
+          [disabled]="!isRigUnlocked(id)"
           [title]="'Visualizza ' + (isRigUnlocked(id) ? 'Rig ' + id : 'slot Rig bloccato ' + id)"
           (click)="selectRig(id)"
         >
@@ -58,7 +58,7 @@
           class="gpu-slot"
           [class.available]="isGpuUnlocked(slot.id)"
           [class.locked]="!isGpuUnlocked(slot.id)"
-          [disabled]="!isGpuUnlocked(slot.id) || game.running()"
+          [disabled]="!isGpuUnlocked(slot.id)"
           [attr.aria-label]="
             'GPU ' + gpuNumber(slot.id) + (isGpuUnlocked(slot.id) ? ' sbloccata' : ' bloccata')
           "
@@ -79,7 +79,13 @@
         </button>
       }
     </div>
-    <p class="gpu-interaction-hint">Clic: seleziona · Doppio clic: banco</p>
+    <p class="gpu-interaction-hint">
+      @if (game.running()) {
+        Clic: seleziona · Banco disponibile a programma fermo
+      } @else {
+        Clic: seleziona · Doppio clic: banco
+      }
+    </p>
     @if (game.inspectedGpuId() !== null) {
       <button
         type="button"
@@ -124,7 +130,6 @@
           class="plot-choice"
           [attr.aria-label]="'Vai a Plot ' + id"
           [attr.aria-pressed]="focusedToolStationId() === null && game.viewedPlotId() === id"
-          [disabled]="game.running()"
           (click)="selectPlot(id)"
         >
           <span>Plot</span><span class="plot-number">{{ id }}</span>

@@ -17,6 +17,21 @@ app-scene.world-scene {
   inset: 0;
   z-index: 0;
 }
+.status-panels {
+  position: absolute;
+  z-index: 24;
+  top: 24px;
+  left: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+  width: min(576px, calc(100vw - 48px));
+  pointer-events: none;
+}
+.status-panels app-power {
+  pointer-events: auto;
+}
 .utility-actions {
   position: absolute;
   z-index: 10;
@@ -73,10 +88,24 @@ app-scene.world-scene {
   width: 18px;
   height: 18px;
 }
-.vertical-resize-handle {
-  right: calc(50% - 15px);
-  bottom: 2px;
+.console-border-resize {
+  position: absolute;
+  right: 8px;
+  bottom: 0;
+  left: 8px;
+  z-index: 4;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
   cursor: ns-resize;
+  touch-action: none;
+}
+.console-border-resize:hover,
+.console-border-resize:focus-visible {
+  border-bottom-color: var(--accent);
+  outline: none;
 }
 .editor-window {
   top: 78px;
@@ -658,6 +687,11 @@ dialog h3 {
   accent-color: var(--accent);
 }
 @media (max-width: 900px) {
+  .status-panels {
+    top: 14px;
+    left: 14px;
+    width: min(576px, calc(100vw - 28px));
+  }
   .utility-actions {
     top: 14px;
     right: 14px;
@@ -671,6 +705,12 @@ dialog h3 {
   }
 }
 @media (max-width: 600px) {
+  .status-panels {
+    top: 10px;
+    left: 10px;
+    gap: 8px;
+    width: calc(100vw - 20px);
+  }
   .utility-actions {
     top: 10px;
     right: 10px;
@@ -719,5 +759,11 @@ dialog h3 {
   }
   .shortcut-keys {
     justify-content: flex-start;
+  }
+}
+@media (max-width: 440px) {
+  .status-panels {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
   }
 }

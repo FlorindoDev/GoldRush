@@ -12,10 +12,45 @@
     <strong>{{ bitcoin() }} BTC</strong>
     <b>{{ euroBalance() }}</b>
     <small>1 BTC = {{ price }}</small>
+    <div class="game-clock">
+      <span class="clock-label">
+        <app-icon name="clock" />
+        GIORNO {{ gameDayLabel() }}
+      </span>
+      <time>{{ gameTime() }}</time>
+    </div>
   </div>
   <span class="sr-only">Saldo: {{ game.balance() }} BTC, {{ formatEuros(game.balanceEur()) }}</span>
 </aside>
-@if (receiptVisible()) {
+<span class="sr-only">Ora di gioco: giorno {{ gameDay() }}, {{ gameTime() }}</span>
+@if (billVisible()) {
+  @if (dailyBill(); as bill) {
+    <section
+      class="settlement billing"
+      aria-label="Bolletta elettrica"
+      role="status"
+    >
+      <div class="receipt-heading">
+        <span>BOLLETTA · GIORNO {{ bill.gameDay }}</span
+        ><span class="receipt-check">−</span>
+      </div>
+      <div class="receipt-row electricity">
+        <span
+          >Consumo <small>{{ bill.energyKwh.toFixed(2) }} kWh</small></span
+        >
+        <strong>−{{ formatEuros(toEuros(bill.electricitySatoshis)) }}</strong>
+      </div>
+      <div class="receipt-row net">
+        <span>SALDO AGGIORNATO</span>
+        <strong>{{ formatEuros(toEuros(bill.balanceAfterSatoshis)) }}</strong>
+      </div>
+      <div
+        class="receipt-progress"
+        aria-hidden="true"
+      ></div>
+    </section>
+  }
+} @else if (receiptVisible()) {
   @if (game.world().lastSettlement; as receipt) {
     <section
       class="settlement"
@@ -29,13 +64,15 @@
       <div class="receipt-row reward">
         <span>Ricompensa</span><strong>+{{ formatEuros(toEuros(receipt.rewardSatoshis)) }}</strong>
       </div>
-      <div class="receipt-row electricity">
-        <span
-          >Corrente <small>{{ receipt.energyKwh.toFixed(2) }} kWh</small></span
-        ><strong>−{{ formatEuros(toEuros(receipt.electricitySatoshis)) }}</strong>
-      </div>
+      @if (receipt.energyKwh > 0 || receipt.electricitySatoshis > 0) {
+        <div class="receipt-row electricity">
+          <span
+            >Corrente <small>{{ receipt.energyKwh.toFixed(2) }} kWh</small></span
+          ><strong>−{{ formatEuros(toEuros(receipt.electricitySatoshis)) }}</strong>
+        </div>
+      }
       <div class="receipt-row net">
-        <span>GUADAGNO NETTO</span
+        <span>{{ receipt.electricitySatoshis > 0 ? 'GUADAGNO NETTO' : 'RICOMPENSA' }}</span
         ><strong>{{
           formatEuros(toEuros(receipt.rewardSatoshis - receipt.electricitySatoshis))
         }}</strong>

@@ -74,9 +74,6 @@ export class SceneControlsComponent {
   }
 
   selectPlot(id: number): void {
-    if (this.game.running()) {
-      return;
-    }
     this.selectedToolStationIdChange.emit(null);
     this.game.viewPlot(id);
   }

@@ -27,7 +27,7 @@
     <div class="meter-row">
       <span>Energia totale</span><strong>{{ readings().energyKwh.toFixed(3) }} kWh</strong>
     </div>
-    <p class="power-note">Addebito a fine blocco. Consumo conteggiato durante il mining.</p>
+    <p class="power-note">Bolletta ogni 24 ore di gioco. Consumo conteggiato durante il mining.</p>
     @if (gpu(); as selectedGpu) {
       @if (telemetry(); as stats) {
         <section aria-label="Specifiche GPU selezionata">
@@ -36,14 +36,13 @@
             <span [class.stopped]="selectedGpu.stopped">{{
               selectedGpu.stopped
                 ? 'FERMA'
-                : game.activeGpuIds().includes(selectedGpu.id)
-                  ? 'MINING'
-                  : 'PRONTA'
+                : !game.running()
+                  ? 'SPENTA'
+                  : game.activeGpuIds().includes(selectedGpu.id)
+                    ? 'MINING'
+                    : 'PRONTA'
             }}</span>
           </div>
-          <p class="gpu-context">
-            Selezionata · Rig {{ selectedGpu.rigId }} · Plot {{ selectedGpu.plotId }}
-          </p>
           <p class="gpu-model">{{ stats.model }}</p>
           <div class="meter-row">
             <span>Frequenza attuale</span><strong>{{ stats.frequencyGhz.toFixed(2) }} GHz</strong>
