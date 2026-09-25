@@ -3,6 +3,7 @@ import type { GpuFanKit } from './gpu-maintenance';
 import {
   gpuMiningPowerWatts,
   gpuIdlePowerWatts,
+  gpuMaxFanSpeedRpm,
   rigAuxiliaryPowerWattsPerGpu,
   gpuTemperature,
   gpuTemperatureWhilePoweredDown,
@@ -59,11 +60,16 @@ export function getGpuTelemetry(
         (limits.temperatureCelsius - idle.temperatureCelsius),
     ),
   );
-  const automaticFanSpeed = gpu
-    ? Math.round(interpolate(idle.fanSpeedPercent, 100, thermalLoad))
-    : Math.round(interpolate(idle.fanSpeedPercent, mining.fanSpeedPercent, load));
-  const fanSpeed = powered ? (gpu?.targetFanSpeedPercent ?? automaticFanSpeed) : 0;
-  const maxFanSpeedRpm = gpu ? GAME_BALANCE.gpu.fanKits[gpu.fanKit].maxRpm : limits.fanSpeedRpm;
+  const fanKit = gpu?.fanKit ?? 'stock';
+  const maxFanSpeedRpm = gpuMaxFanSpeedRpm(fanKit);
+  const automaticFanSpeed =
+    maxFanSpeedRpm === 0
+      ? 0
+      : gpu
+        ? Math.round(interpolate(idle.fanSpeedPercent, 100, thermalLoad))
+        : Math.round(interpolate(idle.fanSpeedPercent, mining.fanSpeedPercent, load));
+  const fanSpeed =
+    powered && maxFanSpeedRpm > 0 ? (gpu?.targetFanSpeedPercent ?? automaticFanSpeed) : 0;
 
   return {
     model,
@@ -89,7 +95,7 @@ export function getGpuTelemetry(
     targetFrequencyGhz,
     wearPercent: gpu?.wearPercent ?? 0,
     dustPercent: gpu?.dustPercent ?? 0,
-    fanKit: gpu?.fanKit ?? 'stock',
+    fanKit,
     maxFanSpeedRpm,
     maxTemperatureCelsius: limits.temperatureCelsius,
   };

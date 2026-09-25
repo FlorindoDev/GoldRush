@@ -2,8 +2,8 @@ export const WORLD_CONFIG = {
   plotCount: 6,
   rigsPerPlot: 6,
   gpusPerRig: 4,
-  startingRigCount: 1,
-  startingGpuCount: 2,
+  startingRigCount: 7,
+  startingGpuCount: 28,
   // Progresso GPU al completamento della farm.
   progressPerGpuAtFullFarm: 80,
   blockRewardSatoshis: 1_000_000,

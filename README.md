@@ -111,19 +111,18 @@ formato e punti di montaggio sono documentati nel README della libreria.
 
 ```js
 // Completa il blocco attivo, anche se già parzialmente estratto.
-let gpu = plots[0].rig(0).gpu(0);
 while (progress() < 100) {
-  gpu.mine();
+  mine();
   print('Progresso: ' + progress() + '%');
 }
 ```
 
-- `gpu.mine()`: lavora solo con la GPU specificata e aggiunge il progresso configurato al blocco attivo. Il premio viene assegnato solo al raggiungimento del 100%.
+- `mine()`: funzione globale; avvia insieme tutte le GPU sbloccate e operative montate nei rig. Schede sul banco o ferme vengono saltate. Il premio viene assegnato solo al raggiungimento del 100%.
 - `progress()`: progresso attuale, 0–100.
 - `print(valore)`: scrive in console.
-- `wait(ms)`: pausa interrompibile entro il limite configurato. La velocità 2× riguarda solo `gpu.mine()`.
+- `wait(ms)`: pausa interrompibile entro il limite configurato. La velocità 2× accelera le azioni `mine()`.
 - `repeat(n) { ... }`: intero non negativo entro il limite configurato.
-- `parallel { gpuUno.mine(); gpuDue.mine(); }`: lancia insieme i comandi semplici nel blocco e aspetta che siano tutti terminati. Dichiara prima le variabili; usa una sola volta ogni GPU.
+- `parallel`: lancia insieme comandi semplici su GPU diverse. `mine()` coordina già tutte le GPU sbloccate.
 - `for (let i = 0; i < 5; i++) { ... }`, `while (...) { ... }`, `if (...) { ... } else { ... }`.
 - Variabili `let`, assegnazione, `++`, `--`, numeri, stringhe, booleani, vettori, attributi, metodi, `+ - * / %`, confronti `== != < <= > >=`, `&& || !` e parentesi.
 - Commenti `//`; punto e virgola obbligatorio per istruzioni semplici. Variabili in un unico ambito per esecuzione; vengono azzerate al run successivo. Le dichiarazioni dentro i cicli possono riassegnarle.
@@ -198,7 +197,7 @@ L'usura parte da zero e cresce di base di 0,005 punti percentuali per ora simula
 ```js
 let gpu = plots[0].rig(0).gpu(0);
 gpu.setFrequencyGhz(gpu.getMaxFrequencyGhz());
-gpu.mine();
+mine();
 print(gpu.getWearPercent());
 gpu.stop();
 print(gpu.isStopped()); // true
@@ -206,16 +205,16 @@ print(gpu.getStopReason());
 gpu.setFrequencyGhz(1.8);
 wait(5000);
 gpu.clearStop();
-gpu.mine();
+mine();
 ```
 
-MineScript è sequenziale: `mine()` attende il completamento prima di eseguire la riga dopo. Velocità e modalità automatica delle ventole, come stop e riabilitazione, si impostano solo con MineScript. Il pannello **Corrente e GPU** mostra consumi della farm e specifiche della GPU selezionata nel rig: modello, rig e plot, frequenze, potenza, temperatura, ventole, usura e limiti del modello; la velocità letta lì è solo telemetria. Senza selezione invita a scegliere una scheda; non passa automaticamente alla GPU che sta minando. Il pulsante Stop dell'editor annulla soltanto il programma: l'azione interrotta non assegna progresso o premio, ma conserva energia e usura della frazione lavorata.
+MineScript è sequenziale: `mine()` attende il completamento di tutte le GPU avviate prima di eseguire la riga dopo. Velocità e modalità automatica delle ventole, come stop e riabilitazione, si impostano solo con MineScript. Il pannello **Corrente e GPU** mostra consumi della farm e specifiche della GPU selezionata nel rig: modello, rig e plot, frequenze, potenza, temperatura, ventole, usura e limiti del modello; la velocità letta lì è solo telemetria. Senza selezione invita a scegliere una scheda; non passa automaticamente alla GPU che sta minando. Il pulsante Stop dell'editor annulla soltanto il programma: le azioni interrotte non assegnano progresso o premio, ma conservano energia e usura della frazione lavorata.
 
 ### Corrente e portafoglio
 
 Il cambio iniziale è **1 BTC = 60.000 €**, statico e configurabile. Il portafoglio mostra il saldo netto a otto decimali BTC e in euro. La tariffa iniziale è **0,30 €/kWh**. Un `mine()` completo rappresenta **un'ora simulata**, indipendentemente dalla velocità 1×/2×; un'interruzione ne conta la frazione trascorsa. Il tempo economico avanza durante le azioni di mining: pause, attese e inattività non aggiungono consumi.
 
-Il consumo include la GPU attiva e lo standby delle altre GPU sbloccate e operative. Le schede fermate non consumano. L'oggetto globale `electricity` espone questi getter senza argomenti (risultato numerico) e gli attributi equivalenti di sola lettura:
+Il consumo include le GPU attive e lo standby delle altre GPU sbloccate e operative. Le schede ferme non consumano. L'oggetto globale `electricity` espone questi getter senza argomenti (risultato numerico) e gli attributi equivalenti di sola lettura:
 
 | Metodo                            | Attributo        | Unità e significato                                                   |
 | --------------------------------- | ---------------- | --------------------------------------------------------------------- |
@@ -225,14 +224,14 @@ Il consumo include la GPU attiva e lo standby delle altre GPU sbloccate e operat
 | `electricity.getTotalCostEur()`   | `totalCostEur`   | Euro pagati più costo pendente                                        |
 | `electricity.getPricePerKwh()`    | `pricePerKwh`    | Tariffa fissa in €/kWh                                                |
 
-`kWh = W / 1000 × ore simulate`. Alla frequenza di base, una sola GPU consuma 0,205 kWh per azione (0,0615 €). I consumi restano pendenti anche tra script diversi o dopo un errore. A blocco completato il premio lordo viene accreditato e la bolletta viene convertita in BTC al cambio fisso, arrotondata una sola volta al satoshi più vicino e sottratta al saldo. Il saldo può diventare negativo se la bolletta supera saldo e premio: il debito resta visibile. Un blocco viene pagato una sola volta e azzera solo il consumo pendente.
+`kWh = W / 1000 × ore simulate`. Una GPU alla frequenza base consuma 0,205 kWh per azione (0,0615 €); `mine()` somma i consumi delle schede attive. I consumi restano pendenti anche tra script diversi o dopo un errore. A blocco completato il premio lordo viene accreditato e la bolletta viene convertita in BTC al cambio fisso, arrotondata una sola volta al satoshi più vicino e sottratta al saldo. Il saldo può diventare negativo se la bolletta supera saldo e premio: il debito resta visibile. Un blocco viene pagato una sola volta e azzera solo il consumo pendente.
 
 Il riepilogo anima prima il premio, poi l'addebito della corrente e il netto. L'animazione osserva il saldo già aggiornato: annullarla o iniziare un nuovo blocco non modifica i conti. Rispetta `prefers-reduced-motion`. Riferimento per il feedback visivo di acquisti e ricompense: [Game UI design](https://www.gamedeveloper.com/design/game-ui-design).
 
 ```js
 print(electricity.getPricePerKwh());
 let gpu = plots[0].rig(0).gpu(0);
-gpu.mine();
+mine();
 print(electricity.getPowerWatts());
 print(electricity.getEnergyKwh());
 print(electricity.getPendingCostEur());

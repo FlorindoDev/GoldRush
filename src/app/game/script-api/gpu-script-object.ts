@@ -9,7 +9,6 @@ export interface GpuScriptControls {
   getGpu(id: number): MiningGpu;
   getTelemetry(id: number): GpuTelemetry;
   isSelected(id: number): boolean;
-  mineGpu(id: number, parallelGroupId?: number): Promise<void>;
   setFrequencyGhz(id: number, frequencyGhz: number): void;
   setFanSpeedPercent(id: number, fanSpeedPercent: number | null): void;
   stopGpu(id: number): void;
@@ -74,7 +73,7 @@ export class GpuScriptObject implements ScriptObject {
     name: string,
     args: Value[],
     line: number,
-    parallelGroupId?: number,
+    _parallelGroupId?: number,
   ): Promise<Value> {
     if (Object.hasOwn(TELEMETRY_METHODS, name)) {
       requireArguments(name, args, 0, line);
@@ -91,7 +90,7 @@ export class GpuScriptObject implements ScriptObject {
       return this.getAttribute(stateAttribute[name as keyof typeof stateAttribute], line);
     }
     if (
-      !['mine', 'setFrequencyGhz', 'setFanSpeed', 'setFanSpeedAuto', 'stop', 'clearStop'].includes(
+      !['setFrequencyGhz', 'setFanSpeed', 'setFanSpeedAuto', 'stop', 'clearStop'].includes(
         name,
       )
     ) {
@@ -103,9 +102,6 @@ export class GpuScriptObject implements ScriptObject {
     }
     try {
       switch (name) {
-        case 'mine':
-          await this.controls.mineGpu(this.id, parallelGroupId);
-          break;
         case 'stop':
           this.controls.stopGpu(this.id);
           break;

@@ -33,7 +33,7 @@ describe('Mining controls through MineScript', () => {
       gpu.setFrequencyGhz(2);
       print(gpu.getTargetFrequencyGhz());
       gpu.stop(); print(gpu.isStopped()); print(gpu.isWorking());
-      gpu.clearStop(); gpu.mine();
+      gpu.clearStop(); mine();
       print(gpu.getWearPercent() > 0);
       print(electricity.getEnergyKwh() > 0);
       print(electricity.getPendingCostEur() > 0);
@@ -53,40 +53,43 @@ describe('Mining controls through MineScript', () => {
     ]);
   });
 
-  it('GPU stop interrupts a pending action and remains set on the next script run', async () => {
-    const game = createGame('let gpu = plots[0].rigs[0].gpus[0]; gpu.mine(); print("unexpected");');
+  it('GPU stop skips that card while global mining continues on the farm', async () => {
+    const game = createGame('let gpu = plots[0].rigs[0].gpus[0]; mine(); print("finished");');
     const run = game.run();
     await vi.advanceTimersByTimeAsync(GAME_BALANCE.mining.actionDurationMs / 2);
     expect(game.activeGpuId()).toBe(1);
     game.stopGpu(1);
+    await vi.runAllTimersAsync();
     await run;
-    expect(game.world().blocks[0].progress).toBe(0);
-    expect(game.world().electricity.pendingKwh).toBeCloseTo(0.1185);
+    expect(game.world().blocks[0].progress).toBeGreaterThan(0);
+    expect(game.world().electricity.pendingKwh).toBeGreaterThan(0);
     expect(getGpu(game.world(), 1).stopped).toBe(true);
     expect(game.mining()).toBe(false);
-    expect(output(game)).not.toContain('unexpected');
-    await game.run();
-    expect(game.world().electricity.pendingKwh).toBeCloseTo(0.1185);
+    expect(output(game)).toContain('finished');
+    const nextRun = game.run();
+    await vi.runAllTimersAsync();
+    await nextRun;
+    expect(game.world().electricity.pendingKwh).toBeGreaterThan(0);
     game.updateCode('plots[0].rigs[0].gpus[0].clearStop();');
     await game.run();
     expect(getGpu(game.world(), 1).stopped).toBe(false);
-    expect(game.world().blocks[0].progress).toBe(0);
+    expect(game.world().blocks[0].progress).toBeGreaterThan(0);
   });
 
   it('editor stop preserves partial costs but does not latch a GPU stop', async () => {
-    const game = createGame('plots[0].rigs[0].gpus[0].mine();');
+    const game = createGame('mine();');
     const run = game.run();
     await vi.advanceTimersByTimeAsync(425);
     game.stop();
     await run;
     expect(game.world().satoshis).toBe(0);
     expect(getGpu(game.world(), 1).stopped).toBe(false);
-    expect(game.world().electricity.pendingKwh).toBeCloseTo(0.1185);
+    expect(game.world().electricity.pendingKwh).toBeGreaterThan(0);
   });
 
   it('keeps completed action energy identical at 1x and 2x speed', async () => {
-    const normal = createGame('plots[0].rigs[0].gpus[0].mine();');
-    const fast = createGame('plots[0].rigs[0].gpus[0].mine();');
+    const normal = createGame('mine();');
+    const fast = createGame('mine();');
     fast.speed.set(2);
     const runs = Promise.all([normal.run(), fast.run()]);
     await vi.runAllTimersAsync();
@@ -113,7 +116,7 @@ describe('Mining controls through MineScript', () => {
   });
 
   it('pays the block reward without billing electricity until day end', async () => {
-    const game = createGame('plots[0].rigs[0].gpus[0].mine();');
+    const game = createGame('mine();');
     game.world.update((world) => ({ ...world, blocks: [{ id: 1, progress: 99.9 }] }));
     const run = game.run();
     await vi.runAllTimersAsync();

@@ -5,6 +5,7 @@ import { GAME_BALANCE } from '../config/game-balance';
 import { GPU_COUNT, getGpu, isGpuUnlocked, type MiningWorld } from '../game/mining-world';
 import {
   gpuFanSpeedRatio,
+  gpuMaxFanSpeedRpm,
   gpuTemperature,
   isGpuOperational,
   type GpuOperatingState,
@@ -122,11 +123,14 @@ export class GpuVisuals {
       ) {
         continue;
       }
-      const fanSpeed = gpu.state.targetFanSpeedPercent ?? GAME_BALANCE.gpu.mining.fanSpeedPercent;
-      const fanKit = GAME_BALANCE.gpu.fanKits[gpu.state.fanKit];
-      const maxRpm = GAME_BALANCE.gpu.limits.fanSpeedRpm;
-      const fanKitSpeedRatio = maxRpm > 0 ? fanKit.maxRpm / maxRpm : 1;
-      const fanRatio = gpuFanSpeedRatio(fanSpeed) * fanKitSpeedRatio;
+      const fanSpeed =
+        telemetry?.fanSpeed ??
+        gpu.state.targetFanSpeedPercent ??
+        GAME_BALANCE.gpu.mining.fanSpeedPercent;
+      const modelMaxRpm = GAME_BALANCE.gpu.limits.fanSpeedRpm;
+      const kitMaxRpm = gpuMaxFanSpeedRpm(gpu.state.fanKit);
+      const fanKitSpeedRatio = modelMaxRpm > 0 ? kitMaxRpm / modelMaxRpm : kitMaxRpm > 0 ? 1 : 0;
+      const fanRatio = gpuFanSpeedRatio(fanSpeed, gpu.state.fanKit) * fanKitSpeedRatio;
       gpu.mixer?.update(delta * ANIMATION.gpuMixerTimeScale * fanRatio);
       for (const fan of gpu.fans) {
         const axis: unknown = fan.userData['animationAxis'];

@@ -15,6 +15,7 @@ import {
   PLOT_COUNT,
   RIG_COUNT,
   RIGS_PER_PLOT,
+  STARTING_GPU_COUNT,
 } from '../game/mining-world';
 import { ConsoleComponent } from './panels/console/console.component';
 import { EditorComponent } from './panels/editor/editor.component';
@@ -96,7 +97,9 @@ export class HudComponent {
   readonly rigsPerPlot = RIGS_PER_PLOT;
   readonly gpusPerRig = GPUS_PER_RIG;
   readonly gpusPerPlot = RIGS_PER_PLOT * GPUS_PER_RIG;
-  readonly minesPerBlock = Math.ceil(100 / MINE_PROGRESS_PER_GPU);
+  readonly minesPerBlock = Math.ceil(
+    100 / (MINE_PROGRESS_PER_GPU * Math.max(1, STARTING_GPU_COUNT)),
+  );
   readonly idleGpu = getGpuTelemetry(0);
   readonly miningGpu = getGpuTelemetry(1);
   readonly examples = EXAMPLES;

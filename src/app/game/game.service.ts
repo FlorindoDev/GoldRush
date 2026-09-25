@@ -4,7 +4,7 @@ import { delay, execute } from '../language/interpreter';
 import { ScriptError } from '../language/syntax';
 import { createWorldBindings } from './script-api/world-bindings';
 import { satoshisToEuros } from './electricity';
-import { applyGpuWork, gpuTemperatureWhilePoweredDown } from './gpu-operation';
+import { applyGpuWork, gpuTemperatureWhilePoweredDown, isGpuOperational } from './gpu-operation';
 import { getGpuTelemetry } from './gpu-telemetry';
 import type { GpuMaintenanceAction } from './gpu-maintenance';
 import type { ElectricityReadings } from './script-api/electricity-script-object';
@@ -70,6 +70,7 @@ interface MiningAction {
 
 @Injectable({ providedIn: 'root' })
 export class GameService {
+  private nextGlobalMineGroupId = 0;
   readonly world = signal(createWorld());
   readonly gameElapsedMinutes = signal(0);
   readonly started = signal(false);
@@ -248,8 +249,6 @@ export class GameService {
               getGpu: (id) => getGpu(this.world(), id),
               getTelemetry: (id) => this.gpuTelemetry(id),
               isSelected: (id) => this.selectedGpuId() === id,
-              mineGpu: (id, parallelGroupId) =>
-                this.mineBlock(id, controller.signal, parallelGroupId),
               setFrequencyGhz: (id, frequency) => this.setGpuFrequencyGhz(id, frequency),
               setFanSpeedPercent: (id, percentage) => this.setGpuFanSpeedPercent(id, percentage),
               stopGpu: (id) => this.stopGpu(id),
@@ -258,6 +257,8 @@ export class GameService {
             () => this.readElectricity(),
           ),
           print: (message) => this.log(message, 'output'),
+          mine: (parallelGroupId) =>
+            this.mineUnlockedGpus(controller.signal, parallelGroupId),
           progress: () => this.selected().progress,
         },
         controller.signal,
@@ -478,6 +479,60 @@ export class GameService {
 
   clearLogs(): void {
     this.logs.set([]);
+  }
+
+  private async mineUnlockedGpus(
+    signal: AbortSignal,
+    parallelGroupId?: number,
+  ): Promise<void> {
+    const world = this.world();
+    const unlockedGpuIds = Array.from({ length: GPU_COUNT }, (_, index) => index + 1).filter(
+      (gpuId) => isGpuUnlocked(world, gpuId),
+    );
+    const benchGpuIds = unlockedGpuIds.filter((gpuId) => getGpu(world, gpuId).onWorkbench);
+    for (const gpuId of benchGpuIds) {
+      this.log(`GPU ${gpuId} al banco: mining ignorato. Rimontala nel rig.`, 'warning');
+    }
+    const mountedGpuIds = unlockedGpuIds.filter((gpuId) => !getGpu(world, gpuId).onWorkbench);
+    const gpuIds = mountedGpuIds.filter((gpuId) => {
+      const gpu = getGpu(world, gpuId);
+      if (gpu.stopped) {
+        this.log(`GPU ${gpuId} ferma: mining ignorato. Usa gpu.clearStop() per riavviarla.`, 'warning');
+        return false;
+      }
+      if (!isGpuOperational(gpu)) {
+        this.log(`GPU ${gpuId} non operativa: mining ignorato.`, 'warning');
+        return false;
+      }
+      return true;
+    });
+    if (gpuIds.length === 0) {
+      throw new Error('Nessuna GPU operativa disponibile per minare.');
+    }
+
+    const activeGpuId = gpuIds.find((gpuId) => this.activeGpuIds().includes(gpuId));
+    if (activeGpuId !== undefined) {
+      throw new Error(`GPU ${activeGpuId} sta già minando.`);
+    }
+
+    const groupId = parallelGroupId ?? --this.nextGlobalMineGroupId;
+    const results = await Promise.allSettled(
+      gpuIds.map(async (gpuId) => {
+        try {
+          await this.mineBlock(gpuId, signal, groupId);
+        } catch (error) {
+          if (!signal.aborted && error instanceof Error && error.name === 'AbortError') {
+            this.log(`GPU ${gpuId} fermata: il mining continua sulle altre schede.`, 'warning');
+            return;
+          }
+          throw error;
+        }
+      }),
+    );
+    const failure = results.find((result) => result.status === 'rejected');
+    if (failure?.status === 'rejected') {
+      throw failure.reason;
+    }
   }
 
   private async mineBlock(

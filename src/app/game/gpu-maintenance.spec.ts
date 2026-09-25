@@ -103,7 +103,7 @@ describe('GPU maintenance', () => {
     expect(() => serviceGpu(initial, 3, { kind: 'clean' })).toThrow('bloccato');
   });
 
-  it('requires an idle workbench, preserves changes when switching GPUs and rejects mining on the bench', async () => {
+  it('requires an idle workbench, preserves GPU changes and skips cards left on the bench', async () => {
     vi.useFakeTimers();
     const game = new GameService();
     game.start();
@@ -116,10 +116,10 @@ describe('GPU maintenance', () => {
     expect(getGpu(game.world(), 1).fanKit).toBe('performance');
     expect(getGpu(game.world(), 1).targetFanSpeedPercent).toBe(80);
     expect(getGpu(game.world(), 2).fanKit).toBe('stock');
-    game.updateCode('plots[0].rigs[0].gpus[1].mine();');
+    game.updateCode('mine();');
     await game.run();
     expect(
-      game.logs().some((log) => log.kind === 'error' && log.message.includes('sul banco')),
+      game.logs().some((log) => log.kind === 'warning' && log.message.includes('al banco')),
     ).toBe(true);
     expect(getGpu(game.world(), 2).dustPercent).toBe(0);
     game.returnToRig();

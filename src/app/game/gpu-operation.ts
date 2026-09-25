@@ -84,8 +84,18 @@ export function gpuIdlePowerWatts(): number {
   return config.idle.powerWatts + rigAuxiliaryPowerWattsPerGpu();
 }
 
-/** Profilo passivo ha ventole nominali a 0%; usa la scala percentuale assoluta. */
-export function gpuFanSpeedRatio(fanSpeedPercent: number): number {
+export function gpuMaxFanSpeedRpm(fanKit: GpuFanKit = 'stock'): number {
+  const kitMaxRpm = config.fanKits[fanKit].maxRpm;
+  const configuredMaxRpm =
+    fanKit === 'stock' ? Math.min(config.limits.fanSpeedRpm, kitMaxRpm) : kitMaxRpm;
+  return Math.max(0, configuredMaxRpm);
+}
+
+/** Se profilo nominale è 0%, usa 100% come riferimento ed evita divisione per zero. */
+export function gpuFanSpeedRatio(fanSpeedPercent: number, fanKit: GpuFanKit = 'stock'): number {
+  if (gpuMaxFanSpeedRpm(fanKit) === 0) {
+    return 0;
+  }
   const referenceSpeedPercent = config.mining.fanSpeedPercent || 100;
   return fanSpeedPercent / referenceSpeedPercent;
 }
@@ -153,10 +163,13 @@ export function applyGpuWork(
   );
   const dustLoad = (gpu.dustPercent + dustPercent) / 200;
   const initialTemperature = gpuTemperature(gpu, startedAt);
-  const fanSpeedPercent = gpu.targetFanSpeedPercent ?? config.mining.fanSpeedPercent;
+  const fanSpeedPercent =
+    gpuMaxFanSpeedRpm(gpu.fanKit) > 0
+      ? (gpu.targetFanSpeedPercent ?? config.mining.fanSpeedPercent)
+      : 0;
   const fanCooling =
     (config.mining.fanSpeedPercent - fanSpeedPercent) * config.fanCoolingCelsiusPerPercent;
-  const fanSpeedRatio = gpuFanSpeedRatio(fanSpeedPercent);
+  const fanSpeedRatio = gpuFanSpeedRatio(fanSpeedPercent, gpu.fanKit);
   const rigDustSystem = GAME_BALANCE.rig.dustSystem;
   const rigCoolingMethod = GAME_BALANCE.rig.coolingMethod;
   const equilibrium =

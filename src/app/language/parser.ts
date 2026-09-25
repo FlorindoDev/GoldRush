@@ -91,7 +91,7 @@ class Parser {
         const body = this.parseBlock();
         if (body.some((statement) => statement.kind !== 'expression')) {
           throw new ScriptError(
-            'parallel accetta solo comandi semplici, come gpu.mine();. Dichiara le variabili prima del blocco.',
+            'parallel accetta solo comandi semplici, come mine();. Dichiara le variabili prima del blocco.',
             line,
           );
         }

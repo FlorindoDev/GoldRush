@@ -95,7 +95,7 @@ test('workbench services one GPU, enforces cooldown and retains upgrades in the 
     const { game } = debug.ng.getComponent(document.querySelector('app-scene')!);
     game.setLineEffectsEnabled(false);
     game.speed.set(10);
-    game.updateCode('plots[0].rigs[0].gpus[0].mine();');
+    game.updateCode('mine();');
     await game.run();
   });
   expect((await state(page)).first.hoursSinceThermalService).toBe(1);

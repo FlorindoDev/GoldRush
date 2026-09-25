@@ -228,8 +228,8 @@
             <li>
               <strong>Segui i risultati</strong>
               <span
-                >La console mostra messaggi ed errori. Con una GPU servono
-                {{ minesPerBlock }} chiamate a <code>gpu.mine()</code>.</span
+                >La console mostra messaggi ed errori. Con tutte le GPU sbloccate e operative
+                servono circa {{ minesPerBlock }} chiamate a <code>mine()</code>.</span
               >
             </li>
           </ol>
@@ -282,7 +282,7 @@
           <h2 id="guide-title">Funzioni di MineScript</h2>
           <p class="dialog-intro">
             Usa le funzioni per leggere il progresso, scrivere nella console e creare raccolte. Per
-            minare, chiama <code>mine()</code> sulla GPU che vuoi usare.
+            minare, chiama <code>mine()</code>: lavorano insieme tutte le GPU sbloccate.
           </p>
           <div
             class="guide-callout"
@@ -338,7 +338,7 @@
             <p>
               Ricevi il premio in BTC simulati, meno la bolletta accumulata, una sola volta per
               blocco. La chiamata successiva a
-              <code>gpu.mine()</code>, oppure un nuovo avvio del programma, prepara il blocco
+              <code>mine()</code>, oppure un nuovo avvio del programma, prepara il blocco
               seguente. Rig e GPU rimangono gli stessi.
             </p>
           </aside>
@@ -546,11 +546,10 @@
           </p>
           <h3>Esempio rapido</h3>
           <pre class="guide-code">
-let gpu = plots[0].rigs[0].gpus[0];
-gpu.mine();
+mine();
 print("Progresso: " + progress());</pre>
           <p class="guide-note">
-            <code>gpu.mine()</code> aggiorna la scena. <code>wait()</code> aggiunge una pausa
+            <code>mine()</code> avvia tutte le GPU sbloccate. <code>wait()</code> aggiunge una pausa
             facoltativa.
           </p>
         </section>
@@ -609,10 +608,10 @@ print("Progresso: " + progress());</pre>
               usarli per minare. Lo sblocco di altri rig e GPU non è ancora disponibile.
             </p>
           </aside>
-          <h3>Minare con questa GPU</h3>
+          <h3>Minare nella farm</h3>
           <p>
-            <code>mine()</code> è un metodo della GPU. <code>gpu.mine()</code> fa lavorare solo la
-            scheda indicata. Ogni chiamata aggiunge {{ balance.world.progressPerGpuAtFullFarm }}/{{
+            <code>mine()</code> è una funzione globale: avvia tutte le GPU sbloccate e operative.
+            Ogni scheda aggiunge {{ balance.world.progressPerGpuAtFullFarm }}/{{
               gpuCapacity
             }}% al blocco attivo alla frequenza di base ({{ balance.gpu.mining.frequencyGhz }} GHz)
             e attende che il lavoro finisca prima di proseguire. Il progresso cresce in proporzione
@@ -623,13 +622,14 @@ print("Progresso: " + progress());</pre>
             {{ balance.mining.blockDifficulty.maxMultiplier }}); quindi i blocchi successivi
             richiedono più lavoro, fino al limite configurato.
           </p>
-          <pre class="guide-code">gpu.mine();</pre>
+          <pre class="guide-code">mine();</pre>
           <p>
-            Sul primo blocco, alla frequenza di base servono {{ minesPerBlock }} chiamate a
-            <code>gpu.mine()</code> per completare un blocco. Ogni chiamata dura
+            Sul primo blocco, alla frequenza di base servono circa {{ minesPerBlock }} chiamate a
+            <code>mine()</code> per completare un blocco. Ogni chiamata dura
             {{ balance.mining.actionDurationMs }} ms, oppure
-            {{ balance.mining.actionDurationMs / 2 }} ms a velocità 2×. La GPU e il rig devono
-            essere sbloccati. Usa <code>progress()</code> per sapere quando fermare il ciclo.
+            {{ balance.mining.actionDurationMs / 2 }} ms a velocità 2×. Contano GPU sbloccate,
+            operative e montate nei rig; le schede in stop vengono saltate. Usa
+            <code>progress()</code> per fermare il ciclo.
           </p>
           <h3>Identità e stato</h3>
           <div class="guide-card-grid">
@@ -987,7 +987,7 @@ print(gpu.getFanSpeed() + "%");</pre>
             </p>
           </aside>
           <p>
-            Energia = watt / 1000 × ore simulate. Paghi la GPU attiva e lo standby delle altre
+            Energia = watt / 1000 × ore simulate. Paghi le GPU attive e lo standby delle altre
             schede sbloccate e accese. Le GPU in stop consumano zero. Abbassare la frequenza riduce
             la potenza e la resa; alzarla aumenta la potenza più rapidamente della resa.
           </p>
@@ -1049,7 +1049,7 @@ print(gpu.getFanSpeed() + "%");</pre>
 let gpu = plots[0].rigs[0].gpus[0];
 print(electricity.getPricePerKwh());
 gpu.setFrequencyGhz(gpu.getMaxFrequencyGhz());
-gpu.mine();
+mine();
 print(electricity.getEnergyKwh());
 print(electricity.getPendingCostEur());
 gpu.stop();</pre>
@@ -1147,7 +1147,7 @@ gpu.stop();</pre>
                 è già falsa all'inizio, il corpo non viene eseguito.
               </p>
               <p>
-                Il corpo deve far avanzare il lavoro: qui serve <code>gpu.mine()</code>. Leggere il
+                Il corpo deve far avanzare il lavoro: qui serve <code>mine()</code>. Leggere il
                 progresso o aspettare non lo fa aumentare.
               </p>
             </article>
@@ -1177,10 +1177,10 @@ let gpuUno = plots[0].rigs[0].gpus[0];
 let gpuDue = plots[0].rigs[0].gpus[1];
 
 parallel &lbrace;
-  gpuUno.mine();
-  gpuDue.mine();
+  gpuUno.setFrequencyGhz(gpuUno.getMaxFrequencyGhz());
+  gpuDue.setFrequencyGhz(gpuDue.getMaxFrequencyGhz());
 &rbrace;</pre>
-              <p>Usa una volta sola ogni GPU nel blocco.</p>
+              <p>Usa una volta sola ogni GPU nel blocco. <code>mine()</code> avvia già tutta la farm.</p>
             </article>
             <article>
               <h3>Scegliere cosa eseguire: <code>if</code> e <code>else</code></h3>
@@ -1238,7 +1238,7 @@ parallel &lbrace;
               <li>
                 Ogni esecuzione si ferma oltre 10.000 operazioni. Anche condizioni e calcoli
                 contano: non è il numero di righe né quello delle chiamate a
-                <code>gpu.mine()</code>.
+                <code>mine()</code>.
               </li>
               <li>
                 La console conserva gli ultimi 100 messaggi, ciascuno lungo al massimo 2000

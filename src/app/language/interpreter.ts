@@ -13,6 +13,7 @@ const MAX_OUTPUT_LENGTH = GAME_BALANCE.scripting.maxOutputLength;
 const BUILTIN_ARGUMENT_COUNTS: Record<string, number> = {
   print: 1,
   wait: 1,
+  mine: 0,
   progress: 0,
   vector: 0,
   stack: 0,
@@ -23,6 +24,7 @@ let nextParallelGroupId = 0;
 export interface ScriptHost {
   globals?: Readonly<Record<string, Value>>;
   print(message: string): void;
+  mine?(parallelGroupId?: number): Promise<void>;
   progress(): number;
 }
 
@@ -341,6 +343,22 @@ class Interpreter {
         return 0;
       case 'progress':
         return this.host.progress();
+      case 'mine':
+        if (!this.host.mine) {
+          throw new ScriptError('mining non disponibile in questo ambiente.', line);
+        }
+        try {
+          await this.host.mine(this.parallelGroupId);
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') {
+            throw error;
+          }
+          throw new ScriptError(
+            error instanceof Error ? error.message : 'operazione di mining non riuscita.',
+            line,
+          );
+        }
+        return null;
       case 'vector':
         return new VectorValue();
       case 'stack':

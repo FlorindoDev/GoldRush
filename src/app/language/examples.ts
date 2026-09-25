@@ -1,60 +1,56 @@
-import { MINE_PROGRESS_PER_GPU } from '../game/mining-world';
+import { MINE_PROGRESS_PER_GPU, STARTING_GPU_COUNT } from '../game/mining-world';
 
-const MINES_PER_BLOCK = Math.ceil(100 / MINE_PROGRESS_PER_GPU);
+const MINES_PER_BLOCK = Math.ceil(
+  100 / (MINE_PROGRESS_PER_GPU * Math.max(1, STARTING_GPU_COUNT)),
+);
 
 export const EXAMPLES = [
   {
     name: 'Il primo blocco',
     code: `// Il tuo primo algoritmo di mining
-// Inizia con una GPU sbloccata. Le altre sono bloccate.
-let gpu = plots[0].rigs[0].gpus[0];
 while (progress() < 100) {
-  gpu.mine();
+  mine();
 }
 
 print("Blocco completato!");`,
   },
   {
     name: 'Ciclo for',
-    code: `// Con una GPU servono ${MINES_PER_BLOCK} chiamate a gpu.mine().
-let gpu = plots[0].rigs[0].gpus[0];
+    code: `// Con tutte le GPU iniziali operative servono circa ${MINES_PER_BLOCK} chiamate a mine().
 for (let i = 0; i < ${MINES_PER_BLOCK}; i++) {
-  gpu.mine();
+  mine();
   print("Passo " + (i + 1) + "/${MINES_PER_BLOCK}");
 }`,
   },
   {
     name: 'Ciclo while',
     code: `// Continua finché il blocco è completo.
-let gpu = plots[0].rigs[0].gpus[0];
 while (progress() < 100) {
-  gpu.mine();
+  mine();
   wait(200);
 }
 
 print("Mining completato!");`,
   },
   {
-    name: 'Mining in parallelo',
-    code: `// Ogni comando parte insieme agli altri.
+    name: 'Controlli GPU in parallelo',
+    code: `// mine() avvia già tutte le GPU sbloccate insieme.
 let gpuUno = plots[0].rigs[0].gpus[0];
 let gpuDue = plots[0].rigs[0].gpus[1];
 
 parallel {
-  gpuUno.mine();
-  gpuDue.mine();
+  gpuUno.setFrequencyGhz(gpuUno.getMaxFrequencyGhz());
+  gpuDue.setFrequencyGhz(gpuDue.getMaxFrequencyGhz());
 }
 
-print("Entrambe le GPU hanno finito.");`,
+print("Frequenze aggiornate insieme.");`,
   },
   {
     name: 'Variabili e condizioni',
     code: `let obiettivo = 100;
-let gpu = plots[0].rigs[0].gpus[0];
-
 if (progress() < obiettivo) {
   while (progress() < obiettivo) {
-    gpu.mine();
+    mine();
   }
 } else {
   print("Avvia di nuovo per passare al blocco successivo.");
@@ -90,9 +86,8 @@ print("Ventole: " + gpu.getFanSpeed() + "% · " + gpu.getCurrentFanSpeedRpm() + 
   },
   {
     name: 'Corrente e costo del mining',
-    code: `let gpu = plots[0].rigs[0].gpus[0];
-print("Tariffa: " + electricity.getPricePerKwh() + " EUR/kWh");
-gpu.mine();
+    code: `print("Tariffa: " + electricity.getPricePerKwh() + " EUR/kWh");
+mine();
 print("Energia: " + electricity.getEnergyKwh() + " kWh");
 print("Bolletta pendente: " + electricity.getPendingCostEur() + " EUR");
 print("Costo totale: " + electricity.getTotalCostEur() + " EUR");`,
@@ -108,35 +103,35 @@ if (gpu.isStopped()) {
 }
 repeat (3) {
   if (gpu.isWorking()) {
-    gpu.mine();
+    mine();
     print("Calore: " + gpu.getTemperatureCelsius() + " C");
     print("Usura: " + gpu.getWearPercent() + "%");
   }
 }
 gpu.stop();
 print(gpu.getStopReason());
-// Per riabilitare: gpu.clearStop(); poi gpu.mine();`,
+// Per riabilitare: gpu.clearStop(); poi mine();`,
   },
 ] as const;
 
 export const LANGUAGE_GUIDE_EXAMPLE = `let gpu = plots[0].rigs[0].gpus[0];
 
 repeat (2) {
-  gpu.mine();
+  mine();
 }
 
 for (let i = 0; i < 2; i++) {
-  gpu.mine();
+  mine();
 }
 
 while (progress() < 100) {
-  gpu.mine();
+  mine();
 }
 
 let gpuDue = plots[0].rigs[0].gpus[1];
 parallel {
-  gpu.mine();
-  gpuDue.mine();
+  gpu.setFrequencyGhz(gpu.getMaxFrequencyGhz());
+  gpuDue.setFrequencyGhz(gpuDue.getMaxFrequencyGhz());
 }
 
 let obiettivo = 100;
