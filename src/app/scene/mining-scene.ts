@@ -19,6 +19,7 @@ import { createSceneEnvironment } from './environment/scene-environment';
 import { addBitcoinStack, fitBitcoinModel } from './models/bitcoin-model';
 import { rigPlotCenter, rigPosition, TOOL_AREA_POSITION } from './environment/scene-layout';
 import { GpuVisuals, type GpuPose } from './gpu-visuals';
+import type { GpuTelemetry } from '../game/gpu-telemetry';
 import { disposeObject } from './resources/dispose-object';
 import { createToolArea } from './tools/tool-area';
 import { createWorkbench, WorkbenchMesh } from './tools/workbench-mesh';
@@ -34,6 +35,7 @@ interface GpuInteractions {
   select(id: number): void;
   inspect(id: number): void;
   hover(id: number | null, x: number, y: number): void;
+  telemetry(id: number): GpuTelemetry;
 }
 
 export class MiningScene {
@@ -87,6 +89,7 @@ export class MiningScene {
       this.scene,
       (id) => this.gpuHomePose(id),
       this.workbench.gpuMount,
+      (id) => this.interactions.telemetry(id),
     );
     this.particles = this.createParticles();
     this.scene.add(this.particles);

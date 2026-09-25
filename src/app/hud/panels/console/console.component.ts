@@ -16,6 +16,7 @@ const LOG_MARKERS: Record<LogEntry['kind'], string> = {
   output: '›',
   success: '✓',
   error: '!',
+  warning: '!',
 };
 
 @Component({

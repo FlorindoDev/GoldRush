@@ -42,6 +42,9 @@ app-scene.world-scene {
   z-index: 20;
   pointer-events: auto;
 }
+.floating-window[hidden] {
+  display: none;
+}
 .window-resize-handle {
   position: absolute;
   right: 4px;
@@ -141,7 +144,7 @@ dialog::backdrop {
 }
 .guide-dialog {
   width: min(1080px, calc(100vw - 32px));
-  height: min(920px, calc(100dvh - 32px));
+  height: min(1200px, calc(100dvh - 32px));
   max-width: calc(100vw - 16px);
   max-height: calc(100dvh - 16px);
   overflow: hidden;

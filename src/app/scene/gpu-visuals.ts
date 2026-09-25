@@ -3,7 +3,9 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { GPU_MODEL_PATH } from '../assets/models/gpu/gpu-model-path';
 import { GAME_BALANCE } from '../config/game-balance';
 import { GPU_COUNT, getGpu, isGpuUnlocked, type MiningWorld } from '../game/mining-world';
-import { isGpuOperational } from '../game/gpu-operation';
+import { gpuTemperature, isGpuOperational, type GpuOperatingState } from '../game/gpu-operation';
+import type { GpuTelemetry } from '../game/gpu-telemetry';
+import { GpuConditionEffects } from './gpu-condition-effects';
 import { easeTransition, transitionProgress } from './animation/scene-transition';
 import { createFallbackGpu } from './models/fallback-gpu';
 import { fitGpuModel, styleGpuModel } from './models/gpu-model';
@@ -27,6 +29,8 @@ interface GpuVisual {
   readonly root: THREE.Group;
   fans: THREE.Object3D[];
   operational: boolean;
+  state: GpuOperatingState;
+  effects?: GpuConditionEffects;
   mixer?: THREE.AnimationMixer;
   transfer?: GpuTransfer;
 }
@@ -42,6 +46,7 @@ export class GpuVisuals {
     private readonly scene: THREE.Scene,
     private readonly homePose: (gpuId: number) => GpuPose,
     private readonly inspectionMount: THREE.Object3D,
+    private readonly readTelemetry?: (id: number) => GpuTelemetry,
   ) {}
 
   /** Snapshot for picking and particle placement; instance lifecycle stays in this class. */
@@ -51,7 +56,8 @@ export class GpuVisuals {
 
   sync(world: MiningWorld, inspectedGpuId: number | null): void {
     for (const [id, gpu] of this.gpus) {
-      gpu.operational = isGpuOperational(getGpu(world, id));
+      gpu.state = getGpu(world, id);
+      gpu.operational = isGpuOperational(gpu.state);
       if (!isGpuUnlocked(world, id)) {
         this.removeGpu(id, gpu);
       }
@@ -67,7 +73,8 @@ export class GpuVisuals {
       root.userData['gpuId'] = id;
       root.position.copy(pose.position);
       root.quaternion.copy(pose.rotation);
-      const gpu: GpuVisual = { root, fans: [], operational: isGpuOperational(getGpu(world, id)) };
+      const state = getGpu(world, id);
+      const gpu: GpuVisual = { root, fans: [], state, operational: isGpuOperational(state) };
       this.attachModel(gpu);
       this.gpus.set(id, gpu);
       this.scene.add(root);
@@ -89,6 +96,16 @@ export class GpuVisuals {
   ): void {
     for (const [id, gpu] of this.gpus) {
       this.updateTransfer(gpu, delta, reducedMotion);
+      const telemetry = this.readTelemetry?.(id);
+      gpu.effects?.update(
+        telemetry ?? {
+          dustPercent: gpu.state.dustPercent,
+          temperatureCelsius: gpuTemperature(gpu.state, Date.now()),
+          fanKit: gpu.state.fanKit,
+        },
+        delta,
+        reducedMotion,
+      );
       if (
         !mining ||
         reducedMotion ||
@@ -97,12 +114,16 @@ export class GpuVisuals {
       ) {
         continue;
       }
-      gpu.mixer?.update(delta * ANIMATION.gpuMixerTimeScale);
+      const fanSpeed = gpu.state.targetFanSpeedPercent ?? GAME_BALANCE.gpu.mining.fanSpeedPercent;
+      const fanRatio =
+        (fanSpeed / GAME_BALANCE.gpu.mining.fanSpeedPercent) *
+        (GAME_BALANCE.gpu.fanKits[gpu.state.fanKit].maxRpm / GAME_BALANCE.gpu.limits.fanSpeedRpm);
+      gpu.mixer?.update(delta * ANIMATION.gpuMixerTimeScale * fanRatio);
       for (const fan of gpu.fans) {
         if (fan.name === 'Spin') {
-          fan.rotation.z -= delta * ANIMATION.gpuFanRadiansPerSecond;
+          fan.rotation.z -= delta * ANIMATION.gpuFanRadiansPerSecond * fanRatio;
         } else {
-          fan.rotation.y -= delta * ANIMATION.gpuFanRadiansPerSecond;
+          fan.rotation.y -= delta * ANIMATION.gpuFanRadiansPerSecond * fanRatio;
         }
       }
     }
@@ -146,12 +167,14 @@ export class GpuVisuals {
   }
 
   private attachModel(gpu: GpuVisual): void {
+    gpu.effects?.dispose();
     gpu.mixer?.stopAllAction();
     gpu.mixer = undefined;
     gpu.root.clear();
     const clone = this.template.clone(true);
     clone.userData['sharedGpu'] = true;
-    gpu.root.add(clone);
+    gpu.effects = new GpuConditionEffects(clone);
+    gpu.root.add(clone, gpu.effects.root);
     gpu.fans = [];
     clone.traverse((object) => {
       if (object.name === 'Spin' || object.name === 'gpu-fan-rotor') {
@@ -168,6 +191,7 @@ export class GpuVisuals {
   private removeGpu(id: number, gpu: GpuVisual): void {
     this.scene.remove(gpu.root);
     gpu.mixer?.stopAllAction();
+    gpu.effects?.dispose();
     disposeObject(gpu.root, true);
     this.gpus.delete(id);
   }

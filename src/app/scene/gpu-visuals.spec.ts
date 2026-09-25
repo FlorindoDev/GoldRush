@@ -77,12 +77,12 @@ describe('GPU visuals', () => {
     visuals.sync(world, null);
     const firstFan = visuals.objects[0].getObjectByName('gpu-fan-rotor')!;
     const secondFan = visuals.objects[1].getObjectByName('gpu-fan-rotor')!;
-    visuals.update(0.1, true, false, 1);
+    visuals.update(0.1, true, false, [1]);
     expect(firstFan.rotation.y).toBeLessThan(0);
     expect(secondFan.rotation.y).toBe(0);
     const rotation = firstFan.rotation.y;
     visuals.sync(stopGpu(world, 1), null);
-    visuals.update(0.1, true, false, 1);
+    visuals.update(0.1, true, false, [1]);
     expect(firstFan.rotation.y).toBe(rotation);
   });
   it('synchronizes available GPUs without replacing surviving instances', () => {

@@ -70,7 +70,7 @@ describe('GPU selection and workbench', () => {
     game.inspectGpu(1);
     game.select(2);
     game.updateCode(
-      'print(plots[0].rig(0).gpu(0).isSelected()); print(plots[0].rig(0).gpu(1).selected);',
+      'print(plots[0].rigs[0].gpus[0].isSelected()); print(plots[0].rigs[0].gpus[1].selected);',
     );
     await game.run();
     expect(

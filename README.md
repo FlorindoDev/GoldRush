@@ -40,6 +40,23 @@ Modifica `src/app/config/game-balance.ts`. I gruppi `world`, `gpu`, `economy`, `
 
 ## Moduli
 
+### Banco di lavoro
+
+Il doppio clic su una GPU apre il pannello officina a destra. Editor e console ricompaiono quando la scheda viene rimontata nel rig.
+
+- **Pulizia:** rimuove lo sporco, che cresce solo durante il lavoro della singola GPU. Più polvere significa riscaldamento più rapido; oltre il 60% aumenta anche l'usura, fino a 3 volte al 100% di sporco.
+- **Pasta e pad:** azzerano l'usura. Dopo ogni intervento servono 24 ore simulate di mining sulla stessa scheda prima di ripeterlo. Le azioni interrotte contano in proporzione; attesa, banco e lavoro delle altre GPU non contano.
+- **Ventole:** kit originale, silenzioso (−4 W, +3 °C) o alta portata (+12 W, −9 °C a regime). La velocità manuale e il ritorno alla modalità automatica si impostano con MineScript; HUD e banco mostrano la telemetria senza comandi di velocità.
+- **Effetti 3D:** deposito di polvere, particelle durante la pulizia, scie e tinta calda sopra 78 °C, dettagli dei kit ventole. Ogni istanza ha effetti indipendenti, conserva gli interventi tornando nel rig e rispetta la preferenza di movimento ridotto.
+
+Una GPU sul banco non può minare. Mentre è sul banco, la temperatura si raffredda gradualmente fino a 0 °C; la durata si configura in `gpu.benchCoolingMs`. Dopo un arresto per calore o usura va riabilitata, una volta raffreddata o riparata. Bilanciamento in `gpu.maintenance` e `gpu.fanKits` di `game-balance.ts`. Stato della partita mantenuto in memoria, come nel resto del prototipo.
+
+Regole pure in `game/gpu-maintenance.ts`, UI in `hud/panels/workbench`, effetti adattati ai limiti del modello in `scene/gpu-condition-effects.ts`. Geometrie e texture restano condivise; ogni GPU possiede e rilascia i propri materiali ed effetti.
+
+Riferimenti visivi: [banco di The Last of Us Part II](https://www.shacknews.com/article/118726/how-to-upgrade-weapons-ndash-the-last-of-us-part-2), [menu del banco di Dead Space](https://vulkk.com/2023/02/04/dead-space-weapons-and-rig-upgrades-and-locations-guide/), [scie di calore su Real Time VFX](https://realtimevfx.com/t/heat-distortion-effect-in-unity-hdrp-urp/16039). Interfaccia e shader realizzati nel progetto, senza importare asset dei giochi.
+
+### Organizzazione
+
 Componenti Angular standalone organizzati per funzionalità; nessun NgModule necessario.
 
 | Directory                      | Responsabilità                                                                           |
@@ -139,6 +156,8 @@ print(
 | Metodo                     | Input e risultato                        | Vincoli ed effetti                                                                                                                                                                                                   |
 | -------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `gpu.setFrequencyGhz(ghz)` | Numero finito in GHz; restituisce `null` | Minimo 0,5 GHz. Un valore inferiore o non numerico genera un errore senza modifiche. Nominale massimo 2 GHz, assoluto 2,6 GHz incluso. Un tentativo oltre 2,6 attiva lo stop, conservando l'ultima frequenza valida. |
+| `gpu.setFanSpeed(percent)` | Numero da 0 a 100; restituisce `null`    | Imposta ventole manualmente. La velocità cambia consumi e raffreddamento. Il valore resta attivo sulla GPU finché viene sostituito o rimesso in automatico.                                                          |
+| `gpu.setFanSpeedAuto()`    | Nessun argomento; `null`                 | Ripristina il controllo automatico delle ventole.                                                                                                                                                                    |
 | `gpu.stop()`               | Nessun argomento; `null`                 | Ferma la GPU; ripetibile. Lo stop sopravvive ai successivi avvii del programma.                                                                                                                                      |
 | `gpu.clearStop()`          | Nessun argomento; `null`                 | Annulla lo stop senza avviare il mining. Fallisce con temperatura >= 90 °C o usura al 100%. Ripetibile su una scheda sana.                                                                                           |
 
@@ -146,7 +165,7 @@ I comandi richiedono scheda e rig sbloccati. Imposta la frequenza tra due azioni
 
 Il progresso per azione cresce linearmente con `GHz / 1,8`. La potenza sotto carico e l'aumento termico di equilibrio crescono con il quadrato di quel rapporto. La temperatura si avvicina all'equilibrio con il lavoro e aumenta le ventole. A 90 °C o usura 100%, scatta uno stop automatico: l'azione che causa il guasto viene conteggiata nei consumi e nell'usura, ma non produce progresso. Dopo uno stop termico, riduci i GHz, attendi il raffreddamento e chiama `clearStop()`. Un limite di frequenza accettato non garantisce stabilità termica.
 
-L'usura parte da zero e cresce di base di 0,005 punti percentuali per ora simulata, moltiplicati per il quadrato del rapporto di frequenza e per lo stress termico. Non si azzera con stop, raffreddamento o nuovo script. Al 100% la GPU non può ripartire: riparazione e sostituzione non sono ancora implementate; una nuova partita ripristina tutto.
+L'usura parte da zero e cresce di base di 0,005 punti percentuali per ora simulata, moltiplicati per il quadrato del rapporto di frequenza, per lo stress termico e per lo sporco oltre soglia. Non si azzera con stop, raffreddamento o nuovo script. Al 100% la GPU richiede sostituzione di pasta e pad al banco e successiva riabilitazione. `gpu.getDustPercent()` (attributo `dustPercent`) espone lo sporco da 0 a 100 per programmare gli interventi.
 
 ```js
 let gpu = plots[0].rig(0).gpu(0);
@@ -162,7 +181,7 @@ gpu.clearStop();
 gpu.mine();
 ```
 
-MineScript è sequenziale: `mine()` attende il completamento prima di eseguire la riga dopo. Stop e riabilitazione della GPU si comandano solo dal codice, con `gpu.stop()` e `gpu.clearStop()`. Il pannello **Corrente e GPU** mostra consumi della farm e specifiche della GPU selezionata nel rig: modello, rig e plot, frequenze, potenza, temperatura, ventole, usura e limiti del modello. Senza selezione invita a scegliere una scheda; non passa automaticamente alla GPU che sta minando. Il pulsante Stop dell'editor annulla soltanto il programma: l'azione interrotta non assegna progresso o premio, ma conserva energia e usura della frazione lavorata.
+MineScript è sequenziale: `mine()` attende il completamento prima di eseguire la riga dopo. Velocità e modalità automatica delle ventole, come stop e riabilitazione, si impostano solo con MineScript. Il pannello **Corrente e GPU** mostra consumi della farm e specifiche della GPU selezionata nel rig: modello, rig e plot, frequenze, potenza, temperatura, ventole, usura e limiti del modello; la velocità letta lì è solo telemetria. Senza selezione invita a scegliere una scheda; non passa automaticamente alla GPU che sta minando. Il pulsante Stop dell'editor annulla soltanto il programma: l'azione interrotta non assegna progresso o premio, ma conserva energia e usura della frazione lavorata.
 
 ### Corrente e portafoglio
 

@@ -9,6 +9,7 @@ const PATHS: Record<string, string | readonly string[]> = {
   step: ['M5 5l10 7-10 7V5Z', 'M19 5v14'],
   resize: 'M7 20 20 7M13 20l7-7M19 20l1-1',
   resizeY: 'M6 10h12M6 14h12M12 6V3m0 0-3 3m3-3 3 3m-3 12v3m0 0-3-3m3 3 3-3',
+  indent: 'M4 6h16M10 10h10M10 14h10M10 18h10M4 9l3 3-3 3',
   stop: 'M6 6h12v12H6V6Z',
   arrow: 'M4 12h16m-6-6 6 6-6 6',
   book: 'M12 5v16m0-16C8 2 4 3 2 4v15c4-2 7-1 10 2 3-3 6-4 10-2V4c-2-1-6-2-10 1Z',

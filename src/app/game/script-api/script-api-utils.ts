@@ -10,10 +10,3 @@ export function requireArguments(
     throw new ScriptError(`${method} richiede ${count} argomenti.`, line);
   }
 }
-
-export function requireIndex(value: Value, line: number): number {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
-    throw new ScriptError('l’indice deve essere un intero non negativo.', line);
-  }
-  return value;
-}

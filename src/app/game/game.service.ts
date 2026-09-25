@@ -6,6 +6,7 @@ import { createWorldBindings } from './script-api/world-bindings';
 import { satoshisToEuros } from './electricity';
 import { applyGpuWork } from './gpu-operation';
 import { getGpuTelemetry } from './gpu-telemetry';
+import type { GpuMaintenanceAction } from './gpu-maintenance';
 import type { ElectricityReadings } from './script-api/electricity-script-object';
 import {
   loadActiveFileId,
@@ -23,11 +24,14 @@ import {
   createWorld,
   farmPowerWatts,
   getGpu,
+  serviceGpu,
+  setGpuWorkbenchState,
   recordGpuWork,
   requireOperationalGpu,
   settleCompletedBlock,
   resumeGpu,
   setGpuFrequency,
+  setGpuFanSpeed,
   stopGpu as stopGpuOnWorld,
   expandWorld,
   GPU_COUNT,
@@ -53,7 +57,7 @@ export interface LogEntry {
   id: number;
   time: string;
   message: string;
-  kind: 'info' | 'success' | 'error' | 'output';
+  kind: 'info' | 'success' | 'error' | 'output' | 'warning';
 }
 
 interface MiningAction {
@@ -218,6 +222,7 @@ export class GameService {
               mineGpu: (id, parallelGroupId) =>
                 this.mineBlock(id, controller.signal, parallelGroupId),
               setFrequencyGhz: (id, frequency) => this.setGpuFrequencyGhz(id, frequency),
+              setFanSpeedPercent: (id, percentage) => this.setGpuFanSpeedPercent(id, percentage),
               stopGpu: (id) => this.stopGpu(id),
               clearStop: (id) => this.clearGpuStop(id),
             },
@@ -373,13 +378,34 @@ export class GameService {
 
   inspectGpu(id: number): void {
     if (!this.running() && isGpuUnlocked(this.world(), id)) {
+      if (this.inspectedGpuId() !== id) {
+        this.returnToRig();
+        this.world.update((world) => setGpuWorkbenchState(world, id, true));
+      }
       this.select(id);
       this.inspectedGpuId.set(id);
     }
   }
 
   returnToRig(): void {
+    const gpuId = this.inspectedGpuId();
+    if (gpuId !== null) {
+      this.world.update((world) => setGpuWorkbenchState(world, gpuId, false));
+    }
     this.inspectedGpuId.set(null);
+  }
+
+  serviceInspectedGpu(action: GpuMaintenanceAction): void {
+    const id = this.requireWorkbenchGpu();
+    this.world.update((world) => serviceGpu(world, id, action));
+  }
+
+  private requireWorkbenchGpu(): number {
+    const id = this.inspectedGpuId();
+    if (id === null || this.running()) {
+      throw new Error('Ferma il programma e porta una GPU sul banco.');
+    }
+    return id;
   }
 
   viewRig(id: number): void {
@@ -389,7 +415,7 @@ export class GameService {
     this.viewedRigId.set(id);
     this.viewedPlotId.set(plotIdForRig(id));
     this.selectedGpuId.set(null);
-    this.inspectedGpuId.set(null);
+    this.returnToRig();
   }
 
   viewPlot(id: number): void {
@@ -400,16 +426,16 @@ export class GameService {
     this.viewedPlotId.set(id);
     this.viewedRigId.set(firstRigId);
     this.selectedGpuId.set(null);
-    this.inspectedGpuId.set(null);
+    this.returnToRig();
   }
 
   reset(): void {
     if (this.running()) {
       return;
     }
+    this.returnToRig();
     this.world.set(createWorld());
     this.clearLineEffects();
-    this.inspectedGpuId.set(null);
     this.selectedGpuId.set(null);
     this.viewedRigId.set(1);
     this.viewedPlotId.set(1);
@@ -432,6 +458,13 @@ export class GameService {
       parallelGroupId === undefined ? undefined : this.parallelGpuIds.get(parallelGroupId);
     if (this.activeGpuIds().includes(gpuId) || groupGpuIds?.has(gpuId)) {
       throw new Error(`GPU ${gpuId} sta già minando.`);
+    }
+    if (getGpu(this.world(), gpuId).stopped) {
+      this.log(
+        `GPU ${gpuId} ferma: mining ignorato. Usa gpu.clearStop() per riavviarla.`,
+        'warning',
+      );
+      return;
     }
     requireOperationalGpu(this.world(), gpuId);
     if (this.selected().progress === 100 && this.activeGpuIds().length === 0) {
@@ -541,6 +574,10 @@ export class GameService {
       throw new Error('Attendi la fine di mine() prima di cambiare frequenza.');
     }
     this.world.update((world) => setGpuFrequency(world, gpuId, frequencyGhz));
+  }
+
+  setGpuFanSpeedPercent(gpuId: number, fanSpeedPercent: number | null): void {
+    this.world.update((world) => setGpuFanSpeed(world, gpuId, fanSpeedPercent));
   }
 
   /** Interrompe anche un mine() in corso; lo stop sopravvive alle esecuzioni successive. */

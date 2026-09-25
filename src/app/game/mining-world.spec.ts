@@ -6,6 +6,8 @@ import {
   countUnlockedGpus,
   createWorld,
   expandWorld,
+  getBlockDifficulty,
+  serviceGpu,
   GPU_COUNT,
   GPUS_PER_RIG,
   isGpuUnlocked,
@@ -66,11 +68,14 @@ describe('Mining world', () => {
     let world = createWorld();
     expect(expandWorld(world)).toBe(world);
     for (let id = 1; id <= 12; id++) {
-      for (let step = 0; step < MINES_PER_BLOCK; step++) {
-        world = mineGpu(world, 1);
+      const requiredActions = Math.ceil((100 * getBlockDifficulty(id - 1)) / MINE_PROGRESS_PER_GPU);
+      for (let step = 0; step <= requiredActions && !canExpand(world); step++) {
+        // Un'ora di lavoro per azione, con raffreddamento tra le azioni.
+        world = mineGpu(world, 1, (id * 1000 + step) * GAME_BALANCE.gpu.cooldownMs);
       }
       expect(world.selectedId).toBe(id);
       expect(canExpand(world)).toBe(true);
+      world = serviceGpu(world, 1, { kind: 'clean' });
       world = expandWorld(world);
       expect(world.blocks[id]).toEqual({ id: id + 1, progress: 0 });
       expect(world.selectedId).toBe(id + 1);

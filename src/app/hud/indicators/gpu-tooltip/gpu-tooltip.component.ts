@@ -34,7 +34,7 @@ export class GpuTooltipComponent implements OnDestroy {
   });
   readonly position = computed(() => ({
     x: Math.max(8, Math.min(this.hover().x + 16, window.innerWidth - 236)),
-    y: Math.max(8, Math.min(this.hover().y + 16, window.innerHeight - 164)),
+    y: Math.max(8, Math.min(this.hover().y + 16, window.innerHeight - 190)),
   }));
 
   ngOnDestroy(): void {

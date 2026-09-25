@@ -21,8 +21,8 @@ describe('GPU operation and electricity', () => {
   it('accumulates energy without charging until the block is complete', () => {
     const world = mineGpu(createWorld(), 1, 0);
     expect(world.satoshis).toBe(0);
-    expect(world.electricity.energyKwh).toBeCloseTo(0.205);
-    expect(world.electricity.pendingKwh).toBeCloseTo(0.205);
+    expect(world.electricity.energyKwh).toBeCloseTo(0.237);
+    expect(world.electricity.pendingKwh).toBeCloseTo(0.237);
     expect(world.lastSettlement).toBeNull();
     expect(satoshisToEuros(BLOCK_REWARD)).toBe(600);
   });
@@ -31,17 +31,17 @@ describe('GPU operation and electricity', () => {
     let world = createWorld();
     world = { ...world, blocks: [{ id: 1, progress: 99.9 }] };
     const settled = mineGpu(world, 1, 0);
-    expect(settled.electricity.paidSatoshis).toBe(103);
-    expect(settled.satoshis).toBe(BLOCK_REWARD - 103);
+    expect(settled.electricity.paidSatoshis).toBe(119);
+    expect(settled.satoshis).toBe(BLOCK_REWARD - 119);
     expect(settled.lastSettlement).toMatchObject({
       blockId: 1,
-      electricitySatoshis: 103,
+      electricitySatoshis: 119,
       rewardSatoshis: BLOCK_REWARD,
     });
     expect(settled.electricity.pendingKwh).toBe(0);
     expect(() => mineGpu(settled, 1, 0)).toThrow('completato');
     const next = mineGpu(expandWorld(settled), 1, 0);
-    expect(next.electricity.paidSatoshis).toBe(103);
+    expect(next.electricity.paidSatoshis).toBe(119);
     expect(next.satoshis).toBe(settled.satoshis);
     expect(next.lastSettlement).toBe(settled.lastSettlement);
   });
@@ -65,7 +65,7 @@ describe('GPU operation and electricity', () => {
     const normal = mineGpu(createWorld(), 1, 0);
     const underclocked = mineGpu(setGpuFrequency(createWorld(), 1, 0.9), 1, 0);
     expect(underclocked.blocks[0].progress).toBeCloseTo(MINE_PROGRESS_PER_GPU / 2);
-    expect(underclocked.electricity.energyKwh).toBeCloseTo(0.05125);
+    expect(underclocked.electricity.energyKwh).toBeCloseTo(0.08325);
     expect(getGpu(underclocked, 1).wearPercent).toBeLessThan(getGpu(normal, 1).wearPercent);
   });
 
@@ -121,7 +121,7 @@ describe('GPU operation and electricity', () => {
   it('manual stop is idempotent, sets power to zero and preserves wear when cleared', () => {
     const mined = mineGpu(createWorld(), 1, 0);
     const stopped = stopGpu(stopGpu(mined, 1), 1);
-    expect(farmPowerWatts(stopped, null)).toBe(0);
+    expect(farmPowerWatts(stopped, null)).toBe(32);
     expect(getGpuTelemetry(1, getGpu(stopped, 1), 0).powerWatts).toBe(0);
     expect(() => mineGpu(stopped, 1, 0)).toThrow('ferma');
     const resumed = resumeGpu(stopped, 1, 5000);
@@ -143,20 +143,20 @@ describe('GPU operation and electricity', () => {
     };
     expect(mineGpu(twoGpus, 1, 0).electricity.energyKwh).toBeCloseTo(0.237);
     expect(mineGpu(stopGpu(twoGpus, 2), 1, 0).electricity.energyKwh).toBeCloseTo(0.205);
-    expect(() => setGpuFrequency(initial, 2, 2)).toThrow('bloccato');
+    expect(() => setGpuFrequency(initial, 3, 2)).toThrow('bloccato');
   });
 
   it('keeps partial energy and wear without progress or a premature payout', () => {
     const partial = recordGpuWork(createWorld(), 1, 0.5, 0, 425);
-    expect(partial.electricity.pendingKwh).toBeCloseTo(0.1025);
+    expect(partial.electricity.pendingKwh).toBeCloseTo(0.1185);
     expect(getGpu(partial, 1).wearPercent).toBeCloseTo(0.0025);
     expect(partial.blocks[0].progress).toBe(0);
     expect(partial.satoshis).toBe(0);
     const settled = mineGpu({ ...partial, blocks: [{ id: 1, progress: 99.9 }] }, 1, 425);
-    expect(settled.electricity.paidSatoshis).toBe(154);
+    expect(settled.electricity.paidSatoshis).toBe(178);
   });
 
-  it('wear reaching 100 is terminal and a new world resets all state', () => {
+  it('wear reaching 100 blocks restart until maintenance and a new world resets all state', () => {
     const original = createWorld();
     const worn = {
       ...original,

@@ -76,7 +76,7 @@ async function waitForGpuOnBench(page: Page, id: number) {
 async function unlockSecondGpu(page: Page) {
   await page
     .getByRole('textbox', { name: 'Codice MineScript' })
-    .fill('let gpu = plots[0].rig(0).gpu(0); repeat (5) { gpu.mine(); }');
+    .fill('let gpu = plots[0].rigs[0].gpus[0]; repeat (5) { gpu.mine(); }');
   await page.getByRole('button', { name: 'Avvia codice', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Seleziona GPU 002', exact: true })).toBeEnabled({
     timeout: 15000,
@@ -364,7 +364,7 @@ test('mining locks selection; automatic unlock keeps the inspected GPU on the be
   await waitForGpuOnBench(page, 1);
   await page
     .getByRole('textbox', { name: 'Codice MineScript' })
-    .fill('let gpu = plots[0].rig(0).gpu(0); repeat (5) { gpu.mine(); }');
+    .fill('let gpu = plots[0].rigs[0].gpus[0]; repeat (5) { gpu.mine(); }');
   await page.getByRole('button', { name: 'Avvia codice', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Seleziona GPU 001', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Seleziona GPU 002', exact: true })).toBeEnabled({
@@ -411,7 +411,7 @@ test('new rigs keep unlocking; each GPU returns to its own rig and reset removes
   await waitForGpuOnBench(page, 1);
   await page
     .getByRole('textbox', { name: 'Codice MineScript' })
-    .fill('let gpu = plots[0].rig(0).gpu(0); repeat (40) { gpu.mine(); }');
+    .fill('let gpu = plots[0].rigs[0].gpus[0]; repeat (40) { gpu.mine(); }');
   await page.getByRole('button', { name: 'Avvia codice', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Interrompi esecuzione' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Avvia codice', exact: true })).toBeVisible({

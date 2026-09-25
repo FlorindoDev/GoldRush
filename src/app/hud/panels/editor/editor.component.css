@@ -35,6 +35,15 @@
   width: 16px;
   height: 16px;
 }
+.format-button {
+  color: #a4b594;
+}
+.format-button:hover:not(:disabled) {
+  background: #30392b;
+}
+.format-button:disabled {
+  opacity: 0.4;
+}
 .run-button {
   color: var(--accent);
 }

@@ -15,10 +15,10 @@ it('marks the currently executed line and refreshes repeated line animations', (
   const repeated = highlight(source, { executedLines: new Map([[2, 5]]) });
 
   expect(first).toContain(
-    'class="code-line executed-line" data-execution="4"><span class="line-number">2</span>',
+    'class="code-line executed-line execution-4"><span class="line-number">2</span>',
   );
   expect(repeated).toContain(
-    'class="code-line executed-line" data-execution="5"><span class="line-number">2</span>',
+    'class="code-line executed-line execution-5"><span class="line-number">2</span>',
   );
   expect(first.indexOf('executed-line')).toBeGreaterThan(first.indexOf('print(1)'));
 });

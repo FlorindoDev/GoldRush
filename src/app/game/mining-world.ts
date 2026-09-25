@@ -1,11 +1,14 @@
 import { GAME_BALANCE } from '../config/game-balance';
+import { maintainGpu, type GpuMaintenanceAction } from './gpu-maintenance';
 import {
   applyGpuWork,
   clearGpuStop,
   createGpuOperatingState,
   gpuMiningPowerWatts,
+  gpuTemperature,
   isGpuOperational,
   setGpuClock,
+  setGpuFanSpeed as setOperatingGpuFanSpeed,
   type GpuOperatingState,
 } from './gpu-operation';
 import {
@@ -58,6 +61,12 @@ export const STARTING_GPU_COUNT = GAME_BALANCE.world.startingGpuCount;
 export const MINE_PROGRESS_PER_GPU = GAME_BALANCE.world.progressPerGpuAtFullFarm / GPU_COUNT;
 export const BLOCK_REWARD = GAME_BALANCE.world.blockRewardSatoshis;
 
+export function getBlockDifficulty(blocksAlreadyMined: number): number {
+  const { startingMultiplier, increasePerMinedBlock, maxMultiplier } =
+    GAME_BALANCE.mining.blockDifficulty;
+  return Math.min(startingMultiplier + blocksAlreadyMined * increasePerMinedBlock, maxMultiplier);
+}
+
 export function createWorld(): MiningWorld {
   return {
     blocks: [{ id: 1, progress: 0 }],
@@ -107,10 +116,13 @@ export function mineGpu(
   if (!isGpuOperational(getGpu(worked, gpuId))) {
     return worked;
   }
+  const blocksAlreadyMined = world.blocks.filter((item) => item.progress === 100).length;
+  const difficulty = getBlockDifficulty(blocksAlreadyMined);
   const progress = Math.min(
     100,
     block.progress +
-      (MINE_PROGRESS_PER_GPU * gpu.targetFrequencyGhz) / GAME_BALANCE.gpu.mining.frequencyGhz,
+      (MINE_PROGRESS_PER_GPU * gpu.targetFrequencyGhz) /
+        (GAME_BALANCE.gpu.mining.frequencyGhz * difficulty),
   );
   const result = {
     ...worked,
@@ -161,6 +173,9 @@ export function requireOperationalGpu(world: MiningWorld, gpuId: number): Mining
     throw new Error('Serve una GPU sbloccata per minare.');
   }
   const gpu = getGpu(world, gpuId);
+  if (gpu.onWorkbench) {
+    throw new Error(`GPU ${gpuId} sul banco. Rimontala nel rig prima di mine().`);
+  }
   if (!isGpuOperational(gpu)) {
     throw new Error(
       `GPU ${gpuId} ferma: ${gpu.stopReason || 'non operativa'}. Usa clearStop() prima di mine().`,
@@ -195,6 +210,36 @@ export function setGpuFrequency(
   frequencyGhz: number,
 ): MiningWorld {
   return updateGpu(world, gpuId, (gpu) => setGpuClock(gpu, frequencyGhz));
+}
+
+export function serviceGpu(
+  world: MiningWorld,
+  gpuId: number,
+  action: GpuMaintenanceAction,
+): MiningWorld {
+  return updateGpu(world, gpuId, (gpu) => maintainGpu(gpu, action));
+}
+
+export function setGpuWorkbenchState(
+  world: MiningWorld,
+  gpuId: number,
+  onWorkbench: boolean,
+  now = Date.now(),
+): MiningWorld {
+  return updateGpu(world, gpuId, (gpu) => ({
+    ...gpu,
+    temperatureCelsius: gpuTemperature(gpu, now),
+    onWorkbench,
+    lastUpdatedAt: now,
+  }));
+}
+
+export function setGpuFanSpeed(
+  world: MiningWorld,
+  gpuId: number,
+  fanSpeedPercent: number | null,
+): MiningWorld {
+  return updateGpu(world, gpuId, (gpu) => setOperatingGpuFanSpeed(gpu, fanSpeedPercent));
 }
 
 export function stopGpu(world: MiningWorld, gpuId: number): MiningWorld {
@@ -251,7 +296,10 @@ export function farmPowerWatts(
         continue;
       }
       for (const gpu of rig.gpus) {
-        if (gpu.unlocked && (activeIds.has(gpu.id) || isGpuOperational(gpu))) {
+        if (
+          gpu.unlocked &&
+          (activeIds.has(gpu.id) || (!gpu.onWorkbench && isGpuOperational(gpu)))
+        ) {
           watts += activeIds.has(gpu.id)
             ? gpuMiningPowerWatts(gpu)
             : GAME_BALANCE.gpu.idle.powerWatts;

@@ -2,7 +2,6 @@ import { ScriptError, type ScriptObject, type Value } from '../../language/synta
 import { VectorValue } from '../../language/collections/vector';
 import { countUnlockedGpusInRig, type MiningRig } from '../mining-world';
 import { GpuScriptObject, type GpuScriptControls } from './gpu-script-object';
-import { requireArguments, requireIndex } from './script-api-utils';
 
 export class RigScriptObject implements ScriptObject {
   readonly objectType = 'rig';
@@ -37,12 +36,8 @@ export class RigScriptObject implements ScriptObject {
     }
   }
 
-  callMethod(name: string, args: Value[], line: number): Value {
-    if (name !== 'gpu') {
-      throw new ScriptError(`metodo "${name}" non disponibile per un rig.`, line);
-    }
-    requireArguments(name, args, 1, line);
-    return this.gpus.getItem(requireIndex(args[0], line), line);
+  callMethod(name: string, _args: Value[], line: number): Value {
+    throw new ScriptError(`metodo "${name}" non disponibile per un rig.`, line);
   }
 
   toDisplayString(): string {

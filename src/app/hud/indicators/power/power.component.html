@@ -61,11 +61,11 @@
           <meter
             aria-label="Temperatura GPU"
             [value]="stats.temperatureCelsius"
-            min="34"
+            min="0"
             max="110"
             low="75"
             [high]="stats.maxTemperatureCelsius"
-            optimum="34"
+            optimum="0"
           ></meter>
           <div class="meter-row">
             <span>Ventole</span
@@ -84,7 +84,7 @@
             optimum="0"
           ></meter>
           <details class="gpu-limits">
-            <summary>Limiti del modello</summary>
+            <summary>Limiti della GPU</summary>
             <div class="meter-row">
               <span>Frequenza minima</span
               ><strong>{{ stats.minFrequencyGhz.toFixed(2) }} GHz</strong>

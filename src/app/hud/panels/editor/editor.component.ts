@@ -11,6 +11,7 @@ import {
 import { GameService } from '../../../game/game.service';
 import { IconComponent } from '../../icons/icon.component';
 import { highlight } from './highlight';
+import { autoIndent } from './indentation';
 
 const INDENTATION = '  ';
 
@@ -108,6 +109,27 @@ export class EditorComponent {
     this.updateCursor();
   }
 
+  formatIndentation(): void {
+    if (this.game.running()) {
+      return;
+    }
+
+    const textarea = this.editor().nativeElement;
+    const source = textarea.value;
+    const formatted = autoIndent(source, INDENTATION);
+    if (formatted === source) {
+      return;
+    }
+
+    const selectionStart = remapPosition(source, formatted, textarea.selectionStart);
+    const selectionEnd = remapPosition(source, formatted, textarea.selectionEnd);
+    this.game.updateCode(formatted);
+    textarea.value = formatted;
+    textarea.focus();
+    textarea.setSelectionRange(selectionStart, selectionEnd);
+    this.updateCursor();
+  }
+
   selectFile(id: string): void {
     this.game.selectFile(id);
     this.resetEditorView();
@@ -143,4 +165,24 @@ export class EditorComponent {
 
     this.insert(`\n${indentation}${extraIndentation}`);
   }
+}
+
+function remapPosition(source: string, formatted: string, position: number): number {
+  const sourceLineStart = source.lastIndexOf('\n', Math.max(0, position - 1)) + 1;
+  const lineIndex = source.slice(0, sourceLineStart).split('\n').length - 1;
+  const sourceLine = source.split('\n')[lineIndex] ?? '';
+  const formattedLines = formatted.split('\n');
+  const formattedLine = formattedLines[lineIndex] ?? '';
+  const sourceIndentLength = sourceLine.match(/^[ \t]*/)?.[0].length ?? 0;
+  const formattedIndentLength = formattedLine.match(/^[ \t]*/)?.[0].length ?? 0;
+  const column = position - sourceLineStart;
+  const mappedColumn =
+    column < sourceIndentLength
+      ? Math.min(column, formattedIndentLength)
+      : formattedIndentLength + column - sourceIndentLength;
+  const formattedLineStart = formattedLines
+    .slice(0, lineIndex)
+    .reduce((length, line) => length + line.length + 1, 0);
+
+  return Math.min(formatted.length, formattedLineStart + mappedColumn);
 }

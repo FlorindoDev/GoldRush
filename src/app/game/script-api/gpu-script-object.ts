@@ -11,6 +11,7 @@ export interface GpuScriptControls {
   isSelected(id: number): boolean;
   mineGpu(id: number, parallelGroupId?: number): Promise<void>;
   setFrequencyGhz(id: number, frequencyGhz: number): void;
+  setFanSpeedPercent(id: number, fanSpeedPercent: number | null): void;
   stopGpu(id: number): void;
   clearStop(id: number): void;
 }
@@ -25,10 +26,12 @@ const TELEMETRY_METHODS: Readonly<Record<string, keyof GpuTelemetry>> = {
   getPowerWatts: 'powerWatts',
   getTemperatureCelsius: 'temperatureCelsius',
   getFanSpeed: 'fanSpeed',
+  getTargetFanSpeedPercent: 'targetFanSpeedPercent',
   getCurrentFanSpeedRpm: 'currentFanSpeedRpm',
   getMaxFanSpeedRpm: 'maxFanSpeedRpm',
   getMaxTemperatureCelsius: 'maxTemperatureCelsius',
   getWearPercent: 'wearPercent',
+  getDustPercent: 'dustPercent',
 };
 
 export class GpuScriptObject implements ScriptObject {
@@ -87,10 +90,14 @@ export class GpuScriptObject implements ScriptObject {
       requireArguments(name, args, 0, line);
       return this.getAttribute(stateAttribute[name as keyof typeof stateAttribute], line);
     }
-    if (!['mine', 'setFrequencyGhz', 'stop', 'clearStop'].includes(name)) {
+    if (
+      !['mine', 'setFrequencyGhz', 'setFanSpeed', 'setFanSpeedAuto', 'stop', 'clearStop'].includes(
+        name,
+      )
+    ) {
       throw new ScriptError(`metodo "${name}" non disponibile per una GPU.`, line);
     }
-    requireArguments(name, args, name === 'setFrequencyGhz' ? 1 : 0, line);
+    requireArguments(name, args, ['setFrequencyGhz', 'setFanSpeed'].includes(name) ? 1 : 0, line);
     if (!this.isAvailable()) {
       throw new ScriptError('GPU o rig bloccato.', line);
     }
@@ -110,6 +117,15 @@ export class GpuScriptObject implements ScriptObject {
             throw new Error('setFrequencyGhz richiede un numero in GHz.');
           }
           this.controls.setFrequencyGhz(this.id, args[0]);
+          break;
+        case 'setFanSpeed':
+          if (typeof args[0] !== 'number') {
+            throw new Error('setFanSpeed richiede un numero percentuale tra 0 e 100.');
+          }
+          this.controls.setFanSpeedPercent(this.id, args[0]);
+          break;
+        case 'setFanSpeedAuto':
+          this.controls.setFanSpeedPercent(this.id, null);
           break;
       }
     } catch (error) {

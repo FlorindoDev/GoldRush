@@ -9,6 +9,15 @@
     </div>
     <div class="editor-actions">
       <button
+        class="editor-action format-button"
+        aria-label="Sistema indentazione"
+        title="Sistema indentazione"
+        [disabled]="game.running()"
+        (click)="formatIndentation()"
+      >
+        <app-icon name="indent" />
+      </button>
+      <button
         class="editor-action step-button"
         aria-label="Esegui una riga"
         [attr.aria-pressed]="game.stepMode()"

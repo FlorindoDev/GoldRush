@@ -4,12 +4,18 @@
     (gpuHover)="hoveredGpu.set($event)"
   />
 
-  @if (hoveredGpu(); as hover) {
+  @if (game.inspectedGpuId() === null && hoveredGpu(); as hover) {
     <app-gpu-tooltip [hover]="hover" />
   }
 
   <app-wallet />
   <app-power />
+
+  @if (game.inspectedGpuId(); as gpuId) {
+    @for (id of [gpuId]; track id) {
+      <app-workbench />
+    }
+  }
 
   <div
     class="utility-actions"
@@ -36,6 +42,7 @@
 
   <div
     class="floating-window editor-window"
+    [hidden]="game.inspectedGpuId() !== null"
     [style.left.px]="editorPosition()?.x ?? null"
     [style.top.px]="editorPosition()?.y ?? null"
     [style.zIndex]="activeWindow() === 'editor' ? 22 : 21"
@@ -79,6 +86,7 @@
   @if (!consoleDocked()) {
     <div
       class="floating-window console-window"
+      [hidden]="game.inspectedGpuId() !== null"
       [style.left.px]="consolePosition()?.x ?? null"
       [style.top.px]="consolePosition()?.y ?? null"
       [style.zIndex]="activeWindow() === 'console' ? 22 : 20"
@@ -248,8 +256,8 @@
           <p class="guide-note">
             Trascina la scena per ruotarla e usa la rotella per ingrandire. Un clic sulla GPU o sul
             suo pulsante la seleziona; un doppio clic la porta al banco. Passa il cursore sul
-            modello 3D per temperatura, usura e consumo. Da tastiera, Alt+Invio sul pulsante GPU la
-            porta al banco. La farm ha {{ rigCapacity }} quadrati di sblocco e
+            modello 3D per temperatura, usura, sporco e consumo. Da tastiera, Alt+Invio sul pulsante
+            GPU la porta al banco. La farm ha {{ rigCapacity }} quadrati di sblocco e
             {{ gpuCapacity }} alloggiamenti GPU; all'avvio sono sbloccati
             {{ balance.world.startingRigCount }} rig e {{ balance.world.startingGpuCount }} GPU.
             Completare un blocco non sblocca rig o GPU. Usa “Torna al quadrato” per rimettere la
@@ -365,10 +373,6 @@
                     <dd>
                       Primo e ultimo valore; restituiscono <code>null</code> se la lista è vuota.
                     </dd>
-                  </div>
-                  <div>
-                    <dt><code>get(indice)</code></dt>
-                    <dd>Legge il valore nella posizione indicata, come le parentesi quadre.</dd>
                   </div>
                   <div>
                     <dt><code>push(valore)</code></dt>
@@ -543,7 +547,7 @@
           </p>
           <h3>Esempio rapido</h3>
           <pre class="guide-code">
-let gpu = plots[0].rig(0).gpu(0);
+let gpu = plots[0].rigs[0].gpus[0];
 gpu.mine();
 print("Progresso: " + progress());</pre>
           <p class="guide-note">
@@ -573,24 +577,24 @@ print("Progresso: " + progress());</pre>
             Ogni rig ha <strong>{{ gpusPerRig }} slot GPU</strong>, per un totale di
             {{ gpuCapacity }} posti.
           </p>
-          <pre class="guide-code">let gpu = plots[0].rig(0).gpu(0);</pre>
+          <pre class="guide-code">let gpu = plots[0].rigs[0].gpus[0];</pre>
           <ol class="guide-steps">
             <li>
               <code>plots[0]</code> sceglie la prima area. Indici validi: da 0 a
               {{ plotCapacity - 1 }}.
             </li>
             <li>
-              <code>.rig(0)</code> sceglie il primo rig di quell'area. Indici validi: da 0 a
+              <code>rigs[0]</code> sceglie il primo rig di quell'area. Indici validi: da 0 a
               {{ rigsPerPlot - 1 }}.
             </li>
             <li>
-              <code>.gpu(0)</code> sceglie il primo slot di quel rig. Indici validi: da 0 a
+              <code>gpus[0]</code> sceglie il primo slot di quel rig. Indici validi: da 0 a
               {{ gpusPerRig - 1 }}.
             </li>
           </ol>
           <p>
-            Gli indici partono da zero; gli identificativi <code>id</code> partono da uno. Puoi
-            anche usare <code>plots[0].rig(0).gpus[0]</code>.
+            Gli indici partono da zero; gli identificativi <code>id</code> partono da uno. Tutti i
+            vettori usano la stessa sintassi con parentesi quadre.
           </p>
           <aside
             class="guide-callout"
@@ -613,11 +617,16 @@ print("Progresso: " + progress());</pre>
               gpuCapacity
             }}% al blocco attivo alla frequenza di base ({{ balance.gpu.mining.frequencyGhz }} GHz)
             e attende che il lavoro finisca prima di proseguire. Il progresso cresce in proporzione
-            alla frequenza impostata.
+            alla frequenza impostata. La difficoltà è min({{
+              balance.mining.blockDifficulty.startingMultiplier
+            }}
+            + blocchi estratti × {{ balance.mining.blockDifficulty.increasePerMinedBlock }},
+            {{ balance.mining.blockDifficulty.maxMultiplier }}); quindi i blocchi successivi
+            richiedono più lavoro, fino al limite configurato.
           </p>
           <pre class="guide-code">gpu.mine();</pre>
           <p>
-            Alla frequenza di base servono {{ minesPerBlock }} chiamate a
+            Sul primo blocco, alla frequenza di base servono {{ minesPerBlock }} chiamate a
             <code>gpu.mine()</code> per completare un blocco. Ogni chiamata dura
             {{ balance.mining.actionDurationMs }} ms, oppure
             {{ balance.mining.actionDurationMs / 2 }} ms a velocità 2×. La GPU e il rig devono
@@ -778,10 +787,11 @@ print("Progresso: " + progress());</pre>
               <span>Impostazioni e telemetria</span>
             </h3>
             <p>
-              Gli attributi sono di sola lettura. Per cambiare frequenza usa
-              <code>setFrequencyGhz()</code>; consumo, calore e ventole vengono calcolati
-              automaticamente. I comandi sulla GPU restituiscono <code>null</code>; i getter
-              restituiscono numeri, salvo modello e motivo di stop (stringhe).
+              Gli attributi sono di sola lettura. Imposta frequenza con
+              <code>setFrequencyGhz()</code> e ventole con <code>setFanSpeed()</code>; chiama
+              <code>setFanSpeedAuto()</code> per tornare alla regolazione automatica. Le ventole
+              manuali cambiano raffreddamento e temperatura. I comandi restituiscono
+              <code>null</code>; i getter restituiscono numeri, salvo modello e motivo di stop.
             </p>
           </aside>
           <h3>Overclock e limiti</h3>
@@ -803,7 +813,18 @@ print("Progresso: " + progress());</pre>
               </p>
             </article>
             <article>
-              <h4>Leggere i limiti del modello</h4>
+              <h4>Impostare le ventole</h4>
+              <code>gpu.setFanSpeed(80);</code>
+              <p>
+                Imposta velocità tra 0 e 100 percento. Più velocità raffredda di più; una velocità
+                bassa fa salire la temperatura. Usa <code>gpu.setFanSpeedAuto();</code> per
+                ripristinare la regolazione automatica. Leggi velocità effettiva con
+                <code>getFanSpeed()</code> o il valore impostato con
+                <code>getTargetFanSpeedPercent()</code>.
+              </p>
+            </article>
+            <article>
+              <h4>Leggere i limiti della GPU</h4>
               <code>gpu.getMinFrequencyGhz()</code>
               <p>
                 Minimo: {{ balance.gpu.limits.minFrequencyGhz }} GHz. Attributo:
@@ -837,8 +858,22 @@ print("Progresso: " + progress());</pre>
               <p>
                 Numero da 0 (nuova) a 100 (esaurita), attributo <code>wearPercent</code>. Il lavoro
                 aumenta l'usura; overclock e temperature alte la accelerano. Raffreddamento, stop e
-                nuova esecuzione non la azzerano. Al 100% la scheda non può più minare; nel
-                prototipo si ripristina solo con una nuova partita.
+                nuova esecuzione non la azzerano. Al 100% la scheda non può minare: portala al banco
+                con un doppio clic, sostituisci pasta e pad, poi riabilitala. Dopo ogni sostituzione
+                servono {{ balance.gpu.maintenance.thermalServiceIntervalHours }} ore simulate di
+                utilizzo della stessa GPU prima di ripetere l'intervento.
+              </p>
+            </article>
+            <article>
+              <h4>Sporco e manutenzione</h4>
+              <code>gpu.getDustPercent()</code>
+              <p>
+                Numero da 0 (pulita) a 100, attributo <code>dustPercent</code>. La polvere si
+                accumula con il mining e accelera il riscaldamento. Oltre il
+                {{ balance.gpu.maintenance.dustWearThresholdPercent }}% aumenta anche l'usura. Il
+                pannello a destra del banco permette di pulire la scheda, sostituire pasta e pad,
+                scegliere il kit ventole e regolarne la velocità. Rimonta la GPU nel rig prima di
+                minare: l'attesa sul banco non riduce il tempo richiesto tra i cambi di pasta.
               </p>
             </article>
             <article>
@@ -875,15 +910,15 @@ print("Progresso: " + progress());</pre>
             <code>plots</code>, <code>rigs</code> e <code>gpus</code> sono di sola lettura.
           </p>
           <details class="guide-card-details">
-            <summary>Attributi e metodi di plot e rig</summary>
+            <summary>Attributi di plot e rig</summary>
             <dl class="guide-definition-list">
               <div>
                 <dt>Plot: <code>id</code>, <code>type</code></dt>
                 <dd>Identificativo dell'area e tipo dell'oggetto, che vale <code>plot</code>.</dd>
               </div>
               <div>
-                <dt>Plot: <code>rigs</code>, <code>rig(indice)</code></dt>
-                <dd>Il vettore dei rig e il metodo per sceglierne uno per indice.</dd>
+                <dt>Plot: <code>rigs</code></dt>
+                <dd>Vettore dei rig; scegli un elemento con <code>rigs[indice]</code>.</dd>
               </div>
               <div>
                 <dt>
@@ -907,8 +942,8 @@ print("Progresso: " + progress());</pre>
                 <dd><code>true</code> se il rig è sbloccato, <code>false</code> altrimenti.</dd>
               </div>
               <div>
-                <dt>Rig: <code>gpus</code>, <code>gpu(indice)</code></dt>
-                <dd>Il vettore degli slot GPU e il metodo per sceglierne uno per indice.</dd>
+                <dt>Rig: <code>gpus</code></dt>
+                <dd>Vettore degli slot GPU; scegli una scheda con <code>gpus[indice]</code>.</dd>
               </div>
               <div>
                 <dt>Rig: <code>gpuCount</code>, <code>gpuCapacity</code></dt>
@@ -918,7 +953,7 @@ print("Progresso: " + progress());</pre>
           </details>
           <h3>Esempio rapido</h3>
           <pre class="guide-code">
-let gpu = plots[0].rig(0).gpu(0);
+let gpu = plots[0].rigs[0].gpus[0];
 print(gpu.getModel());
 print(gpu.getTemperatureCelsius() + " °C");
 print(gpu.getFanSpeed() + "%");</pre>
@@ -1010,7 +1045,7 @@ print(gpu.getFanSpeed() + "%");</pre>
             visibile. La nuova partita azzera consumi, saldo e stato GPU.
           </p>
           <pre class="guide-code">
-let gpu = plots[0].rig(0).gpu(0);
+let gpu = plots[0].rigs[0].gpus[0];
 print(electricity.getPricePerKwh());
 gpu.setFrequencyGhz(gpu.getMaxFrequencyGhz());
 gpu.mine();
@@ -1137,8 +1172,8 @@ gpu.stop();</pre>
                 nello stesso momento; il programma aspetta che abbiano finito prima di continuare.
               </p>
               <pre class="guide-code">
-let gpuUno = plots[0].rig(0).gpu(0);
-let gpuDue = plots[0].rig(0).gpu(1);
+let gpuUno = plots[0].rigs[0].gpus[0];
+let gpuDue = plots[0].rigs[0].gpus[1];
 
 parallel &lbrace;
   gpuUno.mine();

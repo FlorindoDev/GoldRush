@@ -42,9 +42,6 @@ export class VectorValue implements ScriptIndexable {
         requireMethodArguments(name, args, 0, line);
         this.ensureMutable(line);
         return this.items.pop() ?? null;
-      case 'get':
-        requireMethodArguments(name, args, 1, line);
-        return this.getItem(this.requireIndexArgument(args[0], line), line);
       case 'set': {
         requireMethodArguments(name, args, 2, line);
         this.ensureMutable(line);

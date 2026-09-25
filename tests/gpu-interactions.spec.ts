@@ -76,6 +76,7 @@ test('single HUD click selects without moving the card or camera; double click t
   expect(await state(page)).toEqual({ ...before, selected: 1 });
   await page.locator('app-power .power-panel > summary').click();
   await expect(page.locator('app-power .gpu-heading')).toHaveText(/GPU 1\s*PRONTA/);
+  await page.locator('app-power .power-panel > summary').click();
   await first.dblclick();
   await expect.poll(async () => (await state(page)).inspected).toBe(1);
   await expect

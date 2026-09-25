@@ -74,6 +74,10 @@
 .error .log-marker {
   color: #f39b8d;
 }
+.log-line.warning,
+.warning .log-marker {
+  color: #e3b181;
+}
 .log-line.output {
   color: #c3ceba;
 }

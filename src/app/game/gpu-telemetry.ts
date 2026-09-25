@@ -1,4 +1,5 @@
 import { GAME_BALANCE } from '../config/game-balance';
+import type { GpuFanKit } from './gpu-maintenance';
 import {
   gpuMiningPowerWatts,
   gpuTemperature,
@@ -12,12 +13,15 @@ export interface GpuTelemetry {
   readonly powerWatts: number;
   readonly temperatureCelsius: number;
   readonly fanSpeed: number;
+  readonly targetFanSpeedPercent: number | null;
   readonly currentFanSpeedRpm: number;
   readonly maxFrequencyGhz: number;
   readonly minFrequencyGhz: number;
   readonly absoluteMaxFrequencyGhz: number;
   readonly targetFrequencyGhz: number;
   readonly wearPercent: number;
+  readonly dustPercent: number;
+  readonly fanKit: GpuFanKit;
   readonly maxFanSpeedRpm: number;
   readonly maxTemperatureCelsius: number;
 }
@@ -44,9 +48,11 @@ export function getGpuTelemetry(
         (limits.temperatureCelsius - idle.temperatureCelsius),
     ),
   );
-  const fanSpeed = gpu
+  const automaticFanSpeed = gpu
     ? Math.round(interpolate(idle.fanSpeedPercent, 100, thermalLoad))
     : Math.round(interpolate(idle.fanSpeedPercent, mining.fanSpeedPercent, load));
+  const fanSpeed = gpu?.targetFanSpeedPercent ?? automaticFanSpeed;
+  const maxFanSpeedRpm = gpu ? GAME_BALANCE.gpu.fanKits[gpu.fanKit].maxRpm : limits.fanSpeedRpm;
 
   return {
     model,
@@ -59,13 +65,16 @@ export function getGpuTelemetry(
       : 0,
     temperatureCelsius: round(temperatureCelsius, 2),
     fanSpeed,
-    currentFanSpeedRpm: Math.round((limits.fanSpeedRpm * fanSpeed) / 100),
+    targetFanSpeedPercent: gpu?.targetFanSpeedPercent ?? null,
+    currentFanSpeedRpm: Math.round((maxFanSpeedRpm * fanSpeed) / 100),
     maxFrequencyGhz: limits.frequencyGhz,
     minFrequencyGhz: limits.minFrequencyGhz,
     absoluteMaxFrequencyGhz: limits.absoluteFrequencyGhz,
     targetFrequencyGhz,
     wearPercent: gpu?.wearPercent ?? 0,
-    maxFanSpeedRpm: limits.fanSpeedRpm,
+    dustPercent: gpu?.dustPercent ?? 0,
+    fanKit: gpu?.fanKit ?? 'stock',
+    maxFanSpeedRpm,
     maxTemperatureCelsius: limits.temperatureCelsius,
   };
 }

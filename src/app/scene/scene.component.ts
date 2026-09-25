@@ -64,6 +64,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
       this.scene = new MiningScene(this.canvas().nativeElement, {
         select: (id) => this.game.select(id),
         inspect: (id) => this.game.inspectGpu(id),
+        telemetry: (id) => this.game.gpuTelemetry(id),
         hover: (gpuId, x, y) => this.gpuHover.emit(gpuId === null ? null : { gpuId, x, y }),
       });
       this.scene.update(

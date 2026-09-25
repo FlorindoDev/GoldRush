@@ -3,7 +3,6 @@ import { VectorValue } from '../../language/collections/vector';
 import { countUnlockedGpusInRig, type MiningPlot } from '../mining-world';
 import { RigScriptObject } from './rig-script-object';
 import type { GpuScriptControls } from './gpu-script-object';
-import { requireArguments, requireIndex } from './script-api-utils';
 
 export class PlotScriptObject implements ScriptObject {
   readonly objectType = 'plot';
@@ -36,12 +35,8 @@ export class PlotScriptObject implements ScriptObject {
     }
   }
 
-  callMethod(name: string, args: Value[], line: number): Value {
-    if (name !== 'rig') {
-      throw new ScriptError(`metodo "${name}" non disponibile per un plot.`, line);
-    }
-    requireArguments(name, args, 1, line);
-    return this.rigs.getItem(requireIndex(args[0], line), line);
+  callMethod(name: string, _args: Value[], line: number): Value {
+    throw new ScriptError(`metodo "${name}" non disponibile per un plot.`, line);
   }
 
   toDisplayString(): string {

@@ -33,8 +33,24 @@ export const GAME_BALANCE = {
       temperatureCelsius: 90,
     },
     cooldownMs: 5_000,
+    benchCoolingMs: 30_000,
     thermalResponsePerAction: 0.4,
+    fanCoolingCelsiusPerPercent: 0.15,
     wearPercentPerHour: 0.005,
+    maintenance: {
+      thermalServiceIntervalHours: 24,
+      dustPercentPerHour: 0.2,
+      dustWearThresholdPercent: 60,
+      dustMaxExtraHeatCelsius: 22,
+      dustMaxHeatingResponseBonus: 0.8,
+      dustMaxWearMultiplier: 3,
+      heatEffectStartCelsius: 78,
+    },
+    fanKits: {
+      stock: { label: 'Originale', coolingCelsius: 0, extraPowerWatts: 0, maxRpm: 3200 },
+      quiet: { label: 'Silenziosa', coolingCelsius: -3, extraPowerWatts: -4, maxRpm: 2400 },
+      performance: { label: 'Alta portata', coolingCelsius: 9, extraPowerWatts: 12, maxRpm: 4200 },
+    },
   },
   economy: {
     bitcoinPriceEur: 60_000,
@@ -44,6 +60,11 @@ export const GAME_BALANCE = {
   },
   mining: {
     actionDurationMs: 850,
+    blockDifficulty: {
+      startingMultiplier: 1,
+      increasePerMinedBlock: 0.1,
+      maxMultiplier: 5,
+    },
   },
   editor: {
     lineEffectDurationMs: 620,

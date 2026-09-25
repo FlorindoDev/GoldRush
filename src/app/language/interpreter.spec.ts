@@ -99,8 +99,8 @@ describe('MineScript', () => {
     expect(f.mine).not.toHaveBeenCalled();
   });
 
-  it('rejects browser APIs and excessive nesting', () => {
-    expect(() => parse('window.alert("hello");')).toThrow('carattere non riconosciuto');
+  it('rejects browser APIs and excessive nesting', async () => {
+    await expect(fixture().run('window.alert("hello");')).rejects.toThrow('window');
     expect(() => parse('repeat(1){'.repeat(80) + '}'.repeat(80))).toThrow('annidamento');
   });
 
