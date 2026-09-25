@@ -1,11 +1,20 @@
 import * as THREE from 'three';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GpuConditionEffects } from './gpu-condition-effects';
-import { createFallbackGpu } from './models/fallback-gpu';
+import { loadTestGpu } from './testing/load-test-gpu';
+import { disposeObject } from './resources/dispose-object';
+
+let template: THREE.Group;
+beforeEach(async () => {
+  template = await loadTestGpu();
+});
+afterEach(() => {
+  disposeObject(template);
+  vi.restoreAllMocks();
+});
 
 describe('GPU condition effects', () => {
   it('keeps effects and material ownership isolated across GPU clones', () => {
-    const template = createFallbackGpu(2.4);
     const original = template.getObjectByProperty('isMesh', true) as THREE.Mesh;
     const originalMaterial = original.material as THREE.MeshStandardMaterial;
     const disposeOriginal = vi.spyOn(originalMaterial, 'dispose');
@@ -32,8 +41,8 @@ describe('GPU condition effects', () => {
   });
 
   it('emits a short cleaning burst, cools down, and respects reduced motion', () => {
-    const effects = new GpuConditionEffects(createFallbackGpu(2.4));
-    const dirty = { dustPercent: 80, temperatureCelsius: 95, fanKit: 'quiet' as const };
+    const effects = new GpuConditionEffects(template.clone(true));
+    const dirty = { dustPercent: 80, temperatureCelsius: 95, fanKit: 'industrial' as const };
     const clean = { ...dirty, dustPercent: 0, temperatureCelsius: 34 };
     effects.update(dirty, 0.1, false);
     effects.update(clean, 0.1, false);

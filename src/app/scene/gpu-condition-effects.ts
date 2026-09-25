@@ -18,7 +18,7 @@ export class GpuConditionEffects {
   private readonly heat = { value: 0 };
   private readonly worldToLocal = { value: new THREE.Matrix4() };
   private readonly materials: THREE.Material[] = [];
-  private readonly dustCloud = createCloud('gpu-dust-cloud', 36, 0xb9a689);
+  private readonly dustCloud = createCloud('gpu-dust-cloud', 72, 0xd1bd95);
   private readonly heatPlume = createCloud('gpu-heat-plume', 20, 0xaaa494);
   private readonly fanTrim = new THREE.Group();
   private readonly size: THREE.Vector3;
@@ -57,11 +57,11 @@ export class GpuConditionEffects {
     for (const child of this.fanTrim.children) {
       if (child instanceof THREE.Mesh) {
         (child.material as THREE.MeshStandardMaterial).color.set(
-          condition.fanKit === 'performance' ? 0xc79853 : 0x91a8ae,
+          condition.fanKit === 'server' ? 0x76dcec : condition.fanKit === 'industrial' ? 0xe8874d : 0xc79853,
         );
       }
     }
-    this.dustCloud.visible = !reducedMotion && (dust > 0.08 || this.cleaningBurst > 0);
+    this.dustCloud.visible = !reducedMotion && (dust > 0.025 || this.cleaningBurst > 0);
     this.heatPlume.visible = !reducedMotion && this.heat.value > 0;
     this.cleaningBurst = Math.max(0, this.cleaningBurst - delta);
     this.root.updateWorldMatrix(true, false);
@@ -138,8 +138,10 @@ export class GpuConditionEffects {
           float dustPatch = gpuDustNoise(gpuSurfacePosition * 14.0) * 0.6 +
             gpuDustNoise(gpuSurfacePosition * 58.0) * 0.4;
           float deposit = 0.35 + max(0.0, normalize(gpuSurfaceNormal).y) * 0.65;
-          float coating = gpuDust * deposit * (0.2 + dustPatch * 0.65);
-          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.19, 0.155, 0.105), coating);
+          float coating = gpuDust * deposit * (0.3 + dustPatch * 0.8);
+          float powderSpeckles = smoothstep(0.62, 0.86, dustPatch) * gpuDust * deposit;
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.43, 0.39, 0.31), min(coating, 0.88));
+          diffuseColor.rgb += vec3(0.055, 0.047, 0.033) * powderSpeckles;
         `,
         );
         shader.fragmentShader = shader.fragmentShader.replace(
@@ -150,7 +152,7 @@ export class GpuConditionEffects {
         `,
         );
       };
-      material.customProgramCacheKey = () => 'gpu-condition-v1';
+      material.customProgramCacheKey = () => 'gpu-condition-v2';
       copies.set(original, material);
       this.materials.push(material);
       return material;
@@ -204,22 +206,34 @@ export class GpuConditionEffects {
     const opacity = cloud.geometry.getAttribute('particleOpacity');
     const sizes = cloud.geometry.getAttribute('particleSize');
     const burst = this.cleaningBurst / 1.2;
-    const intensity = heat ? this.heat.value : Math.max(this.dust.value * 0.45, burst);
+    const dustEmission = Math.pow(this.dust.value, 0.7);
+    const intensity = heat ? this.heat.value : Math.max(dustEmission, burst);
+    const density = heat ? 1 : Math.max(dustEmission, burst);
     for (let i = 0; i < positions.count; i++) {
       const seed = i * 2.39996;
-      const phase = (i / positions.count + this.elapsed * (heat ? 0.35 : 0.13)) % 1;
-      const spread = heat ? 0.23 + phase * 0.35 : 0.48 + (1 - burst) * (burst > 0 ? 0.75 : 0);
+      const phase =
+        (i / positions.count + this.elapsed * (heat ? 0.35 : 0.16 + dustEmission * 0.35)) % 1;
+      const cleaningSpread = burst > 0 ? 0.75 + (1 - burst) * 0.45 : 0;
+      const spread = heat ? 0.23 + phase * 0.35 : 0.28 + dustEmission * 0.62 + cleaningSpread;
       const rise = heat
         ? 0.08 + phase * (0.8 + this.heat.value)
-        : phase * 0.5 + (burst > 0 ? (1 - burst) * 0.8 : 0);
+        : phase * (0.35 + dustEmission * 0.35) + (burst > 0 ? (1 - burst) * 0.8 : 0);
       positions.setXYZ(
         i,
         this.center.x + Math.sin(seed + phase * 1.5) * this.size.x * spread + this.up.x * rise,
         this.center.y + this.size.y * 0.55 + this.up.y * rise,
         this.center.z + Math.cos(seed * 1.7 + phase) * this.size.z * spread + this.up.z * rise,
       );
-      opacity.setX(i, Math.sin(phase * Math.PI) * intensity * (heat ? 0.24 : 0.7));
-      sizes.setX(i, heat ? 0.32 + phase * 0.7 : 0.018 + (i % 4) * 0.008);
+      opacity.setX(
+        i,
+        i / positions.count < density
+          ? Math.sin(phase * Math.PI) * intensity * (heat ? 0.24 : 0.78)
+          : 0,
+      );
+      sizes.setX(
+        i,
+        heat ? 0.32 + phase * 0.7 : 0.022 + dustEmission * 0.05 + burst * 0.035 + (i % 4) * 0.008,
+      );
     }
     positions.needsUpdate = true;
     opacity.needsUpdate = true;
