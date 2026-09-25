@@ -15,7 +15,6 @@
   overscroll-behavior: contain;
   padding: 16px;
   border: 1px solid #465045;
-  border-top: 3px solid #b8c79e;
   border-radius: 3px;
   background: #1b211e;
   color: #e0e5da;
@@ -26,6 +25,22 @@
     sans-serif;
   pointer-events: auto;
   scrollbar-width: thin;
+}
+
+.scene-hud-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #a8b1a1;
+  font-size: 12px;
+}
+
+.scene-hud:not(.collapsed) .scene-hud-header {
+  margin-bottom: 12px;
+}
+
+.scene-hud.collapsed > .hud-group {
+  display: none;
 }
 
 .hud-group {
@@ -107,6 +122,24 @@
   color: #c5cebd;
   font-size: 14px;
   cursor: pointer;
+}
+
+.scene-hud .hud-collapse {
+  width: 28px;
+  min-height: 28px;
+  padding: 4px;
+  border-color: #3a4438;
+  background: #222a23;
+}
+
+.hud-collapse app-icon {
+  width: 14px;
+  height: 14px;
+  transition: transform 120ms ease;
+}
+
+.hud-collapse app-icon.expanded {
+  transform: rotate(90deg);
 }
 
 .scene-hud .rig-choice,

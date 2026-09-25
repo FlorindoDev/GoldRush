@@ -1,7 +1,25 @@
 <nav
   class="scene-hud"
+  [class.collapsed]="collapsed()"
   aria-label="Controlli scena"
 >
+  <div class="scene-hud-header">
+    <span>Controlli</span>
+    <button
+      type="button"
+      class="hud-collapse"
+      [attr.aria-expanded]="!collapsed()"
+      [attr.aria-label]="collapsed() ? 'Espandi controlli' : 'Minimizza controlli'"
+      [title]="collapsed() ? 'Espandi controlli' : 'Minimizza controlli'"
+      (click)="toggleCollapsed()"
+    >
+      <app-icon
+        name="chevron"
+        [class.expanded]="!collapsed()"
+        aria-hidden="true"
+      />
+    </button>
+  </div>
   <div
     class="hud-group rig-controls"
     role="group"

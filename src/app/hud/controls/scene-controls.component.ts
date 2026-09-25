@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { GameService } from '../../game/game.service';
 import {
   GPU_COUNT,
@@ -21,6 +29,7 @@ import { TOOL_STATIONS, type ToolStationId } from '../../scene/tools/tool-statio
 })
 export class SceneControlsComponent {
   readonly game = inject(GameService);
+  readonly collapsed = signal(false);
   readonly cameraPreset = input.required<CameraPreset>();
   readonly selectedToolStationId = input<ToolStationId | null>(null);
   readonly cameraPresetChange = output<CameraPreset>();
@@ -49,6 +58,10 @@ export class SceneControlsComponent {
     const world = this.game.world();
     return this.slots().filter((slot) => isGpuUnlocked(world, slot.id)).length;
   });
+
+  toggleCollapsed(): void {
+    this.collapsed.update((collapsed) => !collapsed);
+  }
 
   isGpuUnlocked(id: number): boolean {
     return isGpuUnlocked(this.game.world(), id);
