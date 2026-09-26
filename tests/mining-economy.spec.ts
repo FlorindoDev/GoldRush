@@ -3,7 +3,7 @@ import type { GameService } from '../src/app/game/game.service';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('complementary', { name: 'Portafoglio Bitcoin' })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Portafoglio', exact: true })).toBeVisible();
 });
 
 test('pays the block reward immediately and bills accumulated electricity at day end', async ({
@@ -29,15 +29,13 @@ test('pays the block reward immediately and bills accumulated electricity at day
       })),
     }));
   });
-  await page
-    .getByRole('textbox', { name: 'Codice MineScript' })
-    .fill('mine();');
+  await page.getByRole('textbox', { name: 'Codice MineScript' }).fill('mine();');
   await page.getByRole('button', { name: 'Avvia codice', exact: true }).click();
   const receipt = page.getByRole('status', { name: 'Riepilogo mining' });
   await expect(receipt).toBeVisible();
   await expect(receipt).toContainText('RICOMPENSA');
   await expect(receipt).not.toContainText('Corrente');
-  await expect(page.locator('app-wallet .bitcoin-counter')).not.toHaveClass(/debit/);
+  await expect(page.locator('app-wallet .wallet-panel')).not.toHaveClass(/debit/);
   await page.screenshot({ path: 'test-results/mining-settlement.png' });
   const atBlockCompletion = await page.evaluate(() => {
     const debug = window as unknown as {
@@ -126,9 +124,7 @@ test('shows only the selected GPU in a rig and controls its stop through code', 
   await expect(
     page.locator('app-power .meter-row').filter({ hasText: 'Consumo GPU' }),
   ).toContainText('0 W');
-  await page
-    .getByRole('textbox', { name: 'Codice MineScript' })
-    .fill('mine();');
+  await page.getByRole('textbox', { name: 'Codice MineScript' }).fill('mine();');
   await page.getByRole('button', { name: 'Avvia codice', exact: true }).click();
   await expect(page.locator('app-power .gpu-heading')).toHaveText(/GPU 2\s*FERMA/);
   await expect(page.getByRole('button', { name: 'Avvia codice', exact: true })).toBeEnabled();
@@ -146,9 +142,7 @@ test('shows only the selected GPU in a rig and controls its stop through code', 
   await page.getByRole('button', { name: 'Visualizza Rig 1', exact: true }).click();
   await page.locator('app-power .power-panel > summary').click();
   await expect(page.locator('app-power .gpu-empty')).toBeVisible();
-  await page
-    .getByRole('textbox', { name: 'Codice MineScript' })
-    .fill('mine();');
+  await page.getByRole('textbox', { name: 'Codice MineScript' }).fill('mine();');
   await page.getByRole('button', { name: 'Avvia codice', exact: true }).click();
   await expect(page.locator('app-power .gpu-empty')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Avvia codice', exact: true })).toBeEnabled();

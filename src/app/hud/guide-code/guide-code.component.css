@@ -1,0 +1,68 @@
+:host {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+pre {
+  display: block;
+  max-width: 100%;
+  margin: 12px 0;
+  padding: 18px 20px;
+  overflow: auto;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  background: var(--guide-surface, #161b22);
+  color: #e6edf3;
+  font: 12px/1.8 var(--mono, monospace);
+}
+
+pre.compact {
+  max-height: 240px;
+  margin: 0;
+  padding: 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+code {
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  white-space: pre;
+}
+
+.token-comment {
+  color: #8b949e;
+  font-style: italic;
+}
+
+.token-keyword {
+  color: #ff7b72;
+  font-weight: 600;
+}
+
+.token-literal,
+.token-number {
+  color: #79c0ff;
+}
+
+.token-string {
+  color: #a5d6a7;
+}
+
+.token-function {
+  color: #d2a8ff;
+}
+
+.token-operator {
+  color: #ffb86c;
+}
+
+.token-punctuation {
+  color: #c9d1d9;
+}

@@ -6,13 +6,9 @@
   position: relative;
   z-index: 24;
   width: 100%;
-  pointer-events: none;
+  pointer-events: auto;
 }
-.bitcoin-counter {
-  display: flex;
-  flex: 1;
-  gap: 10px;
-  align-items: center;
+.wallet-panel {
   padding: 8px 14px;
   border: 1px solid #b8f57538;
   border-radius: 12px;
@@ -22,10 +18,94 @@
     border-color 0.2s,
     box-shadow 0.2s;
 }
-.bitcoin-icon {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 auto;
+.wallet-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 2px 0 8px;
+  border: 0;
+  background: transparent;
+  color: #c4f28e;
+  text-align: left;
+  cursor: pointer;
+}
+.wallet-toggle:focus-visible {
+  outline: 2px solid #c4f28e;
+  outline-offset: 4px;
+}
+.wallet-icon {
+  width: 24px;
+  height: 24px;
+}
+.wallet-chevron {
+  margin-left: auto;
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s;
+}
+.wallet-chevron.expanded {
+  transform: rotate(180deg);
+}
+.wallet-assets {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  padding: 10px;
+  background: #131b16;
+  border: 1px solid #344134;
+  border-radius: 12px;
+  box-shadow: 0 16px 32px #0008;
+  max-height: min(340px, 42dvh);
+  overflow-y: auto;
+  margin-top: 8px;
+  padding-top: 6px;
+  animation: receipt-in 0.2s ease-out;
+}
+.wallet-assets[hidden] {
+  display: none;
+}
+.cash-row,
+.crypto-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  font: 11px var(--mono);
+  color: #d4dfcc;
+}
+.cash-row {
+  justify-content: space-between;
+}
+.crypto-row {
+  border-top: 1px solid #34413480;
+  flex-wrap: wrap;
+}
+.crypto-row app-crypto-model {
+  width: 32px;
+  height: 32px;
+}
+.crypto-info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.crypto-info span {
+  color: #a7b49e;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.crypto-value {
+  margin-left: auto;
+  color: #c4f28e;
+}
+.wallet-note {
+  font: 10px/1.6 var(--mono);
+  color: #a7b49e;
+}
+:host:has(.wallet-assets:not([hidden])) .settlement {
+  display: none;
 }
 .wallet-amount {
   display: grid;
@@ -38,18 +118,10 @@
   font-size: 9px;
   letter-spacing: 1.4px;
 }
-.wallet-amount strong {
-  font-size: 14px;
-  color: #e4eddc;
-}
 .wallet-amount b {
   font-size: 20px;
   color: #c4f28e;
   font-weight: 500;
-}
-.wallet-amount small {
-  font-size: 9px;
-  color: #8c9b83;
 }
 .game-clock {
   display: flex;
@@ -217,16 +289,13 @@
   :host {
     width: 100%;
   }
-  .bitcoin-counter {
+  .wallet-panel {
     padding: 9px 10px;
     gap: 8px;
   }
-  .bitcoin-icon {
+  .wallet-icon {
     width: 28px;
     height: 28px;
-  }
-  .wallet-amount strong {
-    font-size: 12px;
   }
   .wallet-amount b {
     font-size: 16px;

@@ -87,7 +87,7 @@ export class RigWorkbenchComponent {
   }
 
   close(): void {
-    this.game.returnToRig();
+    this.game.closeInspectedRigWorkbench();
     this.closeBench.emit();
   }
 

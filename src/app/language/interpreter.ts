@@ -13,7 +13,8 @@ const MAX_OUTPUT_LENGTH = GAME_BALANCE.scripting.maxOutputLength;
 const BUILTIN_ARGUMENT_COUNTS: Record<string, number> = {
   print: 1,
   wait: 1,
-  mine: 0,
+  mine: 2,
+  setCrypto: 2,
   progress: 0,
   vector: 0,
   stack: 0,
@@ -24,8 +25,14 @@ let nextParallelGroupId = 0;
 export interface ScriptHost {
   globals?: Readonly<Record<string, Value>>;
   print(message: string): void;
-  mine?(parallelGroupId?: number): Promise<void>;
-  progress(): number;
+  mine?(
+    gpus: Value | null,
+    message: string | false | null,
+    line: number,
+    parallelGroupId?: number,
+  ): Promise<void>;
+  setCrypto?(gpus: Value, crypto: Value, line: number): void;
+  progress(crypto?: string): number;
 }
 
 export function delay(milliseconds: number, signal: AbortSignal): Promise<void> {
@@ -334,7 +341,16 @@ class Interpreter {
       throw new ScriptError(`funzione "${name}" sconosciuta.`, line);
     }
     const expectedArguments = BUILTIN_ARGUMENT_COUNTS[name];
-    if (args.length !== expectedArguments) {
+    if (
+      name === 'mine'
+        ? args.length > 2
+        : name === 'progress'
+          ? args.length > 1
+          : args.length !== expectedArguments
+    ) {
+      if (name === 'mine') {
+        throw new ScriptError('mine accetta al massimo 2 argomenti.', line);
+      }
       throw new ScriptError(`${name} richiede ${expectedArguments} argomenti.`, line);
     }
     switch (name) {
@@ -342,13 +358,53 @@ class Interpreter {
         this.host.print(this.formatValue(args[0]).slice(0, MAX_OUTPUT_LENGTH));
         return 0;
       case 'progress':
-        return this.host.progress();
+        if (args.length === 1 && typeof args[0] !== 'string') {
+          throw new ScriptError('progress richiede la sigla della cripto tra virgolette.', line);
+        }
+        return this.host.progress(args[0] as string | undefined);
+      case 'setCrypto':
+        if (!this.host.setCrypto) {
+          throw new ScriptError('assegnazione cripto non disponibile.', line);
+        }
+        try {
+          this.host.setCrypto(args[0], args[1], line);
+        } catch (error) {
+          if (error instanceof ScriptError) throw error;
+          throw new ScriptError(
+            error instanceof Error ? error.message : 'Assegnazione non riuscita.',
+            line,
+          );
+        }
+        return null;
       case 'mine':
         if (!this.host.mine) {
           throw new ScriptError('mining non disponibile in questo ambiente.', line);
         }
+        let gpus: Value | null = null;
+        let message: string | false | null = null;
+        if (args.length === 1) {
+          if (typeof args[0] === 'string' || args[0] === false) {
+            message = args[0];
+          } else if (args[0] !== null && typeof args[0] === 'object') {
+            gpus = args[0];
+          } else {
+            throw new ScriptError(
+              'mine accetta un vettore di GPU, un messaggio tra virgolette oppure false.',
+              line,
+            );
+          }
+        } else if (args.length === 2) {
+          if (args[0] === null || typeof args[0] !== 'object') {
+            throw new ScriptError('il primo argomento di mine deve essere un vettore di GPU.', line);
+          }
+          if (typeof args[1] !== 'string' && args[1] !== false) {
+            throw new ScriptError('il messaggio di mine deve essere testo oppure false.', line);
+          }
+          gpus = args[0];
+          message = args[1];
+        }
         try {
-          await this.host.mine(this.parallelGroupId);
+          await this.host.mine(gpus, message, line, this.parallelGroupId);
         } catch (error) {
           if (error instanceof Error && error.name === 'AbortError') {
             throw error;

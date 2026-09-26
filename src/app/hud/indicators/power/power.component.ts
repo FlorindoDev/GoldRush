@@ -11,7 +11,13 @@ import { RIG_DUST_SYSTEMS } from '../../../config/dust-filter-config';
 import { FAN_MODELS_BY_ID } from '../../../config/fan-config';
 import { GameService } from '../../../game/game.service';
 import { rigFanCoolingCelsius } from '../../../game/gpu-operation';
-import { getGpu, getRig, isGpuUnlocked, isRigUnlocked } from '../../../game/mining-world';
+import {
+  getCryptoBlock,
+  getGpu,
+  getRig,
+  isGpuUnlocked,
+  isRigUnlocked,
+} from '../../../game/mining-world';
 import { IconComponent } from '../../icons/icon.component';
 
 @Component({
@@ -39,14 +45,14 @@ export class PowerComponent implements OnDestroy {
     const gpu = this.gpu();
     return gpu ? this.game.gpuTelemetry(gpu.id) : null;
   });
-  readonly gpuRigFanCoolingCelsius = computed(() => {
+  readonly cryptoBlock = computed(() => {
     const gpu = this.gpu();
-    return gpu ? rigFanCoolingCelsius(getRig(this.game.world(), gpu.rigId).setup) : 0;
+    return gpu ? getCryptoBlock(this.game.world(), gpu.cryptoId) : null;
   });
   readonly rig = computed(() => {
-    const id = this.game.viewedRigId();
+    const id = this.game.selectedRigId();
     const world = this.game.world();
-    return isRigUnlocked(world, id) ? getRig(world, id) : null;
+    return id !== null && isRigUnlocked(world, id) ? getRig(world, id) : null;
   });
   readonly rigDetails = computed(() => {
     const rig = this.rig();

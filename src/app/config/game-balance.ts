@@ -7,6 +7,7 @@ import {
   GPU_RUNTIME_CONFIG,
 } from './gpu-config';
 import { GAMEPLAY_RIG_MODEL_ID, GAMEPLAY_RIG_SETUP, RIG_FAN_TUNING } from './rig-config';
+import { CRYPTO_CONFIG } from './crypto-config';
 import { RIG_COOLING_METHODS } from './cooling-config';
 import { RIG_DUST_SYSTEMS } from './dust-filter-config';
 import {
@@ -40,8 +41,7 @@ export const GAME_BALANCE = {
       // Alias mantenuti per i componenti esistenti; i valori per GPU sono in dustDamage.
       dustWearThresholdPercent: startingGpu.specifications.dustDamage.wearThresholdPercent,
       dustMaxExtraHeatCelsius: startingGpu.specifications.dustDamage.maxExtraHeatCelsius,
-      dustMaxHeatingResponseBonus:
-        startingGpu.specifications.dustDamage.maxHeatingResponseBonus,
+      dustMaxHeatingResponseBonus: startingGpu.specifications.dustDamage.maxHeatingResponseBonus,
       dustMaxWearMultiplier: startingGpu.specifications.dustDamage.maxWearMultiplier,
     },
     fanKits: GPU_FAN_KITS,
@@ -55,9 +55,12 @@ export const GAME_BALANCE = {
     coolingMethodId: GAMEPLAY_RIG_SETUP.coolingMethodId,
     coolingMethod: RIG_COOLING_METHODS[GAMEPLAY_RIG_SETUP.coolingMethodId],
   },
-  economy: ECONOMY_CONFIG,
+  economy: {
+    ...ECONOMY_CONFIG,
+    bitcoinPriceEur: CRYPTO_CONFIG.find((crypto) => crypto.id === 'bitcoin')!.priceEur,
+  },
   clock: CLOCK_CONFIG,
-  mining: MINING_CONFIG,
+  mining: { ...MINING_CONFIG, blockDifficulty: WORLD_CONFIG.cryptoBlockDifficulty.bitcoin },
   editor: EDITOR_CONFIG,
   scripting: SCRIPTING_CONFIG,
   camera: CAMERA_CONFIG,

@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  computed,
   inject,
   signal,
   viewChild,
@@ -20,7 +21,9 @@ import {
 import { ConsoleComponent } from './panels/console/console.component';
 import { EditorComponent } from './panels/editor/editor.component';
 import { GameService } from '../game/game.service';
+import { loadGpuHoverTooltipEnabled, persistGpuHoverTooltipEnabled } from '../game/script-storage';
 import { EXAMPLES, LANGUAGE_GUIDE_EXAMPLE } from '../language/examples';
+import { GUIDE_CODE } from '../language/guide-code';
 import { SceneComponent } from '../scene/scene.component';
 import { WalletComponent } from './indicators/wallet/wallet.component';
 import { PowerComponent } from './indicators/power/power.component';
@@ -28,6 +31,7 @@ import { GpuTooltipComponent, type GpuHover } from './indicators/gpu-tooltip/gpu
 import { IconComponent } from './icons/icon.component';
 import { WorkbenchComponent } from './panels/workbench/workbench.component';
 import { RigWorkbenchComponent } from './panels/rig-workbench/rig-workbench.component';
+import { GuideCodeComponent } from './guide-code/guide-code.component';
 
 type WindowName = 'editor' | 'console';
 type GuideSection = 'examples' | 'functions' | 'gpu' | 'energy' | 'constructs' | 'shortcuts';
@@ -83,6 +87,7 @@ const SHORTCUT_GROUPS = [
     IconComponent,
     WorkbenchComponent,
     RigWorkbenchComponent,
+    GuideCodeComponent,
   ],
   templateUrl: './hud.component.html',
   styleUrl: './hud.component.css',
@@ -92,6 +97,17 @@ const SHORTCUT_GROUPS = [
 export class HudComponent {
   readonly game = inject(GameService);
   readonly hoveredGpu = signal<GpuHover | null>(null);
+  readonly gpuHoverTooltipEnabled = signal(loadGpuHoverTooltipEnabled());
+  readonly visibleGpuHover = computed(() => {
+    if (
+      !this.gpuHoverTooltipEnabled() ||
+      this.game.inspectedGpuId() !== null ||
+      this.game.inspectedRigId() !== null
+    ) {
+      return null;
+    }
+    return this.hoveredGpu();
+  });
   readonly balance = GAME_BALANCE;
   readonly plotCapacity = PLOT_COUNT;
   readonly rigCapacity = RIG_COUNT;
@@ -105,6 +121,7 @@ export class HudComponent {
   readonly idleGpu = getGpuTelemetry(0);
   readonly miningGpu = getGpuTelemetry(1);
   readonly examples = EXAMPLES;
+  readonly guideCode = GUIDE_CODE;
   readonly languageGuideExample = LANGUAGE_GUIDE_EXAMPLE;
   readonly guideSection = signal<GuideSection>('examples');
   readonly shortcutGroups = SHORTCUT_GROUPS;
@@ -134,6 +151,15 @@ export class HudComponent {
     const checkbox = event.target;
     if (checkbox instanceof HTMLInputElement) {
       this.game.setLineEffectsEnabled(checkbox.checked);
+    }
+  }
+
+  updateGpuHoverTooltip(event: Event): void {
+    const checkbox = event.target;
+    if (checkbox instanceof HTMLInputElement) {
+      const enabled = checkbox.checked;
+      this.gpuHoverTooltipEnabled.set(enabled);
+      persistGpuHoverTooltipEnabled(enabled);
     }
   }
 

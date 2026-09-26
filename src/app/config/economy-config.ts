@@ -1,5 +1,4 @@
 export const ECONOMY_CONFIG = {
-  bitcoinPriceEur: 60_000,
   electricityPriceEurPerKwh: 0.3,
   // Un'azione completa simula un'ora di lavoro.
   simulatedHoursPerAction: 1,

@@ -67,4 +67,20 @@ describe('camera focus', () => {
     );
     expect(reset.offset.toArray()).toEqual(CAMERA.rigFrontOffset);
   });
+
+  it('focuses the explicitly selected RIG bench while a GPU bench is also open', () => {
+    const focus = resolveCameraFocus({
+      viewedRigId: 7,
+      cameraPreset: 'front',
+      inspectedGpuId: 1,
+      selectedToolStationId: 'rigWorkbench',
+    });
+    const station = GAME_BALANCE.toolStations.rigWorkbench;
+    expect(focus.target.toArray()).toEqual(
+      toolStationPosition('rigWorkbench')
+        .add(new THREE.Vector3(...station.focusTargetOffset))
+        .toArray(),
+    );
+    expect(focus.offset.toArray()).toEqual(station.cameraOffset);
+  });
 });

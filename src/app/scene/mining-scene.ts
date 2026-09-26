@@ -320,12 +320,16 @@ export class MiningScene {
     inspectedRigId: number | null,
   ): void {
     this.rigWorkbench.outline.visible = selectedToolStationId === 'rigWorkbench';
-    if (selectedToolStationId !== 'rigWorkbench' || inspectedRigId === null) {
+    if (inspectedRigId === null) {
       this.clearRigPreview();
       return;
     }
     const rig = getRig(world, inspectedRigId);
-    const setupKey = rigSetupKey(rig.setup);
+    const gpuMountKey = Array.from({ length: GPUS_PER_RIG }, (_, index) => {
+      const gpuId = (rig.id - 1) * GPUS_PER_RIG + index + 1;
+      return isGpuUnlocked(world, gpuId) && !getGpu(world, gpuId).onWorkbench ? '1' : '0';
+    }).join('');
+    const setupKey = `${rigSetupKey(rig.setup)}:${gpuMountKey}`;
     if (this.previewRigId === rig.id && this.previewRigSetupKey === setupKey) {
       return;
     }
@@ -354,13 +358,14 @@ export class MiningScene {
     for (let index = 0; index < GPUS_PER_RIG; index++) {
       const gpuId = (rigId - 1) * GPUS_PER_RIG + index + 1;
       const unlocked = isGpuUnlocked(world, gpuId);
+      const mounted = unlocked && !getGpu(world, gpuId).onWorkbench;
       const socket = model.getObjectByName(`gpu-slot-${String(index + 1).padStart(2, '0')}`);
       if (!socket) {
         continue;
       }
       const cable = model.getObjectByName(`slot-cable-${index + 1}`);
       if (cable) {
-        cable.visible = unlocked;
+        cable.visible = mounted;
       }
       const indicator = model
         .getObjectByName(`slot-indicator-${index + 1}`)
@@ -369,11 +374,11 @@ export class MiningScene {
         indicator instanceof THREE.Mesh &&
         indicator.material instanceof THREE.MeshStandardMaterial
       ) {
-        const color = unlocked ? 0xb8f575 : 0x283630;
+        const color = mounted ? 0xb8f575 : 0x283630;
         indicator.material.color.set(color);
         indicator.material.emissive.set(color);
       }
-      if (!unlocked) {
+      if (!mounted) {
         continue;
       }
       const position = model.worldToLocal(socket.getWorldPosition(new THREE.Vector3()));

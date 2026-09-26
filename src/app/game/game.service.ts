@@ -1,5 +1,7 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { GAME_BALANCE } from '../config/game-balance';
+import { CRYPTO_CONFIG, cryptoValueEur, requireCrypto } from '../config/crypto-config';
+import { gpuIdsFromVector } from './script-api/gpu-script-object';
 import type { RigSetup } from '../config/rig-config';
 import { delay, execute } from '../language/interpreter';
 import { ScriptError } from '../language/syntax';
@@ -19,20 +21,23 @@ import {
 } from './script-storage';
 import {
   canExpand,
+  assignGpusCrypto,
   billElectricityForDay,
-  BLOCK_REWARD,
   countUnlockedGpus,
   countUnlockedRigs,
   configureRig,
   createWorld,
   farmPowerWatts,
   getGpu,
+  getCryptoBlock,
+  getCryptoProgress,
+  isCryptoBlockSettled,
   getRig,
   serviceGpu,
   setGpuWorkbenchState,
   recordGpuWork,
   requireOperationalGpu,
-  settleCompletedBlock,
+  settleCompletedBlocks,
   resumeGpu,
   setGpuFrequency,
   setGpuFanSpeed,
@@ -85,6 +90,7 @@ export class GameService {
   readonly activeGpuIds = computed(() => this.miningActions().map(({ gpuId }) => gpuId));
   readonly activeGpuId = computed(() => this.activeGpuIds()[0] ?? null);
   readonly selectedGpuId = signal<number | null>(null);
+  readonly selectedRigId = signal<number | null>(null);
   readonly inspectedGpuId = signal<number | null>(null);
   readonly inspectedRigId = signal<number | null>(null);
   readonly viewedRigId = signal(1);
@@ -118,7 +124,9 @@ export class GameService {
   readonly balance = computed(() =>
     (this.world().satoshis / GAME_BALANCE.world.satoshisPerBitcoin).toFixed(8),
   );
-  readonly balanceEur = computed(() => satoshisToEuros(this.world().satoshis));
+  readonly balanceEur = computed(
+    () => this.world().cashEur + cryptoValueEur(this.world().holdings),
+  );
   private controller?: AbortController;
   private rigPoweredDownAt = Date.now();
   private billedGameDay = 0;
@@ -253,6 +261,7 @@ export class GameService {
             {
               getGpu: (id) => getGpu(this.world(), id),
               getTelemetry: (id) => this.gpuTelemetry(id),
+              getCryptoProgress: (cryptoId) => getCryptoProgress(this.world(), cryptoId),
               isSelected: (id) => this.selectedGpuId() === id,
               setFrequencyGhz: (id, frequency) => this.setGpuFrequencyGhz(id, frequency),
               setFanSpeedPercent: (id, percentage) => this.setGpuFanSpeedPercent(id, percentage),
@@ -262,8 +271,23 @@ export class GameService {
             () => this.readElectricity(),
           ),
           print: (message) => this.log(message, 'output'),
-          mine: (parallelGroupId) => this.mineUnlockedGpus(controller.signal, parallelGroupId),
-          progress: () => this.selected().progress,
+          mine: (gpus, message, line, parallelGroupId) =>
+            this.mineUnlockedGpus(
+              controller.signal,
+              gpus === null ? undefined : gpuIdsFromVector(gpus, line, 'mine'),
+              message,
+              parallelGroupId,
+            ),
+          progress: (cryptoName) =>
+            cryptoName
+              ? getCryptoProgress(this.world(), requireCrypto(cryptoName).id)
+              : this.selected().progress,
+          setCrypto: (gpus, crypto, line) => {
+            if (typeof crypto !== 'string') {
+              throw new ScriptError('setCrypto richiede una sigla cripto tra virgolette.', line);
+            }
+            this.setGpusCrypto(gpuIdsFromVector(gpus, line), crypto);
+          },
         },
         controller.signal,
         async (line) => {
@@ -404,7 +428,7 @@ export class GameService {
   }
 
   select(id: number): void {
-    if (isGpuUnlocked(this.world(), id)) {
+    if (!this.running() && isGpuUnlocked(this.world(), id)) {
       this.viewedRigId.set(rigIdForGpu(id));
       this.viewedPlotId.set(plotIdForGpu(id));
       this.selectedGpuId.set(id);
@@ -414,7 +438,7 @@ export class GameService {
   inspectGpu(id: number): void {
     if (!this.running() && isGpuUnlocked(this.world(), id)) {
       if (this.inspectedGpuId() !== id) {
-        this.returnToRig();
+        this.returnInspectedGpuToRig();
         this.world.update((world) => setGpuWorkbenchState(world, id, true));
       }
       this.select(id);
@@ -426,10 +450,9 @@ export class GameService {
     if (this.running() || !isRigUnlocked(this.world(), id)) {
       return;
     }
-    this.returnToRig();
     this.viewedRigId.set(id);
     this.viewedPlotId.set(plotIdForRig(id));
-    this.selectedGpuId.set(null);
+    this.selectedRigId.set(id);
     this.inspectedRigId.set(id);
   }
 
@@ -442,11 +465,19 @@ export class GameService {
   }
 
   returnToRig(): void {
+    this.returnInspectedGpuToRig();
+    this.closeInspectedRigWorkbench();
+  }
+
+  returnInspectedGpuToRig(): void {
     const gpuId = this.inspectedGpuId();
     if (gpuId !== null) {
       this.world.update((world) => setGpuWorkbenchState(world, gpuId, false));
     }
     this.inspectedGpuId.set(null);
+  }
+
+  closeInspectedRigWorkbench(): void {
     this.inspectedRigId.set(null);
   }
 
@@ -469,8 +500,7 @@ export class GameService {
     }
     this.viewedRigId.set(id);
     this.viewedPlotId.set(plotIdForRig(id));
-    this.selectedGpuId.set(null);
-    this.returnToRig();
+    this.selectedRigId.set(id);
   }
 
   viewPlot(id: number): void {
@@ -481,6 +511,7 @@ export class GameService {
     this.viewedPlotId.set(id);
     this.viewedRigId.set(firstRigId);
     this.selectedGpuId.set(null);
+    this.selectedRigId.set(null);
     this.returnToRig();
   }
 
@@ -494,6 +525,7 @@ export class GameService {
     this.billedGameDay = 0;
     this.clearLineEffects();
     this.selectedGpuId.set(null);
+    this.selectedRigId.set(null);
     this.viewedRigId.set(1);
     this.viewedPlotId.set(1);
     this.started.set(false);
@@ -505,11 +537,29 @@ export class GameService {
     this.logs.set([]);
   }
 
-  private async mineUnlockedGpus(signal: AbortSignal, parallelGroupId?: number): Promise<void> {
+  private async mineUnlockedGpus(
+    signal: AbortSignal,
+    selectedGpuIds: number[] | undefined,
+    message: string | false | null,
+    parallelGroupId?: number,
+  ): Promise<void> {
     const world = this.world();
-    const unlockedGpuIds = Array.from({ length: GPU_COUNT }, (_, index) => index + 1).filter(
-      (gpuId) => isGpuUnlocked(world, gpuId),
-    );
+    const unlockedGpuIds =
+      selectedGpuIds === undefined
+        ? Array.from({ length: GPU_COUNT }, (_, index) => index + 1).filter((gpuId) =>
+            isGpuUnlocked(world, gpuId),
+          )
+        : Array.from(new Set(selectedGpuIds));
+    for (const gpuId of unlockedGpuIds) {
+      if (
+        !Number.isInteger(gpuId) ||
+        gpuId < 1 ||
+        gpuId > GPU_COUNT ||
+        !isGpuUnlocked(world, gpuId)
+      ) {
+        throw new Error(`GPU ${gpuId} bloccata o inesistente.`);
+      }
+    }
     const benchGpuIds = unlockedGpuIds.filter((gpuId) => getGpu(world, gpuId).onWorkbench);
     for (const gpuId of benchGpuIds) {
       this.log(`GPU ${gpuId} al banco: mining ignorato. Rimontala nel RIG.`, 'warning');
@@ -543,7 +593,7 @@ export class GameService {
     const results = await Promise.allSettled(
       gpuIds.map(async (gpuId) => {
         try {
-          await this.mineBlock(gpuId, signal, groupId);
+          await this.mineBlock(gpuId, signal, groupId, message);
         } catch (error) {
           if (!signal.aborted && error instanceof Error && error.name === 'AbortError') {
             this.log(`GPU ${gpuId} fermata: il mining continua sulle altre schede.`, 'warning');
@@ -563,6 +613,7 @@ export class GameService {
     gpuId: number,
     signal: AbortSignal,
     parallelGroupId?: number,
+    message: string | false | null = null,
   ): Promise<void> {
     signal.throwIfAborted();
     const groupGpuIds =
@@ -578,8 +629,9 @@ export class GameService {
       return;
     }
     requireOperationalGpu(this.world(), gpuId);
-    if (this.selected().progress === 100 && this.activeGpuIds().length === 0) {
-      this.prepareNextBlock();
+    const miningGpu = getGpu(this.world(), gpuId);
+    if (getCryptoProgress(this.world(), miningGpu.cryptoId) === 100) {
+      this.world.update(expandWorld);
     }
 
     const startedAt = Date.now();
@@ -625,7 +677,7 @@ export class GameService {
       const hasActiveMining = this.activeGpuIds().length > 0;
       this.mining.set(hasActiveMining);
       if (!hasActiveMining) {
-        this.world.update(settleCompletedBlock);
+        this.world.update(settleCompletedBlocks);
       }
       if (
         parallelGroupId !== undefined &&
@@ -637,25 +689,34 @@ export class GameService {
 
     const gpu = getGpu(this.world(), gpuId);
     if (gpu.stopped) {
-      this.log(
-        `GPU ${gpuId} arrestata: ${gpu.stopReason}. Raffredda la scheda e usa clearStop().`,
-        'info',
-      );
+      if (message !== false) {
+        this.log(
+          `GPU ${gpuId} arrestata: ${gpu.stopReason}. Raffredda la scheda e usa clearStop().`,
+          'info',
+        );
+      }
       return;
     }
 
-    const block = this.selected();
+    const block = getCryptoBlock(this.world(), gpu.cryptoId);
+    const crypto = CRYPTO_CONFIG.find((item) => item.id === gpu.cryptoId)!;
+    const cryptoLabel = `${crypto.name} (${crypto.symbol})`;
     const blockNumber = String(block.id).padStart(3, '0');
-    this.log(
-      `GPU ${gpuId} · mine() → blocco #${blockNumber} · ${block.progress.toFixed(2)}%`,
-      'output',
-    );
-
-    if (block.progress === 100 && this.world().lastSettlement?.blockId === block.id) {
+    const customPrefix = typeof message === 'string' && message ? `${message} · ` : '';
+    if (message !== false) {
       this.log(
-        `Blocco estratto! +${(BLOCK_REWARD / GAME_BALANCE.world.satoshisPerBitcoin).toFixed(4)} BTC.`,
-        'success',
+        `${customPrefix}GPU ${gpuId} · ${cryptoLabel} · mine() → blocco #${blockNumber} · ${block.progress.toFixed(2)}%`,
+        'output',
       );
+    }
+
+    if (isCryptoBlockSettled(this.world(), gpu.cryptoId, block.id)) {
+      if (message !== false) {
+        this.log(
+          `${customPrefix}Blocco ${cryptoLabel} #${String(block.id).padStart(3, '0')} estratto! +${crypto.coinsPerBlock} ${crypto.symbol}.`,
+          'success',
+        );
+      }
     }
   }
 
@@ -709,6 +770,13 @@ export class GameService {
       throw new Error('Attendi la fine di mine() prima di cambiare frequenza.');
     }
     this.world.update((world) => setGpuFrequency(world, gpuId, frequencyGhz));
+  }
+
+  setGpusCrypto(gpuIds: readonly number[], crypto: string): void {
+    if (gpuIds.some((id) => this.activeGpuIds().includes(id))) {
+      throw new Error('Attendi la fine di mine() prima di cambiare cripto.');
+    }
+    this.world.update((world) => assignGpusCrypto(world, gpuIds, crypto));
   }
 
   setGpuFanSpeedPercent(gpuId: number, fanSpeedPercent: number | null): void {

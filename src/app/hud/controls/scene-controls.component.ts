@@ -37,12 +37,14 @@ export class SceneControlsComponent {
   readonly gpuCapacity = GPU_COUNT;
   readonly rigCapacity = RIG_COUNT;
   readonly toolStations = TOOL_STATIONS;
-  readonly focusedToolStationId = computed(() =>
-    this.game.inspectedRigId() !== null
-      ? 'rigWorkbench'
-      : this.game.inspectedGpuId() !== null
+  readonly focusedToolStationId = computed(
+    () =>
+      this.selectedToolStationId() ??
+      (this.game.inspectedGpuId() !== null
         ? 'workbench'
-        : this.selectedToolStationId(),
+        : this.game.inspectedRigId() !== null
+          ? 'rigWorkbench'
+          : null),
   );
   readonly plotIds = computed(() =>
     Array.from({ length: this.game.plotCount() }, (_, index) => index + 1),
@@ -115,7 +117,6 @@ export class SceneControlsComponent {
     if (this.game.running() || this.focusedToolStationId() === id) {
       return;
     }
-    this.game.returnToRig();
     this.selectedToolStationIdChange.emit(id);
   }
 
@@ -154,5 +155,17 @@ export class SceneControlsComponent {
   returnToRig(): void {
     this.selectedToolStationIdChange.emit(null);
     this.game.returnToRig();
+  }
+
+  closeGpuWorkbench(): void {
+    this.game.returnInspectedGpuToRig();
+    this.selectedToolStationIdChange.emit(
+      this.game.inspectedRigId() !== null ? 'rigWorkbench' : null,
+    );
+  }
+
+  closeRigWorkbench(): void {
+    this.game.closeInspectedRigWorkbench();
+    this.selectedToolStationIdChange.emit(this.game.inspectedGpuId() !== null ? 'workbench' : null);
   }
 }

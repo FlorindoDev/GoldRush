@@ -31,14 +31,15 @@ describe('GPU selection and workbench', () => {
     expect(game.inspectedGpuId()).toBe(2);
   });
 
-  it('keeps selection on return and clears it when changing rig, plot or resetting', () => {
+  it('keeps both selections on return and clears them on plot change or reset', () => {
     const game = createGame();
     game.inspectGpu(1);
     game.returnToRig();
     expect(game.selectedGpuId()).toBe(1);
     expect(game.inspectedGpuId()).toBeNull();
     game.viewRig(1);
-    expect(game.selectedGpuId()).toBeNull();
+    expect(game.selectedGpuId()).toBe(1);
+    expect(game.selectedRigId()).toBe(1);
     game.inspectGpu(2);
     game.viewPlot(2);
     expect(game.selectedGpuId()).toBeNull();
@@ -47,6 +48,32 @@ describe('GPU selection and workbench', () => {
     game.reset();
     expect(game.selectedGpuId()).toBeNull();
     expect(game.inspectedGpuId()).toBeNull();
+  });
+
+  it('keeps a selected GPU and RIG together for the HUD', () => {
+    const game = createGame();
+    game.select(1);
+    game.viewRig(1);
+    expect(game.selectedGpuId()).toBe(1);
+    expect(game.selectedRigId()).toBe(1);
+  });
+
+  it('keeps one GPU and one RIG on their benches at the same time', () => {
+    const game = createGame();
+    game.inspectGpu(1);
+    game.inspectRig(1);
+    expect(game.inspectedGpuId()).toBe(1);
+    expect(game.inspectedRigId()).toBe(1);
+    expect(game.world().plots[0]!.rigs[0]!.gpus[0]!.onWorkbench).toBe(true);
+
+    game.closeInspectedRigWorkbench();
+    expect(game.inspectedGpuId()).toBe(1);
+    expect(game.inspectedRigId()).toBeNull();
+    game.inspectRig(1);
+    game.returnInspectedGpuToRig();
+    expect(game.inspectedGpuId()).toBeNull();
+    expect(game.inspectedRigId()).toBe(1);
+    expect(game.world().plots[0]!.rigs[0]!.gpus[0]!.onWorkbench).toBe(false);
   });
 
   it('ignores locked GPUs and both gestures while a script is running', () => {

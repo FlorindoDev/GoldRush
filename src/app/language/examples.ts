@@ -1,8 +1,6 @@
 import { MINE_PROGRESS_PER_GPU, STARTING_GPU_COUNT } from '../game/mining-world';
 
-const MINES_PER_BLOCK = Math.ceil(
-  100 / (MINE_PROGRESS_PER_GPU * Math.max(1, STARTING_GPU_COUNT)),
-);
+const MINES_PER_BLOCK = Math.ceil(100 / (MINE_PROGRESS_PER_GPU * Math.max(1, STARTING_GPU_COUNT)));
 
 export const EXAMPLES = [
   {
@@ -13,6 +11,28 @@ while (progress() < 100) {
 }
 
 print("Blocco completato!");`,
+  },
+  {
+    name: 'Mining multi-cripto',
+    code: `// Un vettore di GPU per ogni cripto.
+let gpus = plots[0].rigs[0].gpus;
+setCrypto(gpus.slice(0, 2), "KAS");
+setCrypto(gpus.slice(2, 4), "LTC");
+print(gpus[0].crypto);
+print("Progresso KAS: " + progress("KAS"));
+// Le altre GPU mantengono la loro assegnazione (BTC inizialmente).
+// mine() senza vettore avvia tutte le GPU operative: ognuna mina la propria cripto.
+while (progress() < 100) {
+  mine();
+}`,
+  },
+  {
+    name: 'GPU selezionate e messaggi',
+    code: `let gpus = plots[0].rigs[0].gpus;
+setCrypto(gpus.slice(0, 2), "KAS");
+mine(gpus.slice(0, 2), "Mining Kaspa");
+// Solo queste GPU minano, senza messaggi di progresso o ricompensa.
+mine(gpus.slice(2, 4), false);`,
   },
   {
     name: 'Ciclo for',

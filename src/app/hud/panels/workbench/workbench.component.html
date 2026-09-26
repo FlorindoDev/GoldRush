@@ -10,7 +10,7 @@
           type="button"
           class="close-button"
           aria-label="Chiudi banco e rimonta GPU"
-          (click)="game.returnToRig()"
+          (click)="close()"
         >
           <app-icon name="close" />
         </button>
@@ -243,7 +243,7 @@
         <button
           type="button"
           class="return-button"
-          (click)="game.returnToRig()"
+          (click)="close()"
         >
           <app-icon name="arrow" /><span>Rimonta nel RIG-{{ card.rigId }}</span>
         </button>

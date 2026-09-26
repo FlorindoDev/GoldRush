@@ -37,10 +37,13 @@ app-scene.world-scene {
   display: contents;
   pointer-events: auto;
 }
+.status-panels:has(.wallet-toggle[aria-expanded='true']) {
+  z-index: 40;
+}
 .status-panels > app-wallet {
   grid-column: 3;
   grid-row: 1;
-  align-self: stretch;
+  align-self: start;
   justify-self: end;
   max-width: 290px;
 }
@@ -406,14 +409,6 @@ dialog h3 {
 .guide-example[open] summary {
   border-bottom: 1px solid var(--border);
 }
-.guide-example pre {
-  max-height: 240px;
-  overflow: auto;
-  margin: 0;
-  padding: 14px;
-  color: #a5d6ff;
-  font: 12px/1.7 var(--mono);
-}
 .guide-example button {
   margin: 0 14px 14px;
   border-color: #566273;
@@ -556,7 +551,6 @@ dialog h3 {
 .guide-sections > article > h3 {
   margin-top: 0;
 }
-.guide-markdown .guide-code,
 .guide-signature,
 .guide-sections > article > code {
   display: block;
@@ -569,17 +563,6 @@ dialog h3 {
   color: #a5d6ff;
   font: 12px/1.8 var(--mono);
   overflow-wrap: anywhere;
-}
-.guide-markdown .guide-code {
-  overflow: auto;
-  padding: 18px 20px;
-  color: #e6edf3;
-}
-.guide-markdown .guide-code code {
-  padding: 0;
-  background: none;
-  font: inherit;
-  overflow-wrap: normal;
 }
 .guide-markdown .guide-note,
 .guide-markdown .guide-property {
@@ -813,7 +796,7 @@ dialog h3 {
   }
   .status-panels > app-wallet {
     grid-column: 1 / -1;
-    grid-row: auto;
+    grid-row: 1;
     justify-self: start;
   }
   .utility-actions {
@@ -889,5 +872,32 @@ dialog h3 {
   .editor-window {
     top: 282px;
     height: min(430px, calc(100dvh - 290px));
+  }
+}
+
+.game-shell app-workbench.dual-bench {
+  left: auto;
+  right: calc(min(420px, calc(50vw - 36px)) + 48px);
+  width: min(420px, calc(50vw - 36px));
+}
+
+.game-shell app-rig-workbench.dual-bench {
+  right: 24px;
+  width: min(420px, calc(50vw - 36px));
+}
+
+@media (max-width: 1200px) {
+  .game-shell app-workbench.dual-bench {
+    top: 80px;
+    right: 24px;
+    bottom: calc(50dvh + 12px);
+    width: min(420px, calc(100vw - 48px));
+  }
+
+  .game-shell app-rig-workbench.dual-bench {
+    top: calc(50dvh + 12px);
+    right: 24px;
+    bottom: 24px;
+    width: min(420px, calc(100vw - 48px));
   }
 }

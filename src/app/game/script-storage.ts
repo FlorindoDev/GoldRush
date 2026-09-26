@@ -10,6 +10,7 @@ const CODE_STORAGE_KEY = 'blockcraft-code';
 const FILES_STORAGE_KEY = 'blockcraft-files';
 const ACTIVE_FILE_STORAGE_KEY = 'blockcraft-active-file';
 const LINE_EFFECTS_STORAGE_KEY = 'blockcraft-line-effects';
+const GPU_HOVER_TOOLTIP_STORAGE_KEY = 'blockcraft-gpu-hover-tooltip';
 const DEFAULT_CODE = EXAMPLES[0].code;
 
 export function loadScriptFiles(): ScriptFile[] {
@@ -53,6 +54,22 @@ export function loadLineEffectsEnabled(): boolean {
 export function persistLineEffectsEnabled(enabled: boolean): void {
   try {
     localStorage.setItem(LINE_EFFECTS_STORAGE_KEY, String(enabled));
+  } catch {
+    // The preference remains usable for this session without storage.
+  }
+}
+
+export function loadGpuHoverTooltipEnabled(): boolean {
+  try {
+    return localStorage.getItem(GPU_HOVER_TOOLTIP_STORAGE_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+export function persistGpuHoverTooltipEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(GPU_HOVER_TOOLTIP_STORAGE_KEY, String(enabled));
   } catch {
     // The preference remains usable for this session without storage.
   }

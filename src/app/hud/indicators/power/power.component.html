@@ -65,6 +65,15 @@
         <section aria-label="Specifiche GPU selezionata">
           <p class="panel-subtitle">{{ stats.model }}</p>
           <div class="meter-row">
+            <span>Cripto assegnata</span><strong>{{ selectedGpu.cryptoId }}</strong>
+          </div>
+          @if (cryptoBlock(); as block) {
+            <div class="meter-row">
+              <span>Blocco {{ selectedGpu.cryptoId }}</span>
+              <strong>#{{ block.id }} · {{ block.progress.toFixed(1) }}%</strong>
+            </div>
+          }
+          <div class="meter-row">
             <span>Frequenza attuale</span><strong>{{ stats.frequencyGhz.toFixed(2) }} GHz</strong>
           </div>
           <div class="meter-row">
@@ -77,9 +86,8 @@
           <div class="meter-row">
             <span>Temperatura</span><strong>{{ stats.temperatureCelsius.toFixed(1) }} °C</strong>
           </div>
-          <div class="meter-row cooling-gain">
-            <span>Riduzione RIG (CFM)</span
-            ><strong>−{{ gpuRigFanCoolingCelsius().toFixed(1) }} °C</strong>
+          <div class="meter-row">
+            <span>Sporco</span><strong>{{ stats.dustPercent.toFixed(1) }}%</strong>
           </div>
           <meter
             aria-label="Temperatura GPU"

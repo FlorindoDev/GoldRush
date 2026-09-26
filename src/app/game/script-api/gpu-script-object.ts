@@ -1,13 +1,16 @@
 import { ScriptError, type ScriptObject, type Value } from '../../language/syntax';
 import { isGpuOperational } from '../gpu-operation';
 import type { GpuTelemetry } from '../gpu-telemetry';
+import type { CryptoId } from '../../config/crypto-config';
 import type { MiningGpu } from '../mining-world';
 import { requireArguments } from './script-api-utils';
+import { requireVector } from '../../language/collections/vector';
 
 /** Accesso allo stato corrente: gli oggetti script non conservano snapshot della GPU. */
 export interface GpuScriptControls {
   getGpu(id: number): MiningGpu;
   getTelemetry(id: number): GpuTelemetry;
+  getCryptoProgress(cryptoId: CryptoId): number;
   isSelected(id: number): boolean;
   setFrequencyGhz(id: number, frequencyGhz: number): void;
   setFanSpeedPercent(id: number, fanSpeedPercent: number | null): void;
@@ -47,6 +50,10 @@ export class GpuScriptObject implements ScriptObject {
     switch (name) {
       case 'id':
         return this.id;
+      case 'crypto':
+        return gpu.cryptoId;
+      case 'progress':
+        return this.controls.getCryptoProgress(gpu.cryptoId);
       case 'rigId':
         return gpu.rigId;
       case 'plotId':
@@ -90,9 +97,7 @@ export class GpuScriptObject implements ScriptObject {
       return this.getAttribute(stateAttribute[name as keyof typeof stateAttribute], line);
     }
     if (
-      !['setFrequencyGhz', 'setFanSpeed', 'setFanSpeedAuto', 'stop', 'clearStop'].includes(
-        name,
-      )
+      !['setFrequencyGhz', 'setFanSpeed', 'setFanSpeedAuto', 'stop', 'clearStop'].includes(name)
     ) {
       throw new ScriptError(`metodo "${name}" non disponibile per una GPU.`, line);
     }
@@ -143,4 +148,16 @@ export class GpuScriptObject implements ScriptObject {
   private isAvailable(): boolean {
     return this.rigUnlocked && this.controls.getGpu(this.id).unlocked;
   }
+}
+
+export function gpuIdsFromVector(value: Value, line: number, operation = 'setCrypto'): number[] {
+  const vector = requireVector(value, line);
+  const length = vector.getAttribute('length', line) as number;
+  return Array.from({ length }, (_, index) => {
+    const gpu = vector.getItem(index, line);
+    if (!(gpu instanceof GpuScriptObject)) {
+      throw new ScriptError(`${operation} richiede un vettore di GPU.`, line);
+    }
+    return gpu.getAttribute('id', line) as number;
+  });
 }

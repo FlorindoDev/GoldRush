@@ -3,24 +3,26 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  input,
   OnDestroy,
   signal,
   viewChild,
 } from '@angular/core';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { BITCOIN_MODEL_PATH } from '../../../assets/models/bitcoin/bitcoin-model-path';
+import { CRYPTO_CONFIG } from '../../../config/crypto-config';
 import { GAME_BALANCE } from '../../../config/game-balance';
 
 const CAMERA = GAME_BALANCE.camera.bitcoinPreview;
 
 @Component({
-  selector: 'app-bitcoin-model',
+  selector: 'app-crypto-model',
   templateUrl: './bitcoin-model.component.html',
   styleUrl: './bitcoin-model.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BitcoinModelComponent implements AfterViewInit, OnDestroy {
+  readonly crypto = input<(typeof CRYPTO_CONFIG)[number]>(CRYPTO_CONFIG[0]);
   readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   readonly failed = signal(false);
   private readonly scene = new THREE.Scene();
@@ -51,7 +53,7 @@ export class BitcoinModelComponent implements AfterViewInit, OnDestroy {
       this.addLighting();
       this.camera.position.set(...CAMERA.position);
 
-      const gltf = await new GLTFLoader().loadAsync(BITCOIN_MODEL_PATH);
+      const gltf = await new GLTFLoader().loadAsync(`assets/models/coins/${this.crypto().id}.glb`);
       if (this.destroyed) {
         this.disposeModel(gltf.scene);
         return;
@@ -75,6 +77,7 @@ export class BitcoinModelComponent implements AfterViewInit, OnDestroy {
       this.disposeModel(this.model);
     }
     this.renderer?.dispose();
+    this.renderer?.forceContextLoss();
   }
 
   private addLighting(): void {

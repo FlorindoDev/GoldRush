@@ -5,7 +5,7 @@
     (gpuHover)="hoveredGpu.set($event)"
   />
 
-  @if (game.inspectedGpuId() === null && game.inspectedRigId() === null && hoveredGpu(); as hover) {
+  @if (visibleGpuHover(); as hover) {
     <app-gpu-tooltip [hover]="hover" />
   }
 
@@ -15,10 +15,22 @@
   </div>
 
   @if (game.inspectedRigId() !== null) {
-    <app-rig-workbench (closeBench)="scene.setSelectedToolStationId(null)" />
-  } @else if (game.inspectedGpuId(); as gpuId) {
+    <app-rig-workbench
+      [class.dual-bench]="game.inspectedGpuId() !== null"
+      [style.width]="game.inspectedGpuId() !== null ? 'min(420px, calc(50vw - 36px))' : null"
+      (closeBench)="
+        scene.setSelectedToolStationId(game.inspectedGpuId() !== null ? 'workbench' : null)
+      "
+    />
+  }
+  @if (game.inspectedGpuId(); as gpuId) {
     @for (id of [gpuId]; track id) {
-      <app-workbench />
+      <app-workbench
+        [class.dual-bench]="game.inspectedRigId() !== null"
+        (closeBench)="
+          scene.setSelectedToolStationId(game.inspectedRigId() !== null ? 'rigWorkbench' : null)
+        "
+      />
     }
   }
 
@@ -155,7 +167,7 @@
           [attr.aria-selected]="guideSection() === 'functions'"
           (click)="selectGuideSection('functions')"
         >
-          Funzioni
+          Comandi
         </button>
         <button
           id="guide-tab-constructs"
@@ -165,7 +177,7 @@
           [attr.aria-selected]="guideSection() === 'constructs'"
           (click)="selectGuideSection('constructs')"
         >
-          Costrutti
+          Codice e cicli
         </button>
         <button
           id="guide-tab-gpu"
@@ -185,7 +197,7 @@
           [attr.aria-selected]="guideSection() === 'energy'"
           (click)="selectGuideSection('energy')"
         >
-          Corrente
+          Energia e saldo
         </button>
         <button
           id="guide-tab-shortcuts"
@@ -241,7 +253,10 @@
             @for (example of examples; track example.name) {
               <details class="guide-example">
                 <summary>{{ example.name }}</summary>
-                <pre>{{ example.code }}</pre>
+                <app-guide-code
+                  [source]="example.code"
+                  [compact]="true"
+                />
                 <button
                   class="secondary-button small"
                   [disabled]="game.running()"
@@ -259,15 +274,17 @@
           <h3>Controlli del laboratorio</h3>
           <p class="guide-note">
             Trascina la scena per ruotarla e usa la rotella per ingrandire. Un clic sulla GPU o sul
-            suo pulsante la seleziona; un doppio clic la porta al banco. Passa il cursore sul
-            modello 3D per temperatura, usura, sporco e consumo. Da tastiera, Alt+Invio sul pulsante
-            GPU la porta al banco. La farm ha {{ rigCapacity }} quadrati di sblocco e
-            {{ gpuCapacity }} alloggiamenti GPU; all'avvio sono sbloccati
-            {{ balance.world.startingRigCount }} RIG e {{ balance.world.startingGpuCount }} GPU.
-            Completare un blocco non sblocca RIG o GPU. Usa “Torna al quadrato” per rimettere la
-            scheda al suo posto. Trascina la barra del titolo per spostare editor e console. Puoi
-            agganciare la console sotto l'editor o sganciarla per spostarla da sola. Ridimensiona le
-            finestre dal manico nell'angolo. Per la console agganciata, trascina il bordo inferiore.
+            suo pulsante la seleziona; seleziona anche un RIG per mostrare entrambi i dati nel HUD.
+            Un doppio clic apre il banco: puoi tenere una GPU e un RIG sui rispettivi banchi
+            insieme. Passa il cursore sul modello 3D per temperatura, usura, sporco e consumo. Da
+            tastiera, Alt+Invio sul pulsante GPU la porta al banco. La farm ha
+            {{ rigCapacity }} quadrati di sblocco e {{ gpuCapacity }} alloggiamenti GPU; all'avvio
+            sono sbloccati {{ balance.world.startingRigCount }} RIG e
+            {{ balance.world.startingGpuCount }} GPU. Completare un blocco non sblocca RIG o GPU.
+            Usa “Torna al quadrato” per rimettere la scheda al suo posto. Trascina la barra del
+            titolo per spostare editor e console. Puoi agganciare la console sotto l'editor o
+            sganciarla per spostarla da sola. Ridimensiona le finestre dal manico nell'angolo. Per
+            la console agganciata, trascina il bordo inferiore.
           </p>
           <p class="guide-note">
             Il codice resta salvato in questo browser quando disponibile. La partita è una
@@ -283,10 +300,10 @@
           role="tabpanel"
           aria-labelledby="guide-tab-functions"
         >
-          <h2 id="guide-title">Funzioni di MineScript</h2>
+          <h2 id="guide-title">Comandi e raccolte MineScript</h2>
           <p class="dialog-intro">
-            Usa le funzioni per leggere il progresso, scrivere nella console e creare raccolte. Per
-            minare, chiama <code>mine()</code>: lavorano insieme tutte le GPU sbloccate.
+            Qui trovi i comandi per minare, controllare il progresso e scrivere nella console, poi
+            gli strumenti per organizzare i dati in vettori, pile e code.
           </p>
           <nav
             class="guide-toc"
@@ -296,17 +313,17 @@
             <a
               href="#functions-program"
               (click)="goToGuideHeading($event, 'functions-program')"
-              >Comandi</a
+              >Mining e risultati</a
             >
             <a
               href="#functions-collections"
               (click)="goToGuideHeading($event, 'functions-collections')"
-              >Raccolte</a
+              >Vettori, pile e code</a
             >
             <a
               href="#functions-example"
               (click)="goToGuideHeading($event, 'functions-example')"
-              >Esempio</a
+              >Esempio completo</a
             >
           </nav>
           <div
@@ -327,12 +344,12 @@
             id="functions-program"
             tabindex="-1"
           >
-            Controllare il programma
+            Avviare mining e leggere i risultati
           </h3>
           <div
             class="guide-table-wrapper"
             role="region"
-            aria-label="Funzioni del programma"
+            aria-label="Comandi di mining e controllo"
             tabindex="0"
           >
             <table class="guide-table">
@@ -344,17 +361,27 @@
               </thead>
               <tbody>
                 <tr>
-                  <td><code>mine()</code></td>
                   <td>
-                    Avvia tutte le GPU sbloccate e operative. Attende la fine del lavoro prima di
-                    proseguire.
+                    <code>mine()</code><br />
+                    <code>mine(gpus)</code><br />
+                    <code>mine(gpus, "testo")</code><br />
+                    <code>mine(gpus, false)</code><br />
+                    <code>mine("testo")</code> / <code>mine(false)</code>
+                  </td>
+                  <td>
+                    Senza vettore avvia tutte le GPU sbloccate e operative; con un vettore avvia
+                    solo quelle sbloccate indicate. Attende la fine del lavoro e i messaggi di
+                    progresso indicano la cripto minata. Il testo è aggiunto al messaggio;
+                    <code>false</code> nasconde progresso e ricompensa, lasciando visibili avvisi ed
+                    errori.
                   </td>
                 </tr>
                 <tr>
                   <td><code>progress()</code></td>
                   <td>
-                    Restituisce il progresso del blocco, da <strong>0 a 100</strong>, anche con
-                    decimali. Usalo per fermare un ciclo al completamento.
+                    Restituisce il progresso del blocco Bitcoin. Passa una sigla, per esempio
+                    <code>progress("KAS")</code>, per leggere un'altra catena. Risultato da
+                    <strong>0 a 100</strong>, anche con decimali.
                   </td>
                 </tr>
                 <tr>
@@ -386,8 +413,9 @@
               <span>Quando raggiungi il 100%</span>
             </h3>
             <p>
-              Ricevi il premio in BTC simulati una sola volta per blocco. La corrente viene
-              addebitata separatamente, ogni 24 ore di gioco. La chiamata successiva a
+              Ricevi il premio nelle cripto assegnate alle GPU una sola volta per blocco. La
+              corrente viene addebitata separatamente, ogni 24 ore di gioco. La chiamata successiva
+              a
               <code>mine()</code>, oppure un nuovo avvio del programma, prepara il blocco seguente.
               RIG e GPU rimangono gli stessi.
             </p>
@@ -396,7 +424,7 @@
             id="functions-collections"
             tabindex="-1"
           >
-            Scegliere una raccolta di dati
+            Vettori, pile e code: organizzare i dati
           </h3>
           <p>
             Usa un vettore per leggere e modificare valori in qualsiasi posizione. Usa una pila o
@@ -612,11 +640,9 @@
             id="functions-example"
             tabindex="-1"
           >
-            Esempio rapido
+            Esempio: minare e mostrare il progresso
           </h3>
-          <pre class="guide-code">
-mine();
-print("Progresso: " + progress());</pre>
+          <app-guide-code [source]="guideCode.functionsExample" />
           <p class="guide-note">
             <code>mine()</code> avvia tutte le GPU sbloccate. <code>wait()</code> aggiunge una pausa
             facoltativa.
@@ -695,7 +721,7 @@ print("Progresso: " + progress());</pre>
             Ogni RIG ha <strong>{{ gpusPerRig }} slot GPU</strong>, per un totale di
             {{ gpuCapacity }} posti.
           </p>
-          <pre class="guide-code">let gpu = plots[0].rigs[0].gpus[0];</pre>
+          <app-guide-code [source]="guideCode.gpuLocation" />
           <ol class="guide-steps">
             <li>
               <code>plots[0]</code> sceglie la prima area. Indici validi: da 0 a
@@ -737,23 +763,26 @@ print("Progresso: " + progress());</pre>
           <p>
             <code>mine()</code> è una funzione globale: avvia tutte le GPU sbloccate e operative.
             Ogni scheda aggiunge {{ balance.world.progressPerGpuAtFullFarm }}/{{ gpuCapacity }}% al
-            blocco attivo alla frequenza di base ({{ balance.gpu.mining.frequencyGhz }} GHz) e
-            attende che il lavoro finisca prima di proseguire. Il progresso cresce in proporzione
-            alla frequenza impostata. La difficoltà è min({{
-              balance.mining.blockDifficulty.startingMultiplier
+            blocco attivo della propria cripto alla frequenza di base ({{
+              balance.gpu.mining.frequencyGhz
             }}
-            + blocchi estratti × {{ balance.mining.blockDifficulty.increasePerMinedBlock }},
-            {{ balance.mining.blockDifficulty.maxMultiplier }}); quindi i blocchi successivi
-            richiedono più lavoro, fino al limite configurato.
+            GHz). Ogni cripto conserva progressi, numerazione e difficoltà separati. Per esempio,
+            Bitcoin parte da {{ balance.world.cryptoBlockDifficulty.bitcoin.startingMultiplier }},
+            aumenta di {{ balance.world.cryptoBlockDifficulty.bitcoin.increasePerMinedBlock }} per
+            blocco e arriva al massimo di
+            {{ balance.world.cryptoBlockDifficulty.bitcoin.maxMultiplier }}. Le difficoltà di
+            ciascuna cripto sono in <code>config/world-config.ts</code>; prezzo in euro e quantità
+            per blocco sono in <code>config/crypto-config.ts</code>.
           </p>
-          <pre class="guide-code">mine();</pre>
+          <app-guide-code [source]="guideCode.gpuMining" />
           <p>
             Sul primo blocco, alla frequenza di base servono circa {{ minesPerBlock }} chiamate a
             <code>mine()</code> per completare un blocco. Ogni chiamata dura
             {{ balance.mining.actionDurationMs }} ms, oppure
             {{ balance.mining.actionDurationMs / 2 }} ms a velocità 2×. Contano GPU sbloccate,
             operative e montate nei RIG; le schede in stop vengono saltate. Usa
-            <code>progress()</code> per fermare il ciclo.
+            <code>progress()</code> legge Bitcoin; usa <code>progress("KAS")</code> per leggere
+            un'altra cripto.
           </p>
           <h3
             id="gpu-state"
@@ -1052,9 +1081,9 @@ print("Progresso: " + progress());</pre>
                 Stop e riabilitazione della GPU si comandano solo dal codice, con
                 <code>gpu.stop()</code> e <code>gpu.clearStop()</code>. Gli script sono sequenziali:
                 una chiamata a <code>mine()</code> termina prima di eseguire la riga successiva. Il
-                pannello GPU mostra le specifiche della scheda selezionata nel RIG. Il
-                pulsante Stop dell'editor interrompe il programma senza impostare lo stop della GPU:
-                l'azione interrotta conserva energia e usura parziali, senza progresso o premio.
+                pannello GPU mostra le specifiche della scheda selezionata nel RIG. Il pulsante Stop
+                dell'editor interrompe il programma senza impostare lo stop della GPU: l'azione
+                interrotta conserva energia e usura parziali, senza progresso o premio.
               </p>
             </article>
           </div>
@@ -1118,13 +1147,9 @@ print("Progresso: " + progress());</pre>
             id="gpu-example"
             tabindex="-1"
           >
-            Esempio rapido
+            Esempio: leggere modello e telemetria
           </h3>
-          <pre class="guide-code">
-let gpu = plots[0].rigs[0].gpus[0];
-print(gpu.getModel());
-print(gpu.getTemperatureCelsius() + " °C");
-print(gpu.getFanSpeed() + "%");</pre>
+          <app-guide-code [source]="guideCode.gpuExample" />
         </section>
       }
 
@@ -1138,7 +1163,8 @@ print(gpu.getFanSpeed() + "%");</pre>
           <h2 id="guide-title">Corrente e portafoglio</h2>
           <p class="dialog-intro">
             Controlla la potenza della farm. Il consumo si accumula durante il mining e la bolletta
-            viene addebitata ogni 24 ore di gioco. Il portafoglio mostra BTC e controvalore in euro.
+            viene addebitata ogni 24 ore di gioco. Il portafoglio mostra il totale in euro: cliccalo
+            per vedere saldo euro, quantità e valore di ogni cripto posseduta.
           </p>
           <nav
             class="guide-toc"
@@ -1172,7 +1198,7 @@ print(gpu.getFanSpeed() + "%");</pre>
               Economia simulata
             </h3>
             <p>
-              1 BTC = {{ balance.economy.bitcoinPriceEur }} €. Tariffa:
+              Le ricompense e i prezzi sono configurati per ogni cripto. Tariffa elettrica:
               {{ balance.economy.electricityPriceEurPerKwh }} €/kWh. Ogni
               <code>mine()</code> completo simula {{ balance.economy.simulatedHoursPerAction }} ora
               di lavoro, anche a velocità 2×. Il clock avanza di
@@ -1248,6 +1274,28 @@ print(gpu.getFanSpeed() + "%");</pre>
               </tbody>
             </table>
           </div>
+          <h3>Assegnare una cripto alle GPU</h3>
+          <p>
+            <code>setCrypto(gpus, "KAS")</code> assegna una cripto a un vettore di GPU sbloccate.
+            Per una sola scheda usa <code>setCrypto(gpus.slice(0, 1), "LTC")</code>. Sigle
+            disponibili: BTC, ETC, LTC, DOGE, XMR, RVN, ERG, KAS. <code>gpu.crypto</code> legge
+            l'assegnazione corrente. Non puoi modificarla durante il mining delle schede coinvolte.
+            Un vettore vuoto non modifica nessuna GPU; input non validi annullano tutta
+            l'assegnazione.
+          </p>
+          <app-guide-code [source]="guideCode.cryptoAssignment" />
+          <p>
+            Il messaggio è facoltativo: <code>mine(gpus, "testo")</code> aggiunge il testo alle
+            righe di progresso e ricompensa; <code>mine(gpus, false)</code> le nasconde. Puoi
+            omettere il vettore per applicare l'opzione a tutta la farm, ad esempio
+            <code>mine("Mining avviato")</code> o <code>mine(false)</code>. Gli avvisi sulle GPU
+            ferme o non operative restano visibili.
+          </p>
+          <p>
+            La ricompensa del blocco è divisa fra le cripto in proporzione al lavoro delle GPU. I
+            prezzi sono fissi e simulati. Cambiare assegnazione non converte cripto già possedute e
+            non cambia il lavoro già accumulato.
+          </p>
           <h3
             id="energy-payment"
             tabindex="-1"
@@ -1256,23 +1304,15 @@ print(gpu.getFanSpeed() + "%");</pre>
           </h3>
           <p>
             Al 100% il gioco accredita il premio del blocco una sola volta. Ogni 24 ore di gioco
-            addebita la corrente accumulata, convertita in BTC al cambio fisso e arrotondata al
-            satoshi più vicino. Il portafoglio mostra i movimenti; la console riporta la bolletta
-            del giorno.
+            addebita la corrente accumulata al saldo euro, senza vendere le cripto possedute. Il
+            portafoglio mostra i movimenti; la console riporta la bolletta del giorno.
           </p>
           <p>
             Fermare il codice o lasciare un blocco incompleto conserva la bolletta. In caso di
             addebiti superiori al saldo disponibile, il saldo può diventare negativo: il debito
             resta visibile. La nuova partita azzera consumi, saldo e stato GPU.
           </p>
-          <pre class="guide-code">
-let gpu = plots[0].rigs[0].gpus[0];
-print(electricity.getPricePerKwh());
-gpu.setFrequencyGhz(gpu.getMaxFrequencyGhz());
-mine();
-print(electricity.getEnergyKwh());
-print(electricity.getPendingCostEur());
-gpu.stop();</pre>
+          <app-guide-code [source]="guideCode.energyExample" />
         </section>
       }
 
@@ -1283,10 +1323,11 @@ gpu.stop();</pre>
           role="tabpanel"
           aria-labelledby="guide-tab-constructs"
         >
-          <h2 id="guide-title">Costrutti del linguaggio</h2>
+          <h2 id="guide-title">Variabili, cicli e condizioni</h2>
           <p class="dialog-intro">
-            Le variabili conservano valori, le condizioni scelgono cosa eseguire e i cicli ripetono
-            le istruzioni. Combinandoli puoi automatizzare il mining.
+            Salva valori nelle variabili, ripeti comandi con i cicli e scegli cosa eseguire con
+            <code>if</code> e <code>else</code>. <code>parallel</code> avvia più impostazioni
+            insieme.
           </p>
           <nav
             class="guide-toc"
@@ -1301,37 +1342,37 @@ gpu.stop();</pre>
             <a
               href="#constructs-repeat"
               (click)="goToGuideHeading($event, 'constructs-repeat')"
-              >repeat</a
+              >repeat: conteggio</a
             >
             <a
               href="#constructs-while"
               (click)="goToGuideHeading($event, 'constructs-while')"
-              >while</a
+              >while: condizione</a
             >
             <a
               href="#constructs-for"
               (click)="goToGuideHeading($event, 'constructs-for')"
-              >for</a
+              >for: contatore</a
             >
             <a
               href="#constructs-parallel"
               (click)="goToGuideHeading($event, 'constructs-parallel')"
-              >parallel</a
+              >parallel: insieme</a
             >
             <a
               href="#constructs-if"
               (click)="goToGuideHeading($event, 'constructs-if')"
-              >if / else</a
+              >if / else: scelta</a
             >
             <a
               href="#constructs-operators"
               (click)="goToGuideHeading($event, 'constructs-operators')"
-              >Operatori</a
+              >Operatori e confronti</a
             >
             <a
               href="#constructs-example"
               (click)="goToGuideHeading($event, 'constructs-example')"
-              >Esempio</a
+              >Esempio completo</a
             >
           </nav>
           <aside
@@ -1340,7 +1381,7 @@ gpu.stop();</pre>
           >
             <h3>
               <app-icon name="info" />
-              <span>Regole fondamentali</span>
+              <span>Regole comuni a ogni script</span>
             </h3>
             <ul class="guide-facts">
               <li>Termina ogni istruzione semplice con <code>;</code>.</li>
@@ -1364,17 +1405,13 @@ gpu.stop();</pre>
                 id="constructs-variables"
                 tabindex="-1"
               >
-                Conservare e aggiornare un valore
+                Variabili: salvare e aggiornare valori
               </h3>
               <p>
                 Una variabile associa un nome a un valore. Creala con <code>let</code>; usa
                 <code>=</code> per assegnarle un valore nuovo.
               </p>
-              <pre
-                class="guide-code"
-              ><code><span class="token-keyword">let</span> obiettivo = <span class="token-number">100</span>;
-obiettivo = obiettivo - <span class="token-number">20</span>;
-<span class="token-keyword">let</span> i = <span class="token-number">0</span>; i++;</code></pre>
+              <app-guide-code [source]="guideCode.variable" />
               <p>
                 <code>++</code> aumenta di uno; <code>--</code> diminuisce di uno. Le variabili
                 valgono per tutta l'esecuzione, anche fuori dal blocco in cui sono dichiarate, e si
@@ -1394,7 +1431,10 @@ obiettivo = obiettivo - <span class="token-number">20</span>;
                     <code>false</code> (falso).
                   </li>
                   <li><strong>Valore assente:</strong> <code>null</code>.</li>
-                  <li><strong>Raccolte:</strong> vettori, pile e code, descritte in Funzioni.</li>
+                  <li>
+                    <strong>Raccolte:</strong> vettori, pile e code, descritte in Comandi e
+                    raccolte.
+                  </li>
                   <li>
                     <strong>Oggetti della farm:</strong> plot, RIG e schede, descritti in GPU.
                   </li>
@@ -1410,7 +1450,7 @@ obiettivo = obiettivo - <span class="token-number">20</span>;
                 id="constructs-repeat"
                 tabindex="-1"
               >
-                Ripetere un numero preciso di volte: <code>repeat</code>
+                <code>repeat</code>: ripetere un numero preciso di volte
               </h3>
               <p>
                 Usalo quando sai già quante ripetizioni servono. Accetta un numero intero da 0 a
@@ -1424,7 +1464,7 @@ obiettivo = obiettivo - <span class="token-number">20</span>;
                 id="constructs-while"
                 tabindex="-1"
               >
-                Ripetere finché serve: <code>while</code>
+                <code>while</code>: ripetere finché la condizione è vera
               </h3>
               <p>Usalo quando devi raggiungere un risultato, come completare il blocco attivo.</p>
               <code>while (progress() &lt; 100) &lbrace; ... &rbrace;</code>
@@ -1442,7 +1482,7 @@ obiettivo = obiettivo - <span class="token-number">20</span>;
                 id="constructs-for"
                 tabindex="-1"
               >
-                Ripetere con un contatore: <code>for</code>
+                <code>for</code>: ripetere usando un contatore
               </h3>
               <p>
                 Usalo quando vuoi conoscere il numero della ripetizione o scorrere una raccolta.
@@ -1462,20 +1502,13 @@ obiettivo = obiettivo - <span class="token-number">20</span>;
                 id="constructs-parallel"
                 tabindex="-1"
               >
-                Avviare più comandi insieme: <code>parallel</code>
+                <code>parallel</code>: avviare più comandi insieme
               </h3>
               <p>
                 Prepara una variabile per ogni GPU, poi metti un comando per riga. Partono tutti
                 nello stesso momento; il programma aspetta che abbiano finito prima di continuare.
               </p>
-              <pre class="guide-code">
-let gpuUno = plots[0].rigs[0].gpus[0];
-let gpuDue = plots[0].rigs[0].gpus[1];
-
-parallel &lbrace;
-  gpuUno.setFrequencyGhz(gpuUno.getMaxFrequencyGhz());
-  gpuDue.setFrequencyGhz(gpuDue.getMaxFrequencyGhz());
-&rbrace;</pre>
+              <app-guide-code [source]="guideCode.parallel" />
               <p>
                 Usa una volta sola ogni GPU nel blocco. <code>mine()</code> avvia già tutta la farm.
               </p>
@@ -1485,19 +1518,13 @@ parallel &lbrace;
                 id="constructs-if"
                 tabindex="-1"
               >
-                Scegliere cosa eseguire: <code>if</code> e <code>else</code>
+                <code>if</code> e <code>else</code>: scegliere cosa eseguire
               </h3>
               <p>
                 <code>if</code> esegue il suo blocco quando la condizione è vera.
                 <code>else</code> esegue l'alternativa quando è falsa; puoi ometterlo.
               </p>
-              <pre
-                class="guide-code"
-              ><code><span class="token-keyword">if</span> (<span class="token-function">progress</span>() == <span class="token-number">100</span>) &lbrace;
-  <span class="token-function">print</span>(<span class="token-string">"Blocco completato"</span>);
-&rbrace; <span class="token-keyword">else</span> &lbrace;
-  <span class="token-function">mine</span>();
-&rbrace;</code></pre>
+              <app-guide-code [source]="guideCode.condition" />
               <p>
                 <code>==</code> confronta due valori; <code>=</code> assegna un valore a una
                 variabile. Sono operazioni diverse.
@@ -1508,7 +1535,7 @@ parallel &lbrace;
                 id="constructs-operators"
                 tabindex="-1"
               >
-                Calcolare e confrontare valori
+                Operatori: calcoli, confronti e condizioni
               </h3>
               <code>+ - * / %</code>
               <p>
@@ -1540,9 +1567,9 @@ parallel &lbrace;
             id="constructs-example"
             tabindex="-1"
           >
-            Ripeti, controlla, sperimenta
+            Esempio completo: controllare il mining
           </h3>
-          <pre class="guide-code">{{ languageGuideExample }}</pre>
+          <app-guide-code [source]="languageGuideExample" />
           <details
             class="guide-details"
             open
@@ -1641,6 +1668,17 @@ parallel &lbrace;
       type="checkbox"
       [checked]="game.lineEffectsEnabled()"
       (change)="updateLineEffects($event)"
+    />
+  </label>
+  <label class="setting-option">
+    <span>
+      <strong>Mostra finestra GPU al passaggio del cursore</strong>
+      <small>Dati rapidi: temperatura, usura, sporco e consumo</small>
+    </span>
+    <input
+      type="checkbox"
+      [checked]="gpuHoverTooltipEnabled()"
+      (change)="updateGpuHoverTooltip($event)"
     />
   </label>
 </dialog>

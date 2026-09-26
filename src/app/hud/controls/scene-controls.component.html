@@ -56,7 +56,7 @@
           class="rig-choice"
           [class.locked]="!isRigUnlocked(id)"
           [attr.aria-label]="'Seleziona RIG ' + id + (isRigUnlocked(id) ? '' : ' bloccato')"
-          [attr.aria-pressed]="game.viewedRigId() === id"
+          [attr.aria-pressed]="game.selectedRigId() === id"
           [disabled]="!isRigUnlocked(id)"
           aria-keyshortcuts="Alt+Enter"
           [title]="rigTitle(id)"
@@ -101,7 +101,9 @@
       }
     </div>
     <p class="gpu-interaction-hint">
-      @if (game.inspectedRigId() !== null) {
+      @if (game.inspectedRigId() !== null && game.inspectedGpuId() !== null) {
+        RIG e GPU possono restare sui rispettivi banchi insieme
+      } @else if (game.inspectedRigId() !== null) {
         Clic su un RIG per cambiarlo direttamente sul banco
       } @else if (game.inspectedGpuId() !== null) {
         Clic su una GPU per cambiarla direttamente sul banco
@@ -117,23 +119,24 @@
       <button
         type="button"
         class="back-to-rig"
-        (click)="returnToRig()"
+        (click)="closeRigWorkbench()"
         aria-label="Torna alla farm dal banco RIG"
-        title="Torna alla farm"
+        title="Chiudi banco RIG"
       >
         <app-icon name="arrow" />
-        Torna alla farm
+        Chiudi banco RIG
       </button>
-    } @else if (game.inspectedGpuId() !== null) {
+    }
+    @if (game.inspectedGpuId() !== null) {
       <button
         type="button"
         class="back-to-rig"
-        (click)="returnToRig()"
+        (click)="closeGpuWorkbench()"
         aria-label="Torna al quadrato di sblocco"
-        title="Torna al quadrato di sblocco"
+        title="Rimonta GPU nel RIG"
       >
         <app-icon name="arrow" />
-        Torna al quadrato
+        Rimonta GPU nel RIG
       </button>
     }
     <span
@@ -141,13 +144,19 @@
       aria-live="polite"
     >
       {{
-        game.inspectedRigId() !== null
-          ? 'RIG ' + game.inspectedRigId() + ' sul banco RIG'
-          : focusedToolStationId() === 'rigWorkbench'
-            ? 'Banco RIG vuoto'
-            : game.inspectedGpuId() === null
-              ? 'Banco vuoto. Plot ' + game.viewedPlotId() + ' · RIG ' + game.viewedRigId()
-              : 'GPU ' + gpuNumber(game.inspectedGpuId()!) + ' sul banco'
+        game.inspectedRigId() !== null && game.inspectedGpuId() !== null
+          ? 'RIG ' +
+            game.inspectedRigId() +
+            ' e GPU ' +
+            gpuNumber(game.inspectedGpuId()!) +
+            ' sui banchi'
+          : game.inspectedRigId() !== null
+            ? 'RIG ' + game.inspectedRigId() + ' sul banco RIG'
+            : focusedToolStationId() === 'rigWorkbench'
+              ? 'Banco RIG vuoto'
+              : game.inspectedGpuId() === null
+                ? 'Banco vuoto. Plot ' + game.viewedPlotId() + ' · RIG ' + game.viewedRigId()
+                : 'GPU ' + gpuNumber(game.inspectedGpuId()!) + ' sul banco'
       }}
     </span>
   </div>

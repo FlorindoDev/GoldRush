@@ -4,6 +4,7 @@ import {
   computed,
   inject,
   OnDestroy,
+  output,
   signal,
 } from '@angular/core';
 import { GAME_BALANCE } from '../../../config/game-balance';
@@ -28,6 +29,7 @@ type Intervention = 'clean' | 'thermal' | 'fan';
 })
 export class WorkbenchComponent implements OnDestroy {
   readonly game = inject(GameService);
+  readonly closeBench = output<void>();
   readonly selected = signal<Intervention>('clean');
   readonly feedback = signal('');
   readonly feedbackError = signal(false);
@@ -80,6 +82,11 @@ export class WorkbenchComponent implements OnDestroy {
         'Arresto rimosso. Scheda pronta per il RIG.',
       );
     }
+  }
+
+  close(): void {
+    this.game.returnInspectedGpuToRig();
+    this.closeBench.emit();
   }
 
   ngOnDestroy(): void {

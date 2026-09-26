@@ -26,7 +26,8 @@ export function rigCameraFocus(rigId: number, preset: CameraPreset): CameraFocus
 }
 
 export function resolveCameraFocus(state: CameraFocusState): CameraFocus {
-  const stationId = state.inspectedGpuId !== null ? 'workbench' : state.selectedToolStationId;
+  const stationId =
+    state.selectedToolStationId ?? (state.inspectedGpuId !== null ? 'workbench' : null);
   if (stationId === null) {
     return rigCameraFocus(state.viewedRigId, state.cameraPreset);
   }

@@ -1,26 +1,63 @@
 <aside
-  class="bitcoin-counter"
-  aria-label="Portafoglio Bitcoin"
+  class="wallet-panel"
+  aria-label="Portafoglio"
   [class.debit]="stage() === 'bill'"
 >
-  <app-bitcoin-model class="bitcoin-icon" />
-  <div
-    class="wallet-amount"
-    aria-hidden="true"
+  <button
+    class="wallet-toggle"
+    type="button"
+    [attr.aria-expanded]="expanded()"
+    aria-controls="wallet-assets"
+    (click)="expanded.set(!expanded())"
   >
-    <span>PORTAFOGLIO</span>
-    <strong>{{ bitcoin() }} BTC</strong>
-    <b>{{ euroBalance() }}</b>
-    <small>1 BTC = {{ price }}</small>
-    <div class="game-clock">
-      <span class="clock-label">
-        <app-icon name="clock" />
-        GIORNO {{ gameDayLabel() }}
-      </span>
-      <time>{{ gameTime() }}</time>
-    </div>
+    <app-icon
+      name="wallet"
+      class="wallet-icon"
+    />
+    <span class="wallet-amount">
+      <span>PORTAFOGLIO</span>
+      <b>{{ euroBalance() }}</b>
+    </span>
+    <app-icon
+      name="down"
+      class="wallet-chevron"
+      [class.expanded]="expanded()"
+    />
+  </button>
+  <div class="game-clock">
+    <span class="clock-label">
+      <app-icon name="clock" />
+      GIORNO {{ gameDayLabel() }}
+    </span>
+    <time>{{ gameTime() }}</time>
   </div>
-  <span class="sr-only">Saldo: {{ game.balance() }} BTC, {{ formatEuros(game.balanceEur()) }}</span>
+  <section
+    id="wallet-assets"
+    class="wallet-assets"
+    [hidden]="!expanded()"
+    aria-label="Le tue cripto"
+  >
+    @if (expanded()) {
+      <div class="cash-row">
+        <span>Saldo euro</span><strong>{{ formatEuros(game.world().cashEur) }}</strong>
+      </div>
+      @for (asset of assets(); track asset.id) {
+        <div class="crypto-row">
+          <app-crypto-model [crypto]="asset" />
+          <div class="crypto-info">
+            <strong>{{ asset.name }}</strong
+            ><span>{{ formatQuantity(asset.quantity) }} {{ asset.symbol }}</span>
+          </div>
+          <strong class="crypto-value">{{ formatEuros(asset.valueEur) }}</strong>
+        </div>
+      } @empty {
+        <p class="wallet-note">Nessuna cripto. Avvia il mining per riempire il portafoglio.</p>
+      }
+      <p class="wallet-note">
+        Valori ai prezzi fissi di gioco. Le bollette sono addebitate al saldo euro.
+      </p>
+    }
+  </section>
 </aside>
 <span class="sr-only">Ora di gioco: giorno {{ gameDay() }}, {{ gameTime() }}</span>
 @if (billVisible()) {
@@ -60,6 +97,10 @@
     >
       <div class="receipt-heading">
         <span>BLOCCO #{{ receipt.blockId }} ESTRATTO</span><span class="receipt-check">✓</span>
+      </div>
+      <div class="receipt-row crypto-name">
+        <span>Blocco {{ receipt.cryptoId }} #{{ receipt.blockId }}</span>
+        <strong>{{ receipt.coins }} {{ receipt.cryptoId }}</strong>
       </div>
       <div class="receipt-row reward">
         <span>Ricompensa</span><strong>+{{ formatEuros(toEuros(receipt.rewardSatoshis)) }}</strong>
