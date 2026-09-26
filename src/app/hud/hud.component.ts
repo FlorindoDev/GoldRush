@@ -145,6 +145,13 @@ export class HudComponent {
     this.guideContent().nativeElement.scrollTop = 0;
   }
 
+  goToGuideHeading(event: MouseEvent, id: string): void {
+    event.preventDefault();
+    const heading = this.guideContent().nativeElement.querySelector<HTMLElement>(`#${id}`);
+    heading?.scrollIntoView({ block: 'start' });
+    heading?.focus({ preventScroll: true });
+  }
+
   closeGuide(): void {
     this.guide().nativeElement.close();
   }

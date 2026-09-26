@@ -119,6 +119,7 @@
   <div class="guide-frame">
     <div class="guide-topbar">
       <div class="dialog-heading">
+        <span class="guide-brand"><app-icon name="book" /> MineScript <span>/ Guida</span></span>
         <button
           class="icon-button guide-close"
           aria-label="Chiudi tutorial"
@@ -235,7 +236,9 @@
           </ol>
           <div class="guide-examples">
             @for (example of examples; track example.name) {
-              <details class="guide-example">
+              <details
+                class="guide-example"
+              >
                 <summary>{{ example.name }}</summary>
                 <pre>{{ example.code }}</pre>
                 <button
@@ -275,7 +278,7 @@
       @if (guideSection() === 'functions') {
         <section
           id="guide-page-functions"
-          class="guide-page guide-reference"
+          class="guide-page guide-reference guide-markdown"
           role="tabpanel"
           aria-labelledby="guide-tab-functions"
         >
@@ -284,6 +287,27 @@
             Usa le funzioni per leggere il progresso, scrivere nella console e creare raccolte. Per
             minare, chiama <code>mine()</code>: lavorano insieme tutte le GPU sbloccate.
           </p>
+          <nav
+            class="guide-toc"
+            aria-label="In questa pagina"
+          >
+            <span>In questa pagina</span>
+            <a
+              href="#functions-program"
+              (click)="goToGuideHeading($event, 'functions-program')"
+              >Comandi</a
+            >
+            <a
+              href="#functions-collections"
+              (click)="goToGuideHeading($event, 'functions-collections')"
+              >Raccolte</a
+            >
+            <a
+              href="#functions-example"
+              (click)="goToGuideHeading($event, 'functions-example')"
+              >Esempio</a
+            >
+          </nav>
           <div
             class="guide-callout"
             role="note"
@@ -298,37 +322,62 @@
               una condizione.
             </p>
           </div>
-          <h3>Controllare il programma</h3>
-          <div class="guide-card-grid">
-            <article class="guide-card">
-              <h4>Controlla il progresso</h4>
-              <code class="guide-card-signature">progress()</code>
-              <p>
-                Restituisce la percentuale del blocco attivo, da <strong>0 a 100</strong>. Il valore
-                può avere decimali. Usalo nella condizione di un ciclo per fermarti quando il blocco
-                è completo.
-              </p>
-            </article>
-            <article class="guide-card">
-              <h4>Scrivi nella console</h4>
-              <code class="guide-card-signature">print(valore)</code>
-              <p>
-                Mostra un valore nella console: testo, numero o risultato di una funzione. Usa
-                <code>+</code> per unire testo e numeri in un unico messaggio.
-              </p>
-            </article>
-            <article class="guide-card">
-              <h4>Fai una pausa</h4>
-              <code class="guide-card-signature">wait(ms)</code>
-              <p>
-                Attende da 0 a {{ balance.scripting.maxWaitMs }} millisecondi. Per esempio,
-                <code>wait(1000)</code> attende un secondo.
-              </p>
-              <p>Durante la pausa il mining non avanza. La velocità 2× non riduce questa attesa.</p>
-            </article>
+          <h3
+            id="functions-program"
+            tabindex="-1"
+          >
+            Controllare il programma
+          </h3>
+          <div
+            class="guide-table-wrapper"
+            role="region"
+            aria-label="Funzioni del programma"
+            tabindex="0"
+          >
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th scope="col">Comando</th>
+                  <th scope="col">Cosa fa</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>mine()</code></td>
+                  <td>
+                    Avvia tutte le GPU sbloccate e operative. Attende la fine del lavoro prima di
+                    proseguire.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>progress()</code></td>
+                  <td>
+                    Restituisce il progresso del blocco, da <strong>0 a 100</strong>, anche con
+                    decimali. Usalo per fermare un ciclo al completamento.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>print(valore)</code></td>
+                  <td>
+                    Scrive testo, numeri o risultati nella console. Usa <code>+</code> per unire
+                    testo e numeri.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>wait(ms)</code></td>
+                  <td>
+                    Attende da 0 a {{ balance.scripting.maxWaitMs }} millisecondi.
+                    <code>wait(1000)</code> equivale a un secondo.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
+          <p class="guide-note">
+            Durante <code>wait()</code> il mining non avanza. La velocità 2× non riduce l'attesa.
+          </p>
           <aside
-            class="guide-callout"
+            class="guide-callout guide-callout-tip"
             role="note"
           >
             <h3>
@@ -336,27 +385,35 @@
               <span>Quando raggiungi il 100%</span>
             </h3>
             <p>
-              Ricevi il premio in BTC simulati, meno la bolletta accumulata, una sola volta per
-              blocco. La chiamata successiva a
-              <code>mine()</code>, oppure un nuovo avvio del programma, prepara il blocco
-              seguente. Rig e GPU rimangono gli stessi.
+              Ricevi il premio in BTC simulati una sola volta per blocco. La corrente viene
+              addebitata separatamente, ogni 24 ore di gioco. La chiamata successiva a
+              <code>mine()</code>, oppure un nuovo avvio del programma, prepara il blocco seguente.
+              Rig e GPU rimangono gli stessi.
             </p>
           </aside>
-          <h3>Scegliere una raccolta di dati</h3>
+          <h3
+            id="functions-collections"
+            tabindex="-1"
+          >
+            Scegliere una raccolta di dati
+          </h3>
           <p>
             Usa un vettore per leggere e modificare valori in qualsiasi posizione. Usa una pila o
             una coda per decidere in quale ordine recuperare i vettori. Ogni raccolta può contenere
             al massimo <strong>1000 elementi</strong>.
           </p>
-          <div class="guide-card-grid guide-collection-list">
-            <article class="guide-card">
+          <div class="guide-entry-list">
+            <article class="guide-entry">
               <h4>Vettore: una lista di valori</h4>
-              <code class="guide-card-signature">vector()</code>
+              <code class="guide-signature">vector()</code>
               <p>
                 Crea una lista vuota e modificabile. Leggi un elemento con <code>[0]</code>; gli
                 indici partono da zero e arrivano a <code>length - 1</code>.
               </p>
-              <details class="guide-card-details">
+              <details
+                class="guide-details"
+                open
+              >
                 <summary>Leggere, modificare e cercare valori</summary>
                 <p>
                   Chiama i metodi dopo il nome del vettore e un punto. Gli attributi si leggono
@@ -461,14 +518,17 @@
                 <p>Un indice fuori intervallo interrompe il programma con un errore.</p>
               </details>
             </article>
-            <article class="guide-card">
+            <article class="guide-entry">
               <h4>Pila: recupera l'ultimo inserito</h4>
-              <code class="guide-card-signature">stack()</code>
+              <code class="guide-signature">stack()</code>
               <p>
                 Crea una pila vuota. Accetta solo vettori: l'ultimo che inserisci è il primo che
                 recuperi, come in una pila di piatti.
               </p>
-              <details class="guide-card-details">
+              <details
+                class="guide-details"
+                open
+              >
                 <summary>Inserire e recuperare vettori dalla pila</summary>
                 <dl class="guide-definition-list">
                   <div>
@@ -497,14 +557,17 @@
                 </dl>
               </details>
             </article>
-            <article class="guide-card">
+            <article class="guide-entry">
               <h4>Coda: recupera il primo inserito</h4>
-              <code class="guide-card-signature">queue()</code>
+              <code class="guide-signature">queue()</code>
               <p>
                 Crea una coda vuota. Accetta solo vettori: li recuperi nello stesso ordine in cui li
                 inserisci, come in una fila alla cassa.
               </p>
-              <details class="guide-card-details">
+              <details
+                class="guide-details"
+                open
+              >
                 <summary>Inserire e recuperare vettori dalla coda</summary>
                 <dl class="guide-definition-list">
                   <div>
@@ -544,7 +607,12 @@
             <code>null</code> significa che non c'è un valore. Pile e code conservano i vettori
             inseriti: modificare un vettore modifica anche quello presente nella raccolta.
           </p>
-          <h3>Esempio rapido</h3>
+          <h3
+            id="functions-example"
+            tabindex="-1"
+          >
+            Esempio rapido
+          </h3>
           <pre class="guide-code">
 mine();
 print("Progresso: " + progress());</pre>
@@ -558,7 +626,7 @@ print("Progresso: " + progress());</pre>
       @if (guideSection() === 'gpu') {
         <section
           id="guide-page-gpu"
-          class="guide-page guide-reference"
+          class="guide-page guide-reference guide-markdown"
           role="tabpanel"
           aria-labelledby="guide-tab-gpu"
         >
@@ -568,7 +636,58 @@ print("Progresso: " + progress());</pre>
             quanto consuma e come cambiano temperatura e ventole. Puoi impostare la frequenza,
             controllare l'usura e fermarla.
           </p>
-          <h3>Trovare una scheda nella farm</h3>
+          <nav
+            class="guide-toc"
+            aria-label="In questa pagina"
+          >
+            <span>In questa pagina</span>
+            <a
+              href="#gpu-location"
+              (click)="goToGuideHeading($event, 'gpu-location')"
+              >Farm</a
+            >
+            <a
+              href="#gpu-mining"
+              (click)="goToGuideHeading($event, 'gpu-mining')"
+              >Mining</a
+            >
+            <a
+              href="#gpu-state"
+              (click)="goToGuideHeading($event, 'gpu-state')"
+              >Stato</a
+            >
+            <a
+              href="#gpu-telemetry"
+              (click)="goToGuideHeading($event, 'gpu-telemetry')"
+              >Telemetria</a
+            >
+            <a
+              href="#gpu-overclock"
+              (click)="goToGuideHeading($event, 'gpu-overclock')"
+              >Overclock</a
+            >
+            <a
+              href="#gpu-maintenance"
+              (click)="goToGuideHeading($event, 'gpu-maintenance')"
+              >Manutenzione</a
+            >
+            <a
+              href="#gpu-rigs"
+              (click)="goToGuideHeading($event, 'gpu-rigs')"
+              >Plot e rig</a
+            >
+            <a
+              href="#gpu-example"
+              (click)="goToGuideHeading($event, 'gpu-example')"
+              >Esempio</a
+            >
+          </nav>
+          <h3
+            id="gpu-location"
+            tabindex="-1"
+          >
+            Trovare una scheda nella farm
+          </h3>
           <p>
             La farm è divisa in <strong>{{ plotCapacity }} plot</strong>, cioè aree. Ogni area
             contiene <strong>{{ rigsPerPlot }} rig</strong>, le strutture che ospitano le schede.
@@ -608,13 +727,17 @@ print("Progresso: " + progress());</pre>
               usarli per minare. Lo sblocco di altri rig e GPU non è ancora disponibile.
             </p>
           </aside>
-          <h3>Minare nella farm</h3>
+          <h3
+            id="gpu-mining"
+            tabindex="-1"
+          >
+            Minare nella farm
+          </h3>
           <p>
             <code>mine()</code> è una funzione globale: avvia tutte le GPU sbloccate e operative.
-            Ogni scheda aggiunge {{ balance.world.progressPerGpuAtFullFarm }}/{{
-              gpuCapacity
-            }}% al blocco attivo alla frequenza di base ({{ balance.gpu.mining.frequencyGhz }} GHz)
-            e attende che il lavoro finisca prima di proseguire. Il progresso cresce in proporzione
+            Ogni scheda aggiunge {{ balance.world.progressPerGpuAtFullFarm }}/{{ gpuCapacity }}% al
+            blocco attivo alla frequenza di base ({{ balance.gpu.mining.frequencyGhz }} GHz) e
+            attende che il lavoro finisca prima di proseguire. Il progresso cresce in proporzione
             alla frequenza impostata. La difficoltà è min({{
               balance.mining.blockDifficulty.startingMultiplier
             }}
@@ -631,9 +754,14 @@ print("Progresso: " + progress());</pre>
             operative e montate nei rig; le schede in stop vengono saltate. Usa
             <code>progress()</code> per fermare il ciclo.
           </p>
-          <h3>Identità e stato</h3>
-          <div class="guide-card-grid">
-            <article class="guide-card">
+          <h3
+            id="gpu-state"
+            tabindex="-1"
+          >
+            Identità e stato
+          </h3>
+          <div class="guide-entry-list">
+            <article class="guide-entry">
               <h4>Identificare la scheda</h4>
               <p>
                 <code>gpu.id</code>, <code>gpu.rigId</code> e <code>gpu.plotId</code> identificano
@@ -641,7 +769,7 @@ print("Progresso: " + progress());</pre>
               </p>
               <p><code>gpu.type</code> restituisce <code>GPU</code>.</p>
             </article>
-            <article class="guide-card">
+            <article class="guide-entry">
               <h4>Sapere se può minare</h4>
               <p>
                 <code>gpu.unlocked</code> indica che GPU e rig sono sbloccati.
@@ -653,7 +781,7 @@ print("Progresso: " + progress());</pre>
                 non un mining in corso.
               </p>
             </article>
-            <article class="guide-card">
+            <article class="guide-entry">
               <h4>Sapere se è selezionata</h4>
               <p>
                 <code>gpu.selected</code> e <code>gpu.isSelected()</code> indicano la selezione
@@ -661,17 +789,22 @@ print("Progresso: " + progress());</pre>
                 <code>false</code> per le altre. Il trasferimento al banco richiede un doppio clic.
               </p>
             </article>
-            <article class="guide-card">
+            <article class="guide-entry">
               <h4>Modello</h4>
               <p>
                 Restituisce il nome della scheda: <code>{{ idleGpu.model }}</code
                 >.
               </p>
-              <code class="guide-card-signature">gpu.getModel()</code>
-              <p class="guide-card-property">Attributo: <code>gpu.model</code></p>
+              <code class="guide-signature">gpu.getModel()</code>
+              <p class="guide-property">Attributo: <code>gpu.model</code></p>
             </article>
           </div>
-          <h3>Frequenza, consumo e raffreddamento</h3>
+          <h3
+            id="gpu-telemetry"
+            tabindex="-1"
+          >
+            Frequenza, consumo e raffreddamento
+          </h3>
           <p>
             Ogni scheda ha stato e telemetria propri. Frequenza e potenza salgono solo sulla GPU che
             mina; temperatura e usura crescono con il lavoro. A riposo la scheda raffredda in
@@ -683,8 +816,8 @@ print("Progresso: " + progress());</pre>
             attributo, senza parentesi. Entrambi restituiscono lo stesso valore al momento della
             lettura.
           </p>
-          <div class="guide-card-grid">
-            <article class="guide-card">
+          <div class="guide-entry-list">
+            <article class="guide-entry">
               <h4>Frequenza</h4>
               <p>Velocità di lavoro della scheda, in gigahertz (GHz).</p>
               <ul class="guide-facts">
@@ -698,15 +831,18 @@ print("Progresso: " + progress());</pre>
                   Massimo del modello: <strong>{{ miningGpu.maxFrequencyGhz }} GHz</strong>
                 </li>
               </ul>
-              <details class="guide-card-details">
+              <details
+                class="guide-details"
+                open
+              >
                 <summary>Leggere frequenza attuale e massima</summary>
-                <code class="guide-card-signature">gpu.getFrequencyGhz()</code>
+                <code class="guide-signature">gpu.getFrequencyGhz()</code>
                 <p>Attributo equivalente: <code>gpu.frequencyGhz</code>.</p>
-                <code class="guide-card-signature">gpu.getMaxFrequencyGhz()</code>
+                <code class="guide-signature">gpu.getMaxFrequencyGhz()</code>
                 <p>Attributo equivalente: <code>gpu.maxFrequencyGhz</code>.</p>
               </details>
             </article>
-            <article class="guide-card">
+            <article class="guide-entry">
               <h4>Consumo</h4>
               <p>Potenza assorbita dalla scheda, in watt (W).</p>
               <ul class="guide-facts">
@@ -717,13 +853,16 @@ print("Progresso: " + progress());</pre>
                   Durante il mining: <strong>{{ miningGpu.powerWatts }} W</strong>
                 </li>
               </ul>
-              <details class="guide-card-details">
+              <details
+                class="guide-details"
+                open
+              >
                 <summary>Leggere il consumo attuale</summary>
-                <code class="guide-card-signature">gpu.getPowerWatts()</code>
+                <code class="guide-signature">gpu.getPowerWatts()</code>
                 <p>Attributo equivalente: <code>gpu.powerWatts</code>.</p>
               </details>
             </article>
-            <article class="guide-card">
+            <article class="guide-entry">
               <h4>Temperatura</h4>
               <p>Temperatura della scheda, in gradi Celsius (°C).</p>
               <ul class="guide-facts">
@@ -737,15 +876,18 @@ print("Progresso: " + progress());</pre>
                   Massimo del modello: <strong>{{ miningGpu.maxTemperatureCelsius }} °C</strong>
                 </li>
               </ul>
-              <details class="guide-card-details">
+              <details
+                class="guide-details"
+                open
+              >
                 <summary>Leggere temperatura attuale e massima</summary>
-                <code class="guide-card-signature">gpu.getTemperatureCelsius()</code>
+                <code class="guide-signature">gpu.getTemperatureCelsius()</code>
                 <p>Attributo equivalente: <code>gpu.temperatureCelsius</code>.</p>
-                <code class="guide-card-signature">gpu.getMaxTemperatureCelsius()</code>
+                <code class="guide-signature">gpu.getMaxTemperatureCelsius()</code>
                 <p>Attributo equivalente: <code>gpu.maxTemperatureCelsius</code>.</p>
               </details>
             </article>
-            <article class="guide-card">
+            <article class="guide-entry">
               <h4>Ventole</h4>
               <p>Velocità di rotazione, in percentuale o in giri al minuto (RPM).</p>
               <ul class="guide-facts">
@@ -763,22 +905,25 @@ print("Progresso: " + progress());</pre>
                   Massimo del modello: <strong>{{ miningGpu.maxFanSpeedRpm }} RPM</strong>
                 </li>
               </ul>
-              <details class="guide-card-details">
+              <details
+                class="guide-details"
+                open
+              >
                 <summary>Leggere percentuale e giri al minuto</summary>
-                <code class="guide-card-signature">gpu.getFanSpeed()</code>
+                <code class="guide-signature">gpu.getFanSpeed()</code>
                 <p>Percentuale, da 0 a 100. Attributo: <code>gpu.fanSpeed</code>.</p>
-                <code class="guide-card-signature">gpu.getCurrentFanSpeedRpm()</code>
+                <code class="guide-signature">gpu.getCurrentFanSpeedRpm()</code>
                 <p>
                   RPM attuali, calcolati dalla percentuale. Attributo:
                   <code>gpu.currentFanSpeedRpm</code>.
                 </p>
-                <code class="guide-card-signature">gpu.getMaxFanSpeedRpm()</code>
+                <code class="guide-signature">gpu.getMaxFanSpeedRpm()</code>
                 <p>RPM massimi. Attributo: <code>gpu.maxFanSpeedRpm</code>.</p>
               </details>
             </article>
           </div>
           <aside
-            class="guide-callout"
+            class="guide-callout guide-callout-warning"
             role="note"
           >
             <h3>
@@ -793,8 +938,13 @@ print("Progresso: " + progress());</pre>
               <code>null</code>; i getter restituiscono numeri, salvo modello e motivo di stop.
             </p>
           </aside>
-          <h3>Overclock e limiti</h3>
-          <div class="syntax-list">
+          <h3
+            id="gpu-overclock"
+            tabindex="-1"
+          >
+            Overclock e limiti
+          </h3>
+          <div class="guide-sections">
             <article>
               <h4>Impostare la frequenza</h4>
               <code>gpu.setFrequencyGhz(2.1);</code>
@@ -849,8 +999,13 @@ print("Progresso: " + progress());</pre>
               </p>
             </article>
           </div>
-          <h3>Usura e stop persistente</h3>
-          <div class="syntax-list">
+          <h3
+            id="gpu-maintenance"
+            tabindex="-1"
+          >
+            Usura e stop persistente
+          </h3>
+          <div class="guide-sections">
             <article>
               <h4>Leggere l'usura</h4>
               <code>gpu.getWearPercent()</code>
@@ -902,13 +1057,21 @@ print("Progresso: " + progress());</pre>
               </p>
             </article>
           </div>
-          <h3>Consultare plot e rig</h3>
+          <h3
+            id="gpu-rigs"
+            tabindex="-1"
+          >
+            Consultare plot e rig
+          </h3>
           <p>
             <code>gpuCount</code> conta le GPU utilizzabili, con scheda e rig sbloccati.
             <code>gpuCapacity</code> conta tutti gli slot, anche quelli bloccati. Le raccolte
             <code>plots</code>, <code>rigs</code> e <code>gpus</code> sono di sola lettura.
           </p>
-          <details class="guide-card-details">
+          <details
+            class="guide-details"
+            open
+          >
             <summary>Attributi di plot e rig</summary>
             <dl class="guide-definition-list">
               <div>
@@ -950,7 +1113,12 @@ print("Progresso: " + progress());</pre>
               </div>
             </dl>
           </details>
-          <h3>Esempio rapido</h3>
+          <h3
+            id="gpu-example"
+            tabindex="-1"
+          >
+            Esempio rapido
+          </h3>
           <pre class="guide-code">
 let gpu = plots[0].rigs[0].gpus[0];
 print(gpu.getModel());
@@ -962,7 +1130,7 @@ print(gpu.getFanSpeed() + "%");</pre>
       @if (guideSection() === 'energy') {
         <section
           id="guide-page-energy"
-          class="guide-page guide-reference"
+          class="guide-page guide-reference guide-markdown"
           role="tabpanel"
           aria-labelledby="guide-tab-energy"
         >
@@ -971,11 +1139,37 @@ print(gpu.getFanSpeed() + "%");</pre>
             Controlla la potenza della farm. Il consumo si accumula durante il mining e la bolletta
             viene addebitata ogni 24 ore di gioco. Il portafoglio mostra BTC e controvalore in euro.
           </p>
+          <nav
+            class="guide-toc"
+            aria-label="In questa pagina"
+          >
+            <span>In questa pagina</span>
+            <a
+              href="#energy-overview"
+              (click)="goToGuideHeading($event, 'energy-overview')"
+              >Economia</a
+            >
+            <a
+              href="#energy-methods"
+              (click)="goToGuideHeading($event, 'energy-methods')"
+              >Metodi</a
+            >
+            <a
+              href="#energy-payment"
+              (click)="goToGuideHeading($event, 'energy-payment')"
+              >Pagamento</a
+            >
+          </nav>
           <aside
             class="guide-callout"
             role="note"
           >
-            <h3>Economia simulata</h3>
+            <h3
+              id="energy-overview"
+              tabindex="-1"
+            >
+              Economia simulata
+            </h3>
             <p>
               1 BTC = {{ balance.economy.bitcoinPriceEur }} €. Tariffa:
               {{ balance.economy.electricityPriceEurPerKwh }} €/kWh. Ogni
@@ -991,59 +1185,84 @@ print(gpu.getFanSpeed() + "%");</pre>
             schede sbloccate e accese. Le GPU in stop consumano zero. Abbassare la frequenza riduce
             la potenza e la resa; alzarla aumenta la potenza più rapidamente della resa.
           </p>
-          <h3>Metodi di electricity</h3>
+          <h3
+            id="energy-methods"
+            tabindex="-1"
+          >
+            Metodi di electricity
+          </h3>
           <p>
             L'oggetto globale <code>electricity</code> è sempre disponibile. Tutti i metodi sotto
             richiedono zero argomenti e restituiscono numeri. Gli attributi equivalenti sono di sola
             lettura; la tariffa è fissa.
           </p>
-          <div class="syntax-list">
-            <article>
-              <h4>Potenza attuale della farm</h4>
-              <code>electricity.getPowerWatts()</code>
-              <p>
-                W totali delle GPU sbloccate, inclusa la potenza di standby. Attributo:
-                <code>powerWatts</code>.
-              </p>
-            </article>
-            <article>
-              <h4>Energia consumata</h4>
-              <code>electricity.getEnergyKwh()</code>
-              <p>
-                kWh totali dall'inizio della partita, inclusi blocchi già pagati e lavoro
-                interrotto. Attributo: <code>energyKwh</code>.
-              </p>
-            </article>
-            <article>
-              <h4>Bolletta da pagare</h4>
-              <code>electricity.getPendingCostEur()</code>
-              <p>
-                Costo accumulato in euro da saldare al prossimo blocco completato. Si azzera al
-                pagamento. Attributo: <code>pendingCostEur</code>.
-              </p>
-            </article>
-            <article>
-              <h4>Costo complessivo</h4>
-              <code>electricity.getTotalCostEur()</code>
-              <p>Euro già pagati più bolletta pendente. Attributo: <code>totalCostEur</code>.</p>
-            </article>
-            <article>
-              <h4>Prezzo della corrente</h4>
-              <code>electricity.getPricePerKwh()</code>
-              <p>Tariffa in €/kWh. Attributo: <code>pricePerKwh</code>.</p>
-            </article>
+          <div
+            class="guide-table-wrapper"
+            role="region"
+            aria-label="Metodi di electricity"
+            tabindex="0"
+          >
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th scope="col">Metodo / attributo</th>
+                  <th scope="col">Valore restituito</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>electricity.getPowerWatts()</code><small>powerWatts</small></td>
+                  <td>
+                    <strong>Potenza · W</strong><br />Consumo attuale della farm, incluso lo standby
+                    delle GPU sbloccate e accese.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>electricity.getEnergyKwh()</code><small>energyKwh</small></td>
+                  <td>
+                    <strong>Energia · kWh</strong><br />Totale dall'inizio della partita, inclusi
+                    consumi già pagati e lavoro interrotto.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>electricity.getPendingCostEur()</code><small>pendingCostEur</small></td>
+                  <td>
+                    <strong>Bolletta pendente · €</strong><br />Costo da saldare al prossimo
+                    addebito giornaliero. Si azzera al pagamento.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>electricity.getTotalCostEur()</code><small>totalCostEur</small></td>
+                  <td>
+                    <strong>Costo totale · €</strong><br />Importi già pagati più bolletta pendente.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>electricity.getPricePerKwh()</code><small>pricePerKwh</small></td>
+                  <td>
+                    <strong>Tariffa · €/kWh</strong><br />Prezzo fisso dell'energia nella
+                    simulazione.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <h3>Pagamento e riepilogo</h3>
+          <h3
+            id="energy-payment"
+            tabindex="-1"
+          >
+            Pagamento e riepilogo
+          </h3>
           <p>
-            Al 100% il gioco accredita il premio e sottrae la bolletta convertita in BTC al cambio
-            fisso, arrotondata una sola volta al satoshi più vicino. Il riepilogo anima ricompensa,
-            corrente e guadagno netto. Un blocco viene saldato una sola volta; l'animazione non
-            modifica i conti.
+            Al 100% il gioco accredita il premio del blocco una sola volta. Ogni 24 ore di gioco
+            addebita la corrente accumulata, convertita in BTC al cambio fisso e arrotondata al
+            satoshi più vicino. Il portafoglio mostra i movimenti; la console riporta la bolletta
+            del giorno.
           </p>
           <p>
             Fermare il codice o lasciare un blocco incompleto conserva la bolletta. In caso di
-            consumi superiori al saldo più premio, il saldo può diventare negativo: il debito resta
-            visibile. La nuova partita azzera consumi, saldo e stato GPU.
+            addebiti superiori al saldo disponibile, il saldo può diventare negativo: il debito
+            resta visibile. La nuova partita azzera consumi, saldo e stato GPU.
           </p>
           <pre class="guide-code">
 let gpu = plots[0].rigs[0].gpus[0];
@@ -1059,7 +1278,7 @@ gpu.stop();</pre>
       @if (guideSection() === 'constructs') {
         <section
           id="guide-page-constructs"
-          class="guide-page guide-reference"
+          class="guide-page guide-reference guide-markdown"
           role="tabpanel"
           aria-labelledby="guide-tab-constructs"
         >
@@ -1068,6 +1287,52 @@ gpu.stop();</pre>
             Le variabili conservano valori, le condizioni scelgono cosa eseguire e i cicli ripetono
             le istruzioni. Combinandoli puoi automatizzare il mining.
           </p>
+          <nav
+            class="guide-toc"
+            aria-label="In questa pagina"
+          >
+            <span>In questa pagina</span>
+            <a
+              href="#constructs-variables"
+              (click)="goToGuideHeading($event, 'constructs-variables')"
+              >Variabili</a
+            >
+            <a
+              href="#constructs-repeat"
+              (click)="goToGuideHeading($event, 'constructs-repeat')"
+              >repeat</a
+            >
+            <a
+              href="#constructs-while"
+              (click)="goToGuideHeading($event, 'constructs-while')"
+              >while</a
+            >
+            <a
+              href="#constructs-for"
+              (click)="goToGuideHeading($event, 'constructs-for')"
+              >for</a
+            >
+            <a
+              href="#constructs-parallel"
+              (click)="goToGuideHeading($event, 'constructs-parallel')"
+              >parallel</a
+            >
+            <a
+              href="#constructs-if"
+              (click)="goToGuideHeading($event, 'constructs-if')"
+              >if / else</a
+            >
+            <a
+              href="#constructs-operators"
+              (click)="goToGuideHeading($event, 'constructs-operators')"
+              >Operatori</a
+            >
+            <a
+              href="#constructs-example"
+              (click)="goToGuideHeading($event, 'constructs-example')"
+              >Esempio</a
+            >
+          </nav>
           <aside
             class="guide-callout"
             role="note"
@@ -1092,23 +1357,33 @@ gpu.stop();</pre>
               </li>
             </ul>
           </aside>
-          <div class="syntax-list">
+          <div class="guide-sections">
             <article>
-              <h3>Conservare e aggiornare un valore</h3>
+              <h3
+                id="constructs-variables"
+                tabindex="-1"
+              >
+                Conservare e aggiornare un valore
+              </h3>
               <p>
                 Una variabile associa un nome a un valore. Creala con <code>let</code>; usa
                 <code>=</code> per assegnarle un valore nuovo.
               </p>
-              <code>let obiettivo = 100;</code>
-              <code>obiettivo = obiettivo - 20;</code>
-              <code>let i = 0; i++;</code>
+              <pre
+                class="guide-code"
+              ><code><span class="token-keyword">let</span> obiettivo = <span class="token-number">100</span>;
+obiettivo = obiettivo - <span class="token-number">20</span>;
+<span class="token-keyword">let</span> i = <span class="token-number">0</span>; i++;</code></pre>
               <p>
                 <code>++</code> aumenta di uno; <code>--</code> diminuisce di uno. Le variabili
                 valgono per tutta l'esecuzione, anche fuori dal blocco in cui sono dichiarate, e si
                 azzerano al prossimo avvio. Un altro <code>let</code> con lo stesso nome ne
                 sostituisce il valore.
               </p>
-              <details class="guide-card-details">
+              <details
+                class="guide-details"
+                open
+              >
                 <summary>Valori disponibili e nomi delle variabili</summary>
                 <ul class="guide-facts">
                   <li><strong>Numeri:</strong> interi o decimali, scritti con il punto.</li>
@@ -1130,7 +1405,12 @@ gpu.stop();</pre>
               </details>
             </article>
             <article>
-              <h3>Ripetere un numero preciso di volte: <code>repeat</code></h3>
+              <h3
+                id="constructs-repeat"
+                tabindex="-1"
+              >
+                Ripetere un numero preciso di volte: <code>repeat</code>
+              </h3>
               <p>
                 Usalo quando sai già quante ripetizioni servono. Accetta un numero intero da 0 a
                 1000.
@@ -1139,7 +1419,12 @@ gpu.stop();</pre>
               <p>Il corpo viene eseguito cinque volte. Con zero ripetizioni viene saltato.</p>
             </article>
             <article>
-              <h3>Ripetere finché serve: <code>while</code></h3>
+              <h3
+                id="constructs-while"
+                tabindex="-1"
+              >
+                Ripetere finché serve: <code>while</code>
+              </h3>
               <p>Usalo quando devi raggiungere un risultato, come completare il blocco attivo.</p>
               <code>while (progress() &lt; 100) &lbrace; ... &rbrace;</code>
               <p>
@@ -1152,7 +1437,12 @@ gpu.stop();</pre>
               </p>
             </article>
             <article>
-              <h3>Ripetere con un contatore: <code>for</code></h3>
+              <h3
+                id="constructs-for"
+                tabindex="-1"
+              >
+                Ripetere con un contatore: <code>for</code>
+              </h3>
               <p>
                 Usalo quando vuoi conoscere il numero della ripetizione o scorrere una raccolta.
               </p>
@@ -1167,7 +1457,12 @@ gpu.stop();</pre>
               <p>Il corpo viene eseguito cinque volte, con <code>i</code> da 0 a 4.</p>
             </article>
             <article>
-              <h3>Avviare più comandi insieme: <code>parallel</code></h3>
+              <h3
+                id="constructs-parallel"
+                tabindex="-1"
+              >
+                Avviare più comandi insieme: <code>parallel</code>
+              </h3>
               <p>
                 Prepara una variabile per ogni GPU, poi metti un comando per riga. Partono tutti
                 nello stesso momento; il programma aspetta che abbiano finito prima di continuare.
@@ -1180,23 +1475,40 @@ parallel &lbrace;
   gpuUno.setFrequencyGhz(gpuUno.getMaxFrequencyGhz());
   gpuDue.setFrequencyGhz(gpuDue.getMaxFrequencyGhz());
 &rbrace;</pre>
-              <p>Usa una volta sola ogni GPU nel blocco. <code>mine()</code> avvia già tutta la farm.</p>
+              <p>
+                Usa una volta sola ogni GPU nel blocco. <code>mine()</code> avvia già tutta la farm.
+              </p>
             </article>
             <article>
-              <h3>Scegliere cosa eseguire: <code>if</code> e <code>else</code></h3>
+              <h3
+                id="constructs-if"
+                tabindex="-1"
+              >
+                Scegliere cosa eseguire: <code>if</code> e <code>else</code>
+              </h3>
               <p>
                 <code>if</code> esegue il suo blocco quando la condizione è vera.
                 <code>else</code> esegue l'alternativa quando è falsa; puoi ometterlo.
               </p>
-              <code>if (progress() == 100) &lbrace; ... &rbrace;</code>
-              <code>else &lbrace; ... &rbrace;</code>
+              <pre
+                class="guide-code"
+              ><code><span class="token-keyword">if</span> (<span class="token-function">progress</span>() == <span class="token-number">100</span>) &lbrace;
+  <span class="token-function">print</span>(<span class="token-string">"Blocco completato"</span>);
+&rbrace; <span class="token-keyword">else</span> &lbrace;
+  <span class="token-function">mine</span>();
+&rbrace;</code></pre>
               <p>
                 <code>==</code> confronta due valori; <code>=</code> assegna un valore a una
                 variabile. Sono operazioni diverse.
               </p>
             </article>
             <article>
-              <h3>Calcolare e confrontare valori</h3>
+              <h3
+                id="constructs-operators"
+                tabindex="-1"
+              >
+                Calcolare e confrontare valori
+              </h3>
               <code>+ - * / %</code>
               <p>
                 Somma, sottrazione, moltiplicazione, divisione e resto della divisione.
@@ -1223,9 +1535,17 @@ parallel &lbrace;
               </p>
             </article>
           </div>
-          <h3>Ripeti, controlla, sperimenta</h3>
+          <h3
+            id="constructs-example"
+            tabindex="-1"
+          >
+            Ripeti, controlla, sperimenta
+          </h3>
           <pre class="guide-code">{{ languageGuideExample }}</pre>
-          <details class="guide-card-details">
+          <details
+            class="guide-details"
+            open
+          >
             <summary>Se il programma si interrompe</summary>
             <p>
               La console indica l'errore e la riga da controllare. Verifica prima punti e virgola,
