@@ -1,4 +1,4 @@
-import { CRYPTO_CONFIG } from '../config/crypto-config';
+import { cryptoValueEur } from '../config/crypto-config';
 import {
   RESEARCH_TREE,
   type ResearchNode,
@@ -6,6 +6,7 @@ import {
   flattenResearchTree,
 } from '../config/research-tree-config';
 import { countUnlockedRigs, type MiningWorld } from './mining-world';
+import { spendEuros } from './wallet-transactions';
 
 const nodes = flattenResearchTree();
 const byId = new Map(nodes.map((node) => [node.id, node]));
@@ -53,13 +54,7 @@ export function requirementMet(world: MiningWorld, requirement: ResearchRequirem
 }
 
 export function researchPriceAvailable(world: MiningWorld): number {
-  return (
-    world.cashEur +
-    CRYPTO_CONFIG.reduce(
-      (total, crypto) => total + (world.holdings[crypto.id] ?? 0) * crypto.priceEur,
-      0,
-    )
-  );
+  return world.cashEur + cryptoValueEur(world.holdings);
 }
 
 export function canUnlockResearch(world: MiningWorld, node: ResearchNode): boolean {
@@ -88,21 +83,8 @@ export function unlockResearch(world: MiningWorld, id: string): MiningWorld {
     throw new Error('Saldo insufficiente per sbloccare la ricerca.');
   }
 
-  let remaining = node.costEur;
-  const cashSpent = Math.min(Math.max(world.cashEur, 0), remaining);
-  remaining -= cashSpent;
-  const holdings = { ...world.holdings };
-  for (const crypto of CRYPTO_CONFIG) {
-    if (remaining <= 0.000001) break;
-    const amount = holdings[crypto.id] ?? 0;
-    const spent = Math.min(amount * crypto.priceEur, remaining);
-    holdings[crypto.id] = Math.max(0, amount - spent / crypto.priceEur);
-    remaining -= spent;
-  }
   return {
-    ...world,
-    cashEur: world.cashEur - cashSpent,
-    holdings,
+    ...spendEuros(world, node.costEur),
     unlockedResearchIds: [...world.unlockedResearchIds, id],
   };
 }

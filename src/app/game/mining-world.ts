@@ -2,6 +2,7 @@ import { GAME_BALANCE } from '../config/game-balance';
 import type { Inventory } from './inventory';
 import {
   CRYPTO_CONFIG,
+  cryptoValueEur,
   requireCrypto,
   type CryptoId,
   type CryptoAmounts,
@@ -248,8 +249,10 @@ export function settleCompletedCryptoBlock(world: MiningWorld, cryptoId: CryptoI
   const crypto = CRYPTO_CONFIG.find((item) => item.id === cryptoId)!;
   const rewardSatoshis = cryptoRewardSatoshis(cryptoId);
   const balanceAfterSatoshis = world.satoshis + rewardSatoshis;
+  const balanceBeforeEur = world.cashEur + cryptoValueEur(world.holdings);
   const holdings = { ...world.holdings };
   holdings[cryptoId] = (holdings[cryptoId] ?? 0) + crypto.coinsPerBlock;
+  const balanceAfterEur = world.cashEur + cryptoValueEur(holdings);
   return withCryptoChain(
     {
       ...world,
@@ -264,6 +267,8 @@ export function settleCompletedCryptoBlock(world: MiningWorld, cryptoId: CryptoI
         electricitySatoshis: 0,
         balanceBeforeSatoshis: world.satoshis,
         balanceAfterSatoshis,
+        balanceBeforeEur,
+        balanceAfterEur,
       },
     },
     cryptoId,
@@ -295,10 +300,13 @@ export function billElectricityForDay(world: MiningWorld, gameDay: number): Mini
   const energyKwh = world.electricity.pendingKwh;
   const electricitySatoshis = electricityCostSatoshis(energyKwh);
   const balanceAfterSatoshis = world.satoshis - electricitySatoshis;
+  const balanceBeforeEur = world.cashEur + cryptoValueEur(world.holdings);
+  const cashEur = world.cashEur - satoshisToEuros(electricitySatoshis);
+  const balanceAfterEur = cashEur + cryptoValueEur(world.holdings);
   return {
     ...world,
     satoshis: balanceAfterSatoshis,
-    cashEur: world.cashEur - satoshisToEuros(electricitySatoshis),
+    cashEur,
     electricity: {
       ...world.electricity,
       pendingKwh: 0,
@@ -310,6 +318,8 @@ export function billElectricityForDay(world: MiningWorld, gameDay: number): Mini
       electricitySatoshis,
       balanceBeforeSatoshis: world.satoshis,
       balanceAfterSatoshis,
+      balanceBeforeEur,
+      balanceAfterEur,
     },
   };
 }

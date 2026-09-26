@@ -20,15 +20,18 @@ import {
 } from '../../config/shop-config';
 import {
   inventoryEntries,
+  groupInventoryEntries,
   productAvailable,
   resaleValue,
   type InventoryEntry,
+  type InventoryGroup,
 } from '../../game/inventory';
 import { IconComponent } from '../icons/icon.component';
 import { ResearchThumbnails } from '../research-tree/research-thumbnails';
 
 type Application = 'desktop' | 'shop' | 'inventory';
 type StockFilter = 'all' | 'stock' | 'installed' | 'broken';
+type InventorySort = 'name' | 'quantity-desc' | 'value-desc';
 
 @Component({
   selector: 'app-computer',
@@ -45,6 +48,7 @@ export class ComputerComponent implements OnDestroy {
   readonly search = signal('');
   readonly sort = signal('price-asc');
   readonly stockFilter = signal<StockFilter>('all');
+  readonly inventorySort = signal<InventorySort>('name');
   readonly selection = signal<string | null>(null);
   readonly cart = signal<ReadonlyMap<string, number>>(new Map());
   readonly quantities = signal<ReadonlyMap<string, number>>(new Map());
@@ -79,12 +83,29 @@ export class ComputerComponent implements OnDestroy {
           (this.stockFilter() === 'installed' && entry.stockId === undefined)),
     ),
   );
-  readonly selectedEntry = computed<InventoryEntry | null>(
+  readonly inventoryGroups = computed(() => {
+    const groups = groupInventoryEntries(this.visibleEntries());
+    return groups.sort((a, b) => {
+      if (this.inventorySort() === 'quantity-desc') return b.quantity - a.quantity;
+      if (this.inventorySort() === 'value-desc')
+        return b.quantity * b.product.priceEur - a.quantity * a.product.priceEur;
+      return a.product.name.localeCompare(b.product.name, 'it');
+    });
+  });
+  readonly selectedGroup = computed<InventoryGroup | null>(
     () =>
-      this.visibleEntries().find((entry) => entry.key === this.selection()) ??
-      this.visibleEntries()[0] ??
+      this.inventoryGroups().find((group) =>
+        group.entries.some((entry) => entry.key === this.selection()),
+      ) ??
+      this.inventoryGroups()[0] ??
       null,
   );
+  readonly selectedEntry = computed<InventoryEntry | null>(() => {
+    const group = this.selectedGroup();
+    return (
+      group?.entries.find((entry) => entry.key === this.selection()) ?? group?.entries[0] ?? null
+    );
+  });
   readonly cartLines = computed(() =>
     [...this.cart()].map(([id, quantity]) => ({ product: SHOP_PRODUCTS_BY_ID.get(id)!, quantity })),
   );
@@ -157,6 +178,10 @@ export class ComputerComponent implements OnDestroy {
     this.selection.set(entry.key);
     this.salePending.set(null);
   }
+  selectGroup(group: InventoryGroup): void {
+    this.selection.set(group.entries[0]?.key ?? null);
+    this.salePending.set(null);
+  }
   money(value: number): string {
     return this.euros.format(value);
   }
@@ -165,6 +190,32 @@ export class ComputerComponent implements OnDestroy {
   }
   stock(productId: string): number {
     return this.game.world().inventory.items.filter((item) => item.productId === productId).length;
+  }
+  owned(productId: string): number {
+    return this.entries()
+      .filter((entry) => entry.product.id === productId)
+      .reduce((sum, entry) => sum + entry.quantity, 0);
+  }
+  categoryCount(categoryId: string): number {
+    if (this.app() === 'shop') {
+      return SHOP_PRODUCTS.filter(
+        (product) =>
+          (categoryId === 'all' || product.category === categoryId) && this.matches(product, false),
+      ).length;
+    }
+    const filteredEntries = this.entries().filter((entry) => {
+      const matchesState =
+        this.stockFilter() === 'all' ||
+        (this.stockFilter() === 'broken' && entry.condition === 'broken') ||
+        (this.stockFilter() === 'stock' && entry.stockId !== undefined) ||
+        (this.stockFilter() === 'installed' && entry.stockId === undefined);
+      return (
+        matchesState &&
+        (categoryId === 'all' || entry.product.category === categoryId) &&
+        this.matches(entry.product, false)
+      );
+    });
+    return groupInventoryEntries(filteredEntries).length;
   }
   quantity(id: string): number {
     return this.quantities().get(id) ?? 1;
@@ -240,9 +291,9 @@ export class ComputerComponent implements OnDestroy {
     this.game.inspectGpu(entry.gpuId);
     this.close();
   }
-  private matches(product: ShopProduct): boolean {
+  private matches(product: ShopProduct, includeCategory = true): boolean {
     return (
-      (this.category() === 'all' || product.category === this.category()) &&
+      (!includeCategory || this.category() === 'all' || product.category === this.category()) &&
       `${product.name} ${product.id} ${product.description}`
         .toLocaleLowerCase('it')
         .includes(this.search().trim().toLocaleLowerCase('it'))

@@ -4,9 +4,88 @@
 >
   <canvas
     #canvas
-    aria-label="Laboratorio 3D. Clicca un rig per configurarlo al banco. Clicca una GPU per selezionarla, doppio clic per portarla al banco. Clicca il computer per aprire Shop e Magazzino. Trascina per ruotare, tasto destro e trascina per spostare la visuale, rotella per zoom."
+    aria-label="Laboratorio 3D. Clicca un rig per configurarlo al banco. Clicca una GPU per selezionarla, doppio clic per portarla al banco, tasto destro per smontarla o sostituirla. Clicca il computer per aprire Shop e Magazzino. Trascina per ruotare, tasto destro e trascina per spostare la visuale, rotella per zoom."
     tabindex="0"
   ></canvas>
+
+  @if (gpuContextMenu(); as menu) {
+    @if (contextGpu(); as selected) {
+      <div
+        class="gpu-context-layer"
+        (pointerdown)="closeGpuContextMenu()"
+      >
+        <section
+          class="gpu-context-menu"
+          [style.left.px]="menu.x"
+          [style.top.px]="menu.y"
+          role="menu"
+          [attr.aria-label]="'Azioni GPU ' + menu.gpuId"
+          (pointerdown)="$event.stopPropagation()"
+        >
+          <header>
+            <app-icon name="gpu" />
+            <span
+              ><small>GESTIONE RAPIDA</small
+              ><strong>GPU #{{ menu.gpuId }} · {{ selected.model.name }}</strong></span
+            >
+            <button
+              aria-label="Chiudi menu GPU"
+              (click)="closeGpuContextMenu()"
+            >
+              <app-icon name="close" />
+            </button>
+          </header>
+          <button
+            class="context-action"
+            role="menuitem"
+            [disabled]="game.running()"
+            (click)="removeContextGpu()"
+          >
+            <app-icon name="archive" /><span>Sposta in magazzino</span>
+          </button>
+          <div class="context-divider"><span>Sostituisci con</span></div>
+          @if (replacementGpus().length) {
+            <div class="replacement-list">
+              @for (item of replacementGpus(); track item.id) {
+                <button
+                  class="context-action replacement-option"
+                  role="menuitem"
+                  [disabled]="game.running()"
+                  (click)="replaceContextGpu(item.id)"
+                >
+                  <app-icon name="replace" />
+                  <span>{{ stockProducts.get(item.productId)?.name ?? item.productId }}</span>
+                  <small>#{{ item.id }}</small>
+                </button>
+              }
+            </div>
+          } @else {
+            <p class="context-empty">Nessuna GPU funzionante. Acquistane una nello Shop del PC.</p>
+          }
+          @if (game.running()) {
+            <p class="context-feedback">Ferma il programma prima di modificare le GPU.</p>
+          }
+          @if (contextFeedback()) {
+            <p
+              class="context-feedback"
+              role="status"
+            >
+              {{ contextFeedback() }}
+            </p>
+          }
+        </section>
+      </div>
+    }
+  }
+  @if (contextNotice()) {
+    <div
+      class="gpu-context-notice"
+      role="status"
+      aria-live="polite"
+    >
+      {{ contextNotice() }}
+    </div>
+  }
 
   <app-scene-controls
     [cameraPreset]="cameraPreset()"

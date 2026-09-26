@@ -41,14 +41,6 @@
     aria-label="Strumenti"
   >
     <button
-      class="icon-button utility-button"
-      aria-label="Apri computer"
-      title="Computer · Shop e Magazzino"
-      (click)="scene.setSelectedToolStationId('computer')"
-    >
-      <app-icon name="monitor" />
-    </button>
-    <button
       class="icon-button utility-button research-action"
       aria-label="Albero della ricerca"
       title="Albero della ricerca"
@@ -58,19 +50,19 @@
     </button>
     <button
       class="icon-button utility-button"
-      aria-label="Impostazioni"
-      title="Impostazioni"
-      (click)="openSettings()"
-    >
-      <app-icon name="settings" />
-    </button>
-    <button
-      class="icon-button utility-button"
       aria-label="Manuale e tutorial"
       title="Manuale e tutorial"
       (click)="openGuide()"
     >
       <app-icon name="book" />
+    </button>
+    <button
+      class="icon-button utility-button"
+      aria-label="Impostazioni"
+      title="Impostazioni"
+      (click)="openSettings()"
+    >
+      <app-icon name="settings" />
     </button>
   </div>
 
@@ -295,7 +287,8 @@
             Trascina la scena per ruotarla e usa la rotella per ingrandire. Un clic sulla GPU o sul
             suo pulsante la seleziona; seleziona anche un RIG per mostrare entrambi i dati nel HUD.
             Un doppio clic apre il banco: puoi tenere una GPU e un RIG sui rispettivi banchi
-            insieme. Passa il cursore sul modello 3D per temperatura, usura, sporco e consumo. Da
+            insieme. Tasto destro su una GPU nel RIG per smontarla o sostituirla con una scheda in
+            magazzino. Passa il cursore sul modello 3D per temperatura, usura, sporco e consumo. Da
             tastiera, Alt+Invio sul pulsante GPU la porta al banco. La farm ha
             {{ rigCapacity }} quadrati di sblocco e {{ gpuCapacity }} alloggiamenti GPU; all'avvio
             sono sbloccati {{ balance.world.startingRigCount }} RIG e

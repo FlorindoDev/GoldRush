@@ -85,7 +85,8 @@
               [attr.aria-pressed]="category() === item.id"
               (click)="selectCategory(item.id)"
             >
-              <app-icon [name]="item.icon" />{{ item.name }}
+              <app-icon [name]="item.icon" />{{ item.name
+              }}<small class="category-count">{{ categoryCount(item.id) }}</small>
             </button>
           }
         </nav>
@@ -132,11 +133,22 @@
               <option value="installed">Montati / sul banco</option>
               <option value="broken">GPU guaste</option>
             </select>
+            <select
+              aria-label="Ordina inventario"
+              [value]="inventorySort()"
+              (change)="inventorySort.set($any($event.target).value)"
+            >
+              <option value="name">Nome A–Z</option>
+              <option value="quantity-desc">Quantità maggiore</option>
+              <option value="value-desc">Valore maggiore</option>
+            </select>
           }
         </div>
         <div class="catalog-caption">
           <span>{{
-            app() === 'shop' ? products().length + ' articoli' : visibleEntries().length + ' voci'
+            app() === 'shop'
+              ? products().length + ' articoli'
+              : inventoryGroups().length + ' gruppi'
           }}</span
           ><span>{{
             app() === 'shop'
@@ -185,7 +197,9 @@
                 </div>
                 <div class="product-price">
                   <strong>{{ money(product.priceEur) }}</strong
-                  ><span>In stock: {{ stock(product.id) }}</span>
+                  ><span
+                    >{{ stock(product.id) }} in magazzino · {{ owned(product.id) }} posseduti</span
+                  >
                 </div>
                 <div class="buy-controls">
                   <input
@@ -220,42 +234,49 @@
             <div class="inventory-columns">
               <span>Componente</span><span>Stato / posizione</span><span>Qtà</span>
             </div>
-            @for (entry of visibleEntries(); track entry.key) {
+            @for (group of inventoryGroups(); track group.key) {
               <button
                 class="inventory-row"
-                [class.selected]="selectedEntry()?.key === entry.key"
-                [attr.aria-pressed]="selectedEntry()?.key === entry.key"
-                (click)="selectEntry(entry)"
+                [class.selected]="selectedGroup()?.key === group.key"
+                [attr.aria-pressed]="selectedGroup()?.key === group.key"
+                (click)="selectGroup(group)"
                 [attr.aria-label]="
-                  entry.product.name + ', ' + conditionLabel(entry) + ', ' + entry.location
+                  group.product.name +
+                  ', ' +
+                  conditionLabel(group.entries[0]) +
+                  ', quantità ' +
+                  group.quantity
                 "
               >
                 <span class="item-name">
-                  @if (thumbnails().get(entry.product.id); as image) {
+                  @if (thumbnails().get(group.product.id); as image) {
                     <img
                       [src]="image"
                       alt=""
                     />
                   } @else {
-                    <app-icon name="box" />
+                    <app-icon [name]="group.product.category === 'gpu' ? 'gpu' : 'box'" />
                   }
                   <span
-                    ><strong>{{ entry.product.name }}</strong
+                    ><strong>{{ group.product.name }}</strong
                     ><small>{{
-                      entry.gpuId !== undefined
-                        ? 'GPU #' + entry.gpuId
-                        : entry.stockId !== undefined
-                          ? 'Stock #' + entry.stockId
-                          : entry.product.id
+                      group.entries.length > 1
+                        ? group.entries.length + ' copie · seleziona per i dettagli'
+                        : group.product.id
                     }}</small></span
                   ></span
                 >
                 <span class="item-state"
-                  ><strong [class.broken]="entry.condition === 'broken'">{{
-                    conditionLabel(entry)
+                  ><strong [class.broken]="group.condition === 'broken'">{{
+                    conditionLabel(group.entries[0])
                   }}</strong
-                  ><small>{{ entry.location }}</small></span
-                ><span class="item-count">{{ entry.quantity }}</span>
+                  ><small>{{
+                    group.entries.length > 1
+                      ? group.entries.length + ' posizioni'
+                      : group.entries[0].location
+                  }}</small></span
+                >
+                <span class="item-count">{{ group.quantity }}</span>
               </button>
             } @empty {
               <div class="empty-state">
@@ -360,9 +381,36 @@
                   [alt]="entry.product.name"
                 />
               } @else {
-                <app-icon name="box" />
+                <app-icon [name]="entry.product.category === 'gpu' ? 'gpu' : 'box'" />
               }
             </div>
+            @if (selectedGroup(); as group) {
+              @if (group.entries.length > 1) {
+                <div
+                  class="instance-picker"
+                  role="group"
+                  aria-label="Componenti di questo gruppo"
+                >
+                  <strong>Seleziona unità</strong>
+                  @for (member of group.entries; track member.key) {
+                    <button
+                      type="button"
+                      [class.active]="selectedEntry()?.key === member.key"
+                      (click)="selectEntry(member)"
+                    >
+                      <span>{{
+                        member.gpuId !== undefined
+                          ? 'GPU #' + member.gpuId
+                          : member.stockId !== undefined
+                            ? 'Stock #' + member.stockId
+                            : member.location
+                      }}</span>
+                      <small>{{ member.location }} · {{ conditionLabel(member) }}</small>
+                    </button>
+                  }
+                </div>
+              }
+            }
             <h2>{{ entry.product.name }}</h2>
             <p class="description">{{ entry.product.description }}</p>
             <dl>
@@ -372,7 +420,7 @@
               </div>
               <div>
                 <dt>Quantità</dt>
-                <dd>{{ entry.quantity }}</dd>
+                <dd>{{ selectedGroup()?.quantity ?? entry.quantity }}</dd>
               </div>
               @for (spec of entry.product.specs; track spec.label) {
                 <div>

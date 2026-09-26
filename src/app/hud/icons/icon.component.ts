@@ -51,6 +51,15 @@ const PATHS: Record<string, string | readonly string[]> = {
   undock: 'M4 4h16v16H4zM4 9h16',
 };
 
+const SVG_ASSETS: Record<string, string> = {
+  cart: '/assets/icons/shopping-cart.svg',
+  box: '/assets/icons/box.svg',
+  gpu: '/assets/icons/cpu.svg',
+  cpu: '/assets/icons/cpu.svg',
+  archive: '/assets/icons/archive.svg',
+  replace: '/assets/icons/arrow-left-right.svg',
+};
+
 @Component({
   selector: 'app-icon',
   templateUrl: './icon.component.html',
@@ -59,6 +68,10 @@ const PATHS: Record<string, string | readonly string[]> = {
 })
 export class IconComponent {
   readonly name = input('cube');
+
+  assetUrl(): string | null {
+    return SVG_ASSETS[this.name()] ?? null;
+  }
 
   paths(): readonly string[] {
     const path = PATHS[this.name()] ?? PATHS['cube'];

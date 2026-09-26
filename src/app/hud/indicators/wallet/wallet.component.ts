@@ -42,7 +42,14 @@ export class WalletComponent implements OnDestroy {
     this.game.advanceGameTime(now - this.clockUpdatedAt);
     this.clockUpdatedAt = now;
   }, CLOCK_REFRESH_MS);
-  readonly displayedEuros = signal(0);
+  private readonly animatedBalance = signal<{ amountEur: number; targetEur: number } | null>(null);
+  readonly displayedEuros = computed(() => {
+    const balance = this.game.balanceEur();
+    const animation = this.animatedBalance();
+    return animation && Math.abs(balance - animation.targetEur) <= 0.000001
+      ? animation.amountEur
+      : balance;
+  });
   readonly stage = signal<'idle' | 'reward' | 'bill' | 'net'>('idle');
   readonly receiptVisible = signal(false);
   readonly billVisible = signal(false);
@@ -69,13 +76,13 @@ export class WalletComponent implements OnDestroy {
       const settlement = this.settlement();
       this.dailyBill();
       if (settlement === this.lastAnimatedSettlement) {
-        this.displayedEuros.set(this.game.balanceEur());
+        this.animatedBalance.set(null);
         return;
       }
       this.lastAnimatedSettlement = settlement;
       this.receiptVisible.set(Boolean(settlement));
       if (!settlement) {
-        this.displayedEuros.set(this.game.balanceEur());
+        this.animatedBalance.set(null);
         this.stage.set('idle');
         return;
       }
@@ -85,21 +92,25 @@ export class WalletComponent implements OnDestroy {
       const animate = (now: number) => {
         const elapsed = now - start;
         if (reducedMotion || elapsed >= 1000) {
-          this.displayedEuros.set(this.game.balanceEur());
+          this.animatedBalance.set(null);
           this.stage.set(this.billVisible() ? 'bill' : 'net');
           return;
         }
         this.stage.set('reward');
         const progress = Math.min(1, elapsed / 1000);
         const eased = 1 - (1 - progress) ** 3;
-        this.displayedEuros.set(
-          satoshisToEuros(
-            settlement.balanceBeforeSatoshis +
-              (settlement.balanceAfterSatoshis - settlement.balanceBeforeSatoshis) * eased,
-          ),
-        );
+        this.animatedBalance.set({
+          amountEur:
+            settlement.balanceBeforeEur +
+            (settlement.balanceAfterEur - settlement.balanceBeforeEur) * eased,
+          targetEur: settlement.balanceAfterEur,
+        });
         frame = requestAnimationFrame(animate);
       };
+      this.animatedBalance.set({
+        amountEur: settlement.balanceBeforeEur,
+        targetEur: settlement.balanceAfterEur,
+      });
       animate(start);
       const dismiss = setTimeout(() => this.receiptVisible.set(false), 7000);
       onCleanup(() => {
@@ -118,7 +129,7 @@ export class WalletComponent implements OnDestroy {
         return;
       }
 
-      this.displayedEuros.set(this.game.balanceEur());
+      this.animatedBalance.set(null);
       this.stage.set('bill');
       this.receiptVisible.set(false);
       this.billVisible.set(true);

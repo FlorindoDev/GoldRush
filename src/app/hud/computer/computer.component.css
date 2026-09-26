@@ -246,6 +246,10 @@ kbd {
   color: var(--accent);
   background: #303c26;
 }
+.category-count {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
 .sidebar-note {
   margin: auto 20px 0;
   padding-top: 36px;
@@ -540,6 +544,9 @@ button.primary {
   background: #303c26;
   border-left-color: var(--accent);
 }
+.inventory-row:hover:not(.selected) {
+  background: #242d22;
+}
 .item-name {
   display: flex;
   align-items: center;
@@ -592,6 +599,35 @@ button.primary {
   color: var(--muted);
   font-size: 12px;
   margin: 12px 0 20px;
+}
+.instance-picker {
+  display: grid;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin: -6px 0 18px;
+}
+.instance-picker > strong {
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.instance-picker button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 12px;
+}
+.instance-picker button.active {
+  border-color: var(--accent);
+  background: #303c26;
+}
+.instance-picker button small {
+  font-size: 10px;
 }
 .item-detail dl > div {
   border-bottom: 1px solid #343d30;

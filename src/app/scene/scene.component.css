@@ -25,6 +25,141 @@ canvas:active {
   cursor: grabbing;
 }
 
+.gpu-context-layer {
+  position: absolute;
+  z-index: 50;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.gpu-context-menu {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  width: min(284px, calc(100vw - 16px));
+  max-height: min(70vh, 520px);
+  overflow: hidden;
+  border: 1px solid #59634d;
+  border-radius: 8px;
+  background: #192019f5;
+  color: #f1f0e8;
+  box-shadow: 0 16px 44px #0009;
+  font:
+    13px/1.4 'Segoe UI',
+    system-ui,
+    sans-serif;
+}
+
+.gpu-context-menu header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid #424a3c;
+}
+
+.gpu-context-menu header > app-icon {
+  color: #a9c77e;
+}
+
+.gpu-context-menu header > span {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.gpu-context-menu header small,
+.gpu-context-menu .replacement-option small {
+  color: #a5ad9e;
+  font-size: 10px;
+}
+
+.gpu-context-menu header strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gpu-context-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 0;
+  padding: 10px 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.gpu-context-menu button:hover:not(:disabled) {
+  background: #303c26;
+}
+
+.gpu-context-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.gpu-context-menu button:focus-visible {
+  outline: 2px solid #a9c77e;
+  outline-offset: -3px;
+}
+
+.gpu-context-menu button app-icon {
+  color: #a9c77e;
+}
+
+.gpu-context-menu .context-action > span {
+  flex: 1;
+}
+
+.gpu-context-menu .context-divider {
+  padding: 9px 12px 5px;
+  border-top: 1px solid #424a3c;
+  color: #a5ad9e;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.replacement-list {
+  overflow-y: auto;
+}
+
+.gpu-context-menu .context-empty,
+.gpu-context-menu .context-feedback {
+  margin: 0;
+  padding: 8px 12px 12px;
+  color: #a5ad9e;
+  font-size: 11px;
+}
+
+.gpu-context-menu .context-feedback {
+  color: #e6ca87;
+}
+
+.gpu-context-notice {
+  position: absolute;
+  z-index: 51;
+  left: 50%;
+  bottom: 24px;
+  max-width: calc(100% - 32px);
+  padding: 10px 14px;
+  border: 1px solid #59634d;
+  border-radius: 6px;
+  background: #192019ed;
+  color: #cbe3a9;
+  font:
+    12px/1.4 'Segoe UI',
+    system-ui,
+    sans-serif;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
 .webgl-error {
   position: absolute;
   top: 24px;

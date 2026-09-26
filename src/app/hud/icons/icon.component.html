@@ -3,6 +3,12 @@
     class="research-tree-icon"
     aria-hidden="true"
   ></span>
+} @else if (assetUrl(); as src) {
+  <span
+    class="svg-asset-icon"
+    [style.--svg-asset]="'url(' + src + ')'"
+    aria-hidden="true"
+  ></span>
 } @else {
   <svg
     viewBox="0 0 24 24"

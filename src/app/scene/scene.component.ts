@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  computed,
   effect,
   inject,
   OnDestroy,
@@ -18,6 +19,10 @@ import type { CameraPreset } from './camera/camera-preset';
 import { MiningScene } from './mining-scene';
 import { SceneAssets } from './resources/scene-assets';
 import type { ToolStationId } from './tools/tool-stations';
+import { getGpu, isGpuUnlocked } from '../game/mining-world';
+import { GPU_MODELS_BY_ID } from '../config/gpu-config';
+import { SHOP_PRODUCTS_BY_ID } from '../config/shop-config';
+import { isGpuOperational } from '../game/gpu-operation';
 
 @Component({
   selector: 'app-scene',
@@ -25,6 +30,7 @@ import type { ToolStationId } from './tools/tool-stations';
   templateUrl: './scene.component.html',
   styleUrl: './scene.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:keydown.escape)': 'closeGpuContextMenu()' },
 })
 export class SceneComponent implements AfterViewInit, OnDestroy {
   readonly game = inject(GameService);
@@ -33,8 +39,24 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
   readonly unavailable = signal(false);
   readonly cameraPreset = signal<CameraPreset>('front');
   readonly selectedToolStationId = signal<ToolStationId | null>(null);
+  readonly gpuContextMenu = signal<{ gpuId: number; x: number; y: number } | null>(null);
+  readonly contextFeedback = signal('');
+  readonly contextNotice = signal('');
+  readonly contextGpu = computed(() => {
+    const menu = this.gpuContextMenu();
+    const world = this.game.world();
+    if (!menu || !isGpuUnlocked(world, menu.gpuId)) return null;
+    const gpu = getGpu(world, menu.gpuId);
+    if (gpu.onWorkbench) return null;
+    return { gpu, model: GPU_MODELS_BY_ID[gpu.modelId] };
+  });
+  readonly replacementGpus = computed(() =>
+    this.game.world().inventory.items.filter((item) => item.gpu && isGpuOperational(item.gpu)),
+  );
   private scene?: MiningScene;
   private destroyed = false;
+  private contextNoticeTimeout?: ReturnType<typeof setTimeout>;
+  readonly stockProducts = SHOP_PRODUCTS_BY_ID;
 
   constructor() {
     effect(() => {
@@ -96,6 +118,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
           telemetry: (id) => this.game.gpuTelemetry(id),
           openComputer: () => this.setSelectedToolStationId('computer'),
           hover: (gpuId, x, y) => this.gpuHover.emit(gpuId === null ? null : { gpuId, x, y }),
+          contextMenu: (gpuId, x, y) => this.openGpuContextMenu(gpuId, x, y),
         },
         assets,
       );
@@ -122,6 +145,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    if (this.contextNoticeTimeout) clearTimeout(this.contextNoticeTimeout);
     this.scene?.dispose();
   }
 
@@ -132,5 +156,65 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
   setSelectedToolStationId(id: ToolStationId | null): void {
     this.selectedToolStationId.set(id);
     if (id === 'computer') this.game.computerOpen.set(true);
+  }
+
+  closeGpuContextMenu(): void {
+    this.gpuContextMenu.set(null);
+    this.contextFeedback.set('');
+  }
+
+  removeContextGpu(): void {
+    const menu = this.gpuContextMenu();
+    const gpu = this.contextGpu()?.gpu;
+    if (!menu || !gpu) return;
+    try {
+      this.game.moveGpuToStock(gpu.id);
+      this.showContextNotice(`GPU #${gpu.id} spostata in magazzino.`);
+      this.closeGpuContextMenu();
+    } catch (error) {
+      this.contextFeedback.set(
+        error instanceof Error ? error.message : 'Operazione non disponibile.',
+      );
+    }
+  }
+
+  replaceContextGpu(stockId: number): void {
+    const menu = this.gpuContextMenu();
+    const gpu = this.contextGpu()?.gpu;
+    const stock = this.game.world().inventory.items.find((item) => item.id === stockId);
+    if (!menu || !gpu || !stock?.gpu) return;
+    const replacementName = this.stockProducts.get(stock.productId)?.name ?? stock.productId;
+    try {
+      this.game.replaceGpuFromStock(gpu.id, stockId);
+      this.showContextNotice(`GPU #${gpu.id} sostituita con ${replacementName}.`);
+      this.closeGpuContextMenu();
+    } catch (error) {
+      this.contextFeedback.set(
+        error instanceof Error ? error.message : 'Operazione non disponibile.',
+      );
+    }
+  }
+
+  private openGpuContextMenu(gpuId: number | null, x: number, y: number): void {
+    this.closeGpuContextMenu();
+    if (gpuId === null || !isGpuUnlocked(this.game.world(), gpuId)) return;
+    const gpu = getGpu(this.game.world(), gpuId);
+    if (gpu.onWorkbench) return;
+    this.contextNotice.set('');
+    if (this.contextNoticeTimeout) clearTimeout(this.contextNoticeTimeout);
+    const bounds = this.canvas().nativeElement.getBoundingClientRect();
+    const maxMenuHeight = Math.min(bounds.height * 0.7, 520);
+    const yPosition = Math.max(8, Math.min(y - bounds.top, bounds.height - maxMenuHeight - 8));
+    this.gpuContextMenu.set({
+      gpuId,
+      x: Math.max(8, Math.min(x - bounds.left, bounds.width - 292)),
+      y: yPosition,
+    });
+  }
+
+  private showContextNotice(message: string): void {
+    this.contextNotice.set(message);
+    if (this.contextNoticeTimeout) clearTimeout(this.contextNoticeTimeout);
+    this.contextNoticeTimeout = setTimeout(() => this.contextNotice.set(''), 4500);
   }
 }

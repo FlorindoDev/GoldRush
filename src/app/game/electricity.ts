@@ -18,6 +18,8 @@ export interface MiningSettlement {
   readonly electricitySatoshis: number;
   readonly balanceBeforeSatoshis: number;
   readonly balanceAfterSatoshis: number;
+  readonly balanceBeforeEur: number;
+  readonly balanceAfterEur: number;
 }
 
 export interface ElectricityBill {
@@ -26,6 +28,8 @@ export interface ElectricityBill {
   readonly electricitySatoshis: number;
   readonly balanceBeforeSatoshis: number;
   readonly balanceAfterSatoshis: number;
+  readonly balanceBeforeEur: number;
+  readonly balanceAfterEur: number;
 }
 
 export function satoshisToEuros(satoshis: number): number {

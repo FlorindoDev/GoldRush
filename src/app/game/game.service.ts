@@ -1,5 +1,12 @@
 import { computed, Injectable, signal } from '@angular/core';
-import { purchaseCart, sellStockItem, storeGpu, installStockGpu, type CartLine } from './inventory';
+import {
+  purchaseCart,
+  sellStockItem,
+  storeGpu,
+  installStockGpu,
+  replaceInstalledGpu,
+  type CartLine,
+} from './inventory';
 import { GAME_BALANCE } from '../config/game-balance';
 import { CRYPTO_CONFIG, cryptoValueEur, requireCrypto } from '../config/crypto-config';
 import { gpuIdsFromVector } from './script-api/gpu-script-object';
@@ -168,6 +175,11 @@ export class GameService {
   mountStockGpu(id: number, rigId: number): void {
     if (this.running()) throw new Error('Ferma il programma prima di montare una GPU.');
     this.world.update((world) => installStockGpu(world, id, rigId));
+  }
+
+  replaceGpuFromStock(gpuId: number, stockId: number): void {
+    if (this.running()) throw new Error('Ferma il programma prima di sostituire una GPU.');
+    this.world.update((world) => replaceInstalledGpu(world, gpuId, stockId));
   }
   private controller?: AbortController;
   private rigPoweredDownAt = Date.now();

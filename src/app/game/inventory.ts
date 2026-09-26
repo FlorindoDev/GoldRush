@@ -1,5 +1,5 @@
 import { SHOP_MAX_QUANTITY, SHOP_PRODUCTS_BY_ID, type ShopProduct } from '../config/shop-config';
-import { createGpuOperatingState, type GpuOperatingState } from './gpu-operation';
+import { createGpuOperatingState, isGpuOperational, type GpuOperatingState } from './gpu-operation';
 import type { GpuModelId } from '../config/gpu-config';
 import { getGpu, isGpuUnlocked, type MiningWorld } from './mining-world';
 import { isResearchUnlocked } from './research';
@@ -27,6 +27,32 @@ export interface InventoryEntry {
   readonly stockId?: number;
   readonly gpuId?: number;
   readonly gpu?: GpuOperatingState;
+}
+
+export interface InventoryGroup {
+  readonly key: string;
+  readonly product: ShopProduct;
+  readonly condition: InventoryEntry['condition'];
+  readonly entries: readonly InventoryEntry[];
+  readonly quantity: number;
+}
+
+/** Raggruppa copie dello stesso componente senza perdere le singole identità. */
+export function groupInventoryEntries(entries: readonly InventoryEntry[]): InventoryGroup[] {
+  const groups = new Map<string, InventoryEntry[]>();
+  for (const entry of entries) {
+    const key = `${entry.product.id}:${entry.condition}`;
+    const group = groups.get(key) ?? [];
+    group.push(entry);
+    groups.set(key, group);
+  }
+  return [...groups].map(([key, members]) => ({
+    key,
+    product: members[0].product,
+    condition: members[0].condition,
+    entries: members,
+    quantity: members.reduce((sum, entry) => sum + entry.quantity, 0),
+  }));
 }
 
 export function productAvailable(world: MiningWorld, product: ShopProduct): boolean {
@@ -212,6 +238,51 @@ export function installStockGpu(world: MiningWorld, stockId: number, rigId: numb
               }
             : gpu,
         ),
+      })),
+    })),
+  };
+}
+
+export function replaceInstalledGpu(
+  world: MiningWorld,
+  gpuId: number,
+  stockId: number,
+  now = Date.now(),
+): MiningWorld {
+  const stock = world.inventory.items.find((entry) => entry.id === stockId);
+  if (!stock?.gpu || !isGpuOperational(stock.gpu))
+    throw new Error('Serve una GPU funzionante in magazzino.');
+  if (!isGpuUnlocked(world, gpuId)) throw new Error('GPU da sostituire non disponibile.');
+  const installed = getGpu(world, gpuId);
+  if (installed.onWorkbench) throw new Error('Rimonta prima la GPU dal banco.');
+
+  const { id, rigId, plotId, unlocked, cryptoId, ...removedState } = installed;
+  const replacement = {
+    ...installed,
+    ...stock.gpu,
+    id,
+    rigId,
+    plotId,
+    unlocked,
+    cryptoId,
+    onWorkbench: false,
+    lastUpdatedAt: now,
+  };
+
+  return {
+    ...world,
+    inventory: {
+      nextId: world.inventory.nextId + 1,
+      items: [
+        ...world.inventory.items.filter((entry) => entry.id !== stockId),
+        { id: world.inventory.nextId, productId: installed.modelId, gpu: removedState },
+      ],
+    },
+    plots: world.plots.map((plot) => ({
+      ...plot,
+      rigs: plot.rigs.map((rig) => ({
+        ...rig,
+        gpus: rig.gpus.map((gpu) => (gpu.id === gpuId ? replacement : gpu)),
       })),
     })),
   };

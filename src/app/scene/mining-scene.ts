@@ -45,6 +45,7 @@ interface GpuInteractions {
   viewRig(id: number): void;
   inspectRig(id: number): void;
   hover(id: number | null, x: number, y: number): void;
+  contextMenu(id: number | null, x: number, y: number): void;
   telemetry(id: number): GpuTelemetry;
 }
 
@@ -92,6 +93,7 @@ export class MiningScene {
   private particleElapsed = 0;
   private readonly pointer = new THREE.Vector2();
   private readonly raycaster = new THREE.Raycaster();
+  private contextPointerStart: { x: number; y: number } | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -128,6 +130,8 @@ export class MiningScene {
     this.observer.observe(canvas);
     canvas.addEventListener('pointerup', this.handlePointerUp);
     canvas.addEventListener('dblclick', this.handleDoubleClick);
+    canvas.addEventListener('contextmenu', this.handleContextMenu);
+    canvas.addEventListener('pointerdown', this.handleContextPointerDown);
     canvas.addEventListener('pointermove', this.handleGpuHover);
     canvas.addEventListener('pointerdown', this.clearGpuHover);
     canvas.addEventListener('pointerleave', this.clearGpuHover);
@@ -203,6 +207,8 @@ export class MiningScene {
     this.cameraController.dispose();
     this.canvas.removeEventListener('pointerup', this.handlePointerUp);
     this.canvas.removeEventListener('dblclick', this.handleDoubleClick);
+    this.canvas.removeEventListener('contextmenu', this.handleContextMenu);
+    this.canvas.removeEventListener('pointerdown', this.handleContextPointerDown);
     this.canvas.removeEventListener('pointermove', this.handleGpuHover);
     this.canvas.removeEventListener('pointerdown', this.clearGpuHover);
     this.canvas.removeEventListener('pointerleave', this.clearGpuHover);
@@ -560,6 +566,26 @@ export class MiningScene {
       this.lastRigClickTime = event.timeStamp;
       this.interactions.viewRig(rigId);
     }
+  };
+
+  private readonly handleContextMenu = (event: MouseEvent): void => {
+    event.preventDefault();
+    const start = this.contextPointerStart;
+    this.contextPointerStart = null;
+    if (
+      start &&
+      Math.hypot(event.clientX - start.x, event.clientY - start.y) > CAMERA.maxClickMovementPx
+    ) {
+      this.interactions.contextMenu(null, event.clientX, event.clientY);
+      return;
+    }
+    const gpuId = this.findGpuAtPointer(event);
+    this.clearGpuHover();
+    this.interactions.contextMenu(gpuId ?? null, event.clientX, event.clientY);
+  };
+
+  private readonly handleContextPointerDown = (event: PointerEvent): void => {
+    this.contextPointerStart = event.button === 2 ? { x: event.clientX, y: event.clientY } : null;
   };
 
   private readonly handleDoubleClick = (event: MouseEvent): void => {
