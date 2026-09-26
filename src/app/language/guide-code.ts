@@ -7,10 +7,11 @@ print("Progresso: " + progress());`,
 print(gpu.getModel());
 print(gpu.getTemperatureCelsius() + " °C");
 print(gpu.getFanSpeed() + "%");`,
-  cryptoAssignment: `let gpus = plots[0].rigs[0].gpus;
+  cryptoAssignment: `// Sblocca prima KAS e LTC nell'albero ricerca.
+let gpus = plots[0].rigs[0].gpus;
 setCrypto(gpus.slice(0, 2), "KAS");
 setCrypto(gpus.slice(2, 4), "LTC");
-mine(gpus.slice(0, 2), "Avvio Kaspa");
+mine(gpus.slice(0, 2), "Avvio Kaspa", 10);
 mine(gpus.slice(2, 4), false);`,
   energyExample: `let gpu = plots[0].rigs[0].gpus[0];
 print(electricity.getPricePerKwh());

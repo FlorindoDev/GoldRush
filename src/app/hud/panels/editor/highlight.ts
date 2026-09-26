@@ -2,6 +2,7 @@ import { countLineBraces } from './indentation';
 
 const HIGHLIGHT_PATTERNS = [
   /\/\/[^\n]*/,
+  /\/\*/,
   /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/,
   /\b(?:parallel|repeat|for|while|if|else|let|true|false)\b/,
   /\.[a-zA-Z_][a-zA-Z_0-9]*(?=\s*\()/,
@@ -30,13 +31,15 @@ export interface HighlightOptions {
 
 export function highlight(source: string, options: HighlightOptions = {}): string {
   let blockDepth = 0;
+  let insideBlockComment = false;
 
   return source
     .split('\n')
     .map((line, index) => {
-      const html = highlightLine(line, index + 1, options, blockDepth);
-      const braces = countLineBraces(line);
+      const html = highlightLine(line, index + 1, options, blockDepth, insideBlockComment);
+      const braces = countLineBraces(line, insideBlockComment);
       blockDepth = Math.max(0, blockDepth + braces.opening - braces.closing);
+      insideBlockComment = braces.insideBlockComment;
       return html;
     })
     .join('');
@@ -47,17 +50,61 @@ function highlightLine(
   lineNumber: number,
   options: HighlightOptions,
   blockDepth: number,
+  startsInsideBlockComment: boolean,
 ): string {
   const pattern = new RegExp(HIGHLIGHT_PATTERNS.map((token) => token.source).join('|'), 'g');
   let cursor = 0;
   let html = '';
-  for (const match of line.matchAll(pattern)) {
+  let insideBlockComment = startsInsideBlockComment;
+
+  while (cursor < line.length) {
+    if (insideBlockComment) {
+      const closingIndex = line.indexOf('*/', cursor);
+      if (closingIndex < 0) {
+        html += commentMarkup(line.slice(cursor));
+        cursor = line.length;
+        break;
+      }
+      const commentEnd = closingIndex + 2;
+      html += commentMarkup(line.slice(cursor, commentEnd));
+      cursor = commentEnd;
+      insideBlockComment = false;
+      continue;
+    }
+
+    pattern.lastIndex = cursor;
+    const match = pattern.exec(line);
+    if (!match) {
+      break;
+    }
+
     const token = match[0];
-    html += escapeHtml(line.slice(cursor, match.index));
+    const tokenStart = match.index;
+    html += escapeHtml(line.slice(cursor, tokenStart));
+    if (token === '/*') {
+      const closingIndex = line.indexOf('*/', tokenStart + token.length);
+      if (closingIndex < 0) {
+        html += commentMarkup(line.slice(tokenStart));
+        cursor = line.length;
+        insideBlockComment = true;
+        break;
+      }
+      const commentEnd = closingIndex + 2;
+      html += commentMarkup(line.slice(tokenStart, commentEnd));
+      cursor = commentEnd;
+      continue;
+    }
+
+    if (token.startsWith('//')) {
+      html += commentMarkup(line.slice(tokenStart));
+      cursor = line.length;
+      break;
+    }
+
     const followsCall = /^\s*\(/.test(line.slice(match.index! + token.length));
     const className = getTokenClass(token, followsCall);
     html += `<span class="${className}">${escapeHtml(token)}</span>`;
-    cursor = match.index! + token.length;
+    cursor = tokenStart + token.length;
   }
   html += escapeHtml(line.slice(cursor));
   html ||= '&nbsp;';
@@ -89,6 +136,10 @@ function highlightLine(
     `<span class="line-number">${lineNumber}</span>` +
     `<span class="line-content">${guideMarkup}${html}</span></span>`
   );
+}
+
+function commentMarkup(text: string): string {
+  return `<span class="token-comment">${escapeHtml(text)}</span>`;
 }
 
 function getTokenClass(token: string, followsCall: boolean): string {

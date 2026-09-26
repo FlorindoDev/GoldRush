@@ -14,7 +14,7 @@ print("Blocco completato!");`,
   },
   {
     name: 'Mining multi-cripto',
-    code: `// Un vettore di GPU per ogni cripto.
+    code: `// Sblocca KAS e LTC nell'albero ricerca, poi assegna le GPU.
 let gpus = plots[0].rigs[0].gpus;
 setCrypto(gpus.slice(0, 2), "KAS");
 setCrypto(gpus.slice(2, 4), "LTC");
@@ -22,8 +22,8 @@ print(gpus[0].crypto);
 print("Progresso KAS: " + progress("KAS"));
 // Le altre GPU mantengono la loro assegnazione (BTC inizialmente).
 // mine() senza vettore avvia tutte le GPU operative: ognuna mina la propria cripto.
-while (progress() < 100) {
-  mine();
+while (progress("KAS") < 100 || progress("LTC") < 100) {
+  mine(10); // Output ogni 10% per ciascuna cripto.
 }`,
   },
   {

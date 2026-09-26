@@ -71,6 +71,7 @@ export interface MiningWorld {
   /** Totale contabile in unità legacy; le quantità possedute sono in holdings. */
   readonly satoshis: number;
   readonly cashEur: number;
+  readonly unlockedResearchIds: readonly string[];
   readonly holdings: CryptoAmounts;
   readonly electricity: ElectricityMeter;
   readonly lastSettlement: MiningSettlement | null;
@@ -161,6 +162,7 @@ export function createWorld(): MiningWorld {
     selectedId: 1,
     satoshis: 0,
     cashEur: 0,
+    unlockedResearchIds: [],
     holdings: {},
     electricity: createElectricityMeter(),
     lastSettlement: null,
@@ -281,7 +283,7 @@ export function billElectricityForDay(world: MiningWorld, gameDay: number): Mini
   if (
     !Number.isInteger(gameDay) ||
     gameDay < 1 ||
-    world.lastElectricityBill?.gameDay === gameDay ||
+    gameDay <= (world.lastElectricityBill?.gameDay ?? 0) ||
     world.electricity.pendingKwh <= 0
   ) {
     return world;

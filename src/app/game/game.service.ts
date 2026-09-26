@@ -7,6 +7,7 @@ import { delay, execute } from '../language/interpreter';
 import { ScriptError } from '../language/syntax';
 import { createWorldBindings } from './script-api/world-bindings';
 import { satoshisToEuros } from './electricity';
+import { isResearchUnlocked, unlockResearch } from './research';
 import { applyGpuWork, gpuTemperatureWhilePoweredDown, isGpuOperational } from './gpu-operation';
 import { getGpuTelemetry } from './gpu-telemetry';
 import type { GpuMaintenanceAction } from './gpu-maintenance';
@@ -60,6 +61,21 @@ import {
 const LINE_EFFECT_DURATION_MS = GAME_BALANCE.editor.lineEffectDurationMs;
 const MINING_DURATION_MS = GAME_BALANCE.mining.actionDurationMs;
 const MAX_LOG_ENTRIES = GAME_BALANCE.editor.maxLogEntries;
+const PROGRESS_EPSILON = 1e-9;
+
+function shouldOutputMineProgress(
+  previousProgress: number,
+  currentProgress: number,
+  progressEveryPercent?: number,
+): boolean {
+  if (progressEveryPercent === undefined || currentProgress >= 100) {
+    return true;
+  }
+  return (
+    Math.floor((currentProgress + PROGRESS_EPSILON) / progressEveryPercent) >
+    Math.floor((previousProgress + PROGRESS_EPSILON) / progressEveryPercent)
+  );
+}
 
 export type { ScriptFile } from './script-storage';
 
@@ -127,6 +143,11 @@ export class GameService {
   readonly balanceEur = computed(
     () => this.world().cashEur + cryptoValueEur(this.world().holdings),
   );
+  readonly isResearchUnlocked = (id: string) => isResearchUnlocked(this.world(), id);
+
+  unlockResearch(id: string): void {
+    this.world.update((world) => unlockResearch(world, id));
+  }
   private controller?: AbortController;
   private rigPoweredDownAt = Date.now();
   private billedGameDay = 0;
@@ -162,6 +183,10 @@ export class GameService {
     this.gameElapsedMinutes.set(elapsedMinutes);
 
     const completedDays = Math.floor(elapsedMinutes / GAME_BALANCE.clock.minutesPerDay);
+    this.billedGameDay = Math.max(
+      this.billedGameDay,
+      this.world().lastElectricityBill?.gameDay ?? 0,
+    );
     while (this.billedGameDay < completedDays) {
       const gameDay = ++this.billedGameDay;
       this.world.update((world) => billElectricityForDay(world, gameDay));
@@ -271,12 +296,13 @@ export class GameService {
             () => this.readElectricity(),
           ),
           print: (message) => this.log(message, 'output'),
-          mine: (gpus, message, line, parallelGroupId) =>
+          mine: (gpus, message, line, parallelGroupId, progressEveryPercent) =>
             this.mineUnlockedGpus(
               controller.signal,
               gpus === null ? undefined : gpuIdsFromVector(gpus, line, 'mine'),
               message,
               parallelGroupId,
+              progressEveryPercent,
             ),
           progress: (cryptoName) =>
             cryptoName
@@ -461,6 +487,16 @@ export class GameService {
     if (rigId === null || this.running()) {
       throw new Error('Ferma il programma e seleziona un RIG sul banco.');
     }
+    if (update.fanId && !this.isResearchUnlocked(update.fanId)) {
+      throw new Error('Sblocca la ventola nell’albero della ricerca.');
+    }
+    if (
+      update.dustSystemId &&
+      update.dustSystemId !== 'none' &&
+      !this.isResearchUnlocked(`filter-${update.dustSystemId}`)
+    ) {
+      throw new Error('Sblocca il filtro nell’albero della ricerca.');
+    }
     this.world.update((world) => configureRig(world, rigId, update));
   }
 
@@ -542,6 +578,7 @@ export class GameService {
     selectedGpuIds: number[] | undefined,
     message: string | false | null,
     parallelGroupId?: number,
+    progressEveryPercent?: number,
   ): Promise<void> {
     const world = this.world();
     const unlockedGpuIds =
@@ -593,7 +630,7 @@ export class GameService {
     const results = await Promise.allSettled(
       gpuIds.map(async (gpuId) => {
         try {
-          await this.mineBlock(gpuId, signal, groupId, message);
+          await this.mineBlock(gpuId, signal, groupId, message, progressEveryPercent);
         } catch (error) {
           if (!signal.aborted && error instanceof Error && error.name === 'AbortError') {
             this.log(`GPU ${gpuId} fermata: il mining continua sulle altre schede.`, 'warning');
@@ -614,6 +651,7 @@ export class GameService {
     signal: AbortSignal,
     parallelGroupId?: number,
     message: string | false | null = null,
+    progressEveryPercent?: number,
   ): Promise<void> {
     signal.throwIfAborted();
     const groupGpuIds =
@@ -650,6 +688,7 @@ export class GameService {
       { gpuId, startedAt, durationMs, parallelGroupId },
     ]);
     this.mining.set(true);
+    let progressBefore = getCryptoProgress(this.world(), miningGpu.cryptoId);
     try {
       await delay(durationMs, controller.signal);
       controller.signal.throwIfAborted();
@@ -657,9 +696,17 @@ export class GameService {
         parallelGroupId === undefined
           ? this.activeGpuIds()
           : Array.from(this.parallelGpuIds.get(parallelGroupId) ?? [gpuId]);
-      this.world.update((world) =>
-        mineGpuOnWorld(world, gpuId, startedAt, Date.now(), activeGpuIds.length > 1, activeGpuIds),
-      );
+      this.world.update((world) => {
+        progressBefore = getCryptoProgress(world, miningGpu.cryptoId);
+        return mineGpuOnWorld(
+          world,
+          gpuId,
+          startedAt,
+          Date.now(),
+          activeGpuIds.length > 1,
+          activeGpuIds,
+        );
+      });
     } catch (error) {
       const fraction = Math.min(1, Math.max(0, (Date.now() - startedAt) / durationMs));
       const activeGpuIds =
@@ -698,19 +745,23 @@ export class GameService {
       return;
     }
 
-    const block = getCryptoBlock(this.world(), gpu.cryptoId);
-    const crypto = CRYPTO_CONFIG.find((item) => item.id === gpu.cryptoId)!;
+    const cryptoId = miningGpu.cryptoId;
+    const block = getCryptoBlock(this.world(), cryptoId);
+    const crypto = CRYPTO_CONFIG.find((item) => item.id === cryptoId)!;
     const cryptoLabel = `${crypto.name} (${crypto.symbol})`;
     const blockNumber = String(block.id).padStart(3, '0');
     const customPrefix = typeof message === 'string' && message ? `${message} · ` : '';
-    if (message !== false) {
+    if (
+      message !== false &&
+      shouldOutputMineProgress(progressBefore, block.progress, progressEveryPercent)
+    ) {
       this.log(
         `${customPrefix}GPU ${gpuId} · ${cryptoLabel} · mine() → blocco #${blockNumber} · ${block.progress.toFixed(2)}%`,
         'output',
       );
     }
 
-    if (isCryptoBlockSettled(this.world(), gpu.cryptoId, block.id)) {
+    if (isCryptoBlockSettled(this.world(), cryptoId, block.id)) {
       if (message !== false) {
         this.log(
           `${customPrefix}Blocco ${cryptoLabel} #${String(block.id).padStart(3, '0')} estratto! +${crypto.coinsPerBlock} ${crypto.symbol}.`,
@@ -775,6 +826,9 @@ export class GameService {
   setGpusCrypto(gpuIds: readonly number[], crypto: string): void {
     if (gpuIds.some((id) => this.activeGpuIds().includes(id))) {
       throw new Error('Attendi la fine di mine() prima di cambiare cripto.');
+    }
+    if (!this.isResearchUnlocked(requireCrypto(crypto).id)) {
+      throw new Error('Sblocca la criptovaluta nell’albero della ricerca.');
     }
     this.world.update((world) => assignGpusCrypto(world, gpuIds, crypto));
   }

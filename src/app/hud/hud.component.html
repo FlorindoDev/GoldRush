@@ -40,6 +40,14 @@
     aria-label="Strumenti"
   >
     <button
+      class="icon-button utility-button research-action"
+      aria-label="Albero della ricerca"
+      title="Albero della ricerca"
+      (click)="researchTree.open()"
+    >
+      <app-icon name="tree" />
+    </button>
+    <button
       class="icon-button utility-button"
       aria-label="Impostazioni"
       title="Impostazioni"
@@ -125,6 +133,7 @@
     </div>
   }
 </main>
+<app-research-tree #researchTree />
 <dialog
   #guide
   class="guide-dialog"
@@ -268,8 +277,9 @@
             }
           </div>
           <p class="guide-note">
-            Ogni istruzione semplice finisce con <code>;</code>. I commenti iniziano con
-            <code>//</code>. Gli esempi dei cicli sono alternativi: provali su un blocco nuovo.
+            Ogni istruzione semplice finisce con <code>;</code>. Usa <code>//</code> per una riga e
+            <code>/* ... */</code> per un commento su più righe. Gli esempi dei cicli sono
+            alternativi: provali su un blocco nuovo.
           </p>
           <h3>Controlli del laboratorio</h3>
           <p class="guide-note">
@@ -365,13 +375,17 @@
                     <code>mine()</code><br />
                     <code>mine(gpus)</code><br />
                     <code>mine(gpus, "testo")</code><br />
+                    <code>mine(10)</code><br />
+                    <code>mine(gpus, "testo", 10)</code><br />
                     <code>mine(gpus, false)</code><br />
                     <code>mine("testo")</code> / <code>mine(false)</code>
                   </td>
                   <td>
                     Senza vettore avvia tutte le GPU sbloccate e operative; con un vettore avvia
                     solo quelle sbloccate indicate. Attende la fine del lavoro e i messaggi di
-                    progresso indicano la cripto minata. Il testo è aggiunto al messaggio;
+                    progresso indicano la cripto minata. Il numero imposta l'intervallo percentuale
+                    dell'output (maggiore di 0 e fino a 100); il completamento resta sempre
+                    visibile. Il testo è aggiunto al messaggio;
                     <code>false</code> nasconde progresso e ricompensa, lasciando visibili avvisi ed
                     errori.
                   </td>
@@ -1280,6 +1294,8 @@
             Per una sola scheda usa <code>setCrypto(gpus.slice(0, 1), "LTC")</code>. Sigle
             disponibili: BTC, ETC, LTC, DOGE, XMR, RVN, ERG, KAS. <code>gpu.crypto</code> legge
             l'assegnazione corrente. Non puoi modificarla durante il mining delle schede coinvolte.
+            Sblocca ogni cripto nell'albero ricerca prima di assegnarla. <code>mine()</code> avvia
+            tutte le GPU operative e ciascuna mina la propria cripto; l'output indica sigla e GPU.
             Un vettore vuoto non modifica nessuna GPU; input non validi annullano tutta
             l'assegnazione.
           </p>
@@ -1288,8 +1304,9 @@
             Il messaggio è facoltativo: <code>mine(gpus, "testo")</code> aggiunge il testo alle
             righe di progresso e ricompensa; <code>mine(gpus, false)</code> le nasconde. Puoi
             omettere il vettore per applicare l'opzione a tutta la farm, ad esempio
-            <code>mine("Mining avviato")</code> o <code>mine(false)</code>. Gli avvisi sulle GPU
-            ferme o non operative restano visibili.
+            <code>mine("Mining avviato")</code> o <code>mine(false)</code>. Imposta l'intervallo con
+            <code>mine(10)</code> oppure <code>mine(gpus, "testo", 10)</code>: output ogni 10% per
+            ciascuna cripto. Gli avvisi sulle GPU ferme o non operative restano visibili.
           </p>
           <p>
             La ricompensa del blocco è divisa fra le cripto in proporzione al lavoro delle GPU. I
@@ -1396,6 +1413,15 @@
               <li>
                 Scrivi <code>//</code> per aggiungere un commento: il resto della riga viene
                 ignorato.
+              </li>
+              <li>
+                Racchiudi testo o codice tra <code>/*</code> e <code>*/</code> per un commento
+                lungo, anche su più righe.
+              </li>
+              <li>
+                Nell'editor, <kbd>Ctrl / Cmd</kbd> + <kbd>/</kbd> alterna commento riga;
+                <kbd>Ctrl / Cmd</kbd> + <kbd>Alt / Option</kbd> + <kbd>A</kbd> alterna commento
+                lungo sulla selezione.
               </li>
             </ul>
           </aside>

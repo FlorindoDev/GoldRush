@@ -137,7 +137,10 @@
                     type="button"
                     class="component-choice"
                     [attr.aria-pressed]="current.fanId === fan.id"
-                    [disabled]="game.running()"
+                    [disabled]="game.running() || !game.isResearchUnlocked(fan.id)"
+                    [title]="
+                      game.isResearchUnlocked(fan.id) ? '' : 'Sblocca nell’albero della ricerca'
+                    "
                     (click)="changeFan(fan.id)"
                   >
                     <span class="choice-copy">
@@ -149,6 +152,8 @@
                     </span>
                     @if (current.fanId === fan.id) {
                       <app-icon name="check" />
+                    } @else if (!game.isResearchUnlocked(fan.id)) {
+                      <app-icon name="lock" />
                     }
                   </button>
                 }
@@ -167,7 +172,15 @@
                     type="button"
                     class="component-choice"
                     [attr.aria-pressed]="current.dustSystemId === option[0]"
-                    [disabled]="game.running()"
+                    [disabled]="
+                      game.running() ||
+                      (option[0] !== 'none' && !game.isResearchUnlocked('filter-' + option[0]))
+                    "
+                    [title]="
+                      option[0] === 'none' || game.isResearchUnlocked('filter-' + option[0])
+                        ? ''
+                        : 'Sblocca nell’albero della ricerca'
+                    "
                     (click)="changeFilter(option[0])"
                   >
                     <span class="choice-copy">
@@ -181,6 +194,10 @@
                     </span>
                     @if (current.dustSystemId === option[0]) {
                       <app-icon name="check" />
+                    } @else if (
+                      option[0] !== 'none' && !game.isResearchUnlocked('filter-' + option[0])
+                    ) {
+                      <app-icon name="lock" />
                     }
                   </button>
                 }

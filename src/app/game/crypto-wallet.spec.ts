@@ -81,6 +81,7 @@ describe('Multi-crypto wallet', () => {
 
   it('supports vectors, single-card vectors and live assignment reads in MineScript', async () => {
     const game = new GameService();
+    game.world.update((world) => ({ ...world, unlockedResearchIds: ['litecoin', 'kaspa'] }));
     game.start();
     game.setLineEffectsEnabled(false);
     game.updateCode(`let gpus = plots[0].rigs[0].gpus;
@@ -102,6 +103,7 @@ print(gpus[0].crypto);`);
   it('mine() without GPU vector mines every unlocked GPU on its assigned crypto', async () => {
     vi.useFakeTimers();
     const game = new GameService();
+    game.world.update((world) => ({ ...world, unlockedResearchIds: ['litecoin', 'kaspa'] }));
     game.start();
     game.setLineEffectsEnabled(false);
     game.updateCode(`let gpus = plots[0].rigs[0].gpus;

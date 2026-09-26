@@ -36,6 +36,12 @@ Per orientarti: `src/app/hud/hud.component.ts` coordina la UI sovrapposta; `src/
 
 ## Bilanciamento
 
+### Albero della ricerca
+
+Pulsante con l'albero in alto a destra. La schermata mostra tutti i nodi collegati e un'anteprima statica dei GLB; scegli un nodo per vedere requisiti e costo, poi sbloccalo usando il valore in euro del portafoglio. Le ventole e i filtri sbloccati diventano selezionabili sul banco RIG; le criptovalute sbloccate possono essere assegnate con `setCrypto`.
+
+Configura la struttura in `src/app/config/research-tree-config.ts`: ogni nodo definisce `id`, `name`, `category`, `model` (percorso GLB), `description`, `costEur` e, se serve, `requirements`, `initiallyUnlocked` e `children`. `children` crea automaticamente il collegamento e richiede lo sblocco del genitore; in `requirements` puoi aggiungere altri nodi (`kind: 'node'`), blocchi estratti (`kind: 'blocks'`) o RIG posseduti (`kind: 'rigs'`). Gli ID di ventole, filtri e cripto devono corrispondere ai rispettivi file di configurazione. Gli sblocchi seguono lo stato in memoria della partita e si azzerano con **Reset** o al ricaricamento, come il resto della farm.
+
 `src/app/config/game-balance.ts` compone i gruppi di configurazione usati dal gioco. Modifica il file del componente che vuoi bilanciare:
 
 - `gpu-config.ts`: profilo idle/mining, limiti, calore, usura e danni della polvere per ogni GPU. In `specifications.dustDamage` regoli accumulo relativo (`dustBuildUpMultiplier`), calore aggiuntivo massimo (`maxExtraHeatCelsius`), velocità di riscaldamento (`maxHeatingResponseBonus`), soglia d'usura (`wearThresholdPercent`) e usura massima (`maxWearMultiplier`). `GPU_DEFAULT_MODEL_ID` sceglie GPU di partenza.

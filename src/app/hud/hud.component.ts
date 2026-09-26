@@ -32,6 +32,7 @@ import { IconComponent } from './icons/icon.component';
 import { WorkbenchComponent } from './panels/workbench/workbench.component';
 import { RigWorkbenchComponent } from './panels/rig-workbench/rig-workbench.component';
 import { GuideCodeComponent } from './guide-code/guide-code.component';
+import { ResearchTreeComponent } from './research-tree/research-tree.component';
 
 type WindowName = 'editor' | 'console';
 type GuideSection = 'examples' | 'functions' | 'gpu' | 'energy' | 'constructs' | 'shortcuts';
@@ -62,6 +63,12 @@ const SHORTCUT_GROUPS = [
     shortcuts: [
       { action: 'Avvia il codice', keys: ['Ctrl / ⌘', 'Invio'], separator: '+' },
       { action: 'Indenta di due spazi', keys: ['Tab'], separator: '+' },
+      { action: 'Commenta le righe selezionate', keys: ['Ctrl / ⌘', '/'], separator: '+' },
+      {
+        action: 'Commento lungo sulla selezione',
+        keys: ['Ctrl / ⌘', 'Alt / ⌥', 'A'],
+        separator: '+',
+      },
       { action: 'Nuova riga con rientro automatico', keys: ['Invio'], separator: '+' },
       { action: "Esci dall'editor", keys: ['Esc', 'Tab'], separator: '→' },
     ],
@@ -88,6 +95,7 @@ const SHORTCUT_GROUPS = [
     WorkbenchComponent,
     RigWorkbenchComponent,
     GuideCodeComponent,
+    ResearchTreeComponent,
   ],
   templateUrl: './hud.component.html',
   styleUrl: './hud.component.css',
@@ -128,6 +136,7 @@ export class HudComponent {
   readonly guide = viewChild.required<ElementRef<HTMLDialogElement>>('guide');
   readonly guideContent = viewChild.required<ElementRef<HTMLElement>>('guideContent');
   readonly settings = viewChild.required<ElementRef<HTMLDialogElement>>('settings');
+  readonly researchTree = viewChild.required<ResearchTreeComponent>('researchTree');
   readonly consoleDocked = signal(false);
   readonly activeWindow = signal<WindowName>('editor');
   readonly editorPosition = signal<WindowPosition | null>(null);

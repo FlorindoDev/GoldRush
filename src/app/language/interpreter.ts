@@ -13,7 +13,7 @@ const MAX_OUTPUT_LENGTH = GAME_BALANCE.scripting.maxOutputLength;
 const BUILTIN_ARGUMENT_COUNTS: Record<string, number> = {
   print: 1,
   wait: 1,
-  mine: 2,
+  mine: 3,
   setCrypto: 2,
   progress: 0,
   vector: 0,
@@ -30,6 +30,7 @@ export interface ScriptHost {
     message: string | false | null,
     line: number,
     parallelGroupId?: number,
+    progressEveryPercent?: number,
   ): Promise<void>;
   setCrypto?(gpus: Value, crypto: Value, line: number): void;
   progress(crypto?: string): number;
@@ -343,13 +344,13 @@ class Interpreter {
     const expectedArguments = BUILTIN_ARGUMENT_COUNTS[name];
     if (
       name === 'mine'
-        ? args.length > 2
+        ? args.length > 3
         : name === 'progress'
           ? args.length > 1
           : args.length !== expectedArguments
     ) {
       if (name === 'mine') {
-        throw new ScriptError('mine accetta al massimo 2 argomenti.', line);
+        throw new ScriptError('mine accetta al massimo 3 argomenti.', line);
       }
       throw new ScriptError(`${name} richiede ${expectedArguments} argomenti.`, line);
     }
@@ -382,29 +383,44 @@ class Interpreter {
         }
         let gpus: Value | null = null;
         let message: string | false | null = null;
+        let progressEveryPercent: number | undefined;
         if (args.length === 1) {
           if (typeof args[0] === 'string' || args[0] === false) {
             message = args[0];
+          } else if (typeof args[0] === 'number') {
+            progressEveryPercent = this.requireMineProgressInterval(args[0], line);
           } else if (args[0] !== null && typeof args[0] === 'object') {
             gpus = args[0];
           } else {
             throw new ScriptError(
-              'mine accetta un vettore di GPU, un messaggio tra virgolette oppure false.',
+              'mine accetta un vettore di GPU, un messaggio, false o una percentuale.',
               line,
             );
           }
-        } else if (args.length === 2) {
+        } else if (args.length === 2 || args.length === 3) {
           if (args[0] === null || typeof args[0] !== 'object') {
             throw new ScriptError('il primo argomento di mine deve essere un vettore di GPU.', line);
           }
-          if (typeof args[1] !== 'string' && args[1] !== false) {
-            throw new ScriptError('il messaggio di mine deve essere testo oppure false.', line);
-          }
           gpus = args[0];
-          message = args[1];
+          if (typeof args[1] === 'number' && args.length === 2) {
+            progressEveryPercent = this.requireMineProgressInterval(args[1], line);
+          } else if (typeof args[1] === 'string' || args[1] === false) {
+            message = args[1];
+            if (args.length === 3) {
+              if (typeof args[2] !== 'number') {
+                throw new ScriptError('la frequenza di mine deve essere una percentuale.', line);
+              }
+              progressEveryPercent = this.requireMineProgressInterval(args[2], line);
+            }
+          } else {
+            throw new ScriptError(
+              'il secondo argomento di mine deve essere un messaggio, false o una percentuale.',
+              line,
+            );
+          }
         }
         try {
-          await this.host.mine(gpus, message, line, this.parallelGroupId);
+          await this.host.mine(gpus, message, line, this.parallelGroupId, progressEveryPercent);
         } catch (error) {
           if (error instanceof Error && error.name === 'AbortError') {
             throw error;
@@ -432,6 +448,16 @@ class Interpreter {
       default:
         return 0;
     }
+  }
+
+  private requireMineProgressInterval(value: number, line: number): number {
+    if (!Number.isFinite(value) || value <= 0 || value > 100) {
+      throw new ScriptError(
+        'la percentuale di mine deve essere maggiore di 0 e non superiore a 100.',
+        line,
+      );
+    }
+    return value;
   }
 
   private formatValue(value: Value): string {
