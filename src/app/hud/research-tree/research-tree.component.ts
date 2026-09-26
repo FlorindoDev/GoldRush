@@ -16,6 +16,7 @@ import {
   type ResearchRequirement,
 } from '../../config/research-tree-config';
 import { GameService } from '../../game/game.service';
+import { countUnlockedRigs } from '../../game/mining-world';
 import {
   canUnlockResearch,
   requirementMet,
@@ -26,6 +27,7 @@ import {
 import { IconComponent } from '../icons/icon.component';
 import type { ResearchThumbnails } from './research-thumbnails';
 import { layoutResearch } from './research-layout';
+import { researchStats } from './research-details';
 
 const euros = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
 
@@ -57,8 +59,38 @@ export class ResearchTreeComponent implements OnDestroy {
   readonly thumbnails = signal<Record<string, string>>({});
   readonly feedback = signal('');
   readonly requirements = computed(() =>
-    this.selected() ? researchRequirements(this.selected()!) : [],
+    this.selected()
+      ? researchRequirements(this.selected()!).filter(
+          (requirement) =>
+            requirement.kind !== 'node' ||
+            ![this.tree.id, ...this.categories.map((branch) => branch.id)].includes(requirement.id),
+        )
+      : [],
   );
+  readonly stats = computed(() => (this.selected() ? researchStats(this.selected()!) : []));
+  readonly categoryNames = {
+    root: 'Ricerca',
+    gpu: 'Schede video',
+    fan: 'Ventole',
+    rig: 'Telai',
+    filter: 'Filtri',
+    crypto: 'Criptovalute',
+  };
+  readonly branchLabels: Record<string, string> = {
+    gpu: 'GPU',
+    fan: 'Ventole',
+    rig: 'RIG',
+    filter: 'Filtri',
+    crypto: 'Cripto',
+  };
+  readonly selectionStatus = computed(() => {
+    const node = this.selected();
+    if (!node) return '';
+    if (this.game.isResearchUnlocked(node.id)) return 'Sbloccato';
+    if (!this.requirements().every((requirement) => this.requirementMet(requirement)))
+      return 'Requisiti mancanti';
+    return this.canUnlock() ? 'Disponibile' : 'Fondi insufficienti';
+  });
   readonly unlockedCount = computed(
     () => flattenResearchTree().filter((node) => this.game.isResearchUnlocked(node.id)).length,
   );
@@ -267,12 +299,26 @@ export class ResearchTreeComponent implements OnDestroy {
   requirementLabel(requirement: ResearchRequirement): string {
     switch (requirement.kind) {
       case 'node':
-        return `Sblocca ${researchNode(requirement.id)?.name ?? requirement.id}`;
+        return researchNode(requirement.id)?.name ?? requirement.id;
       case 'blocks':
-        return `Estrai ${requirement.count} blocchi`;
+        return 'Blocchi estratti';
       case 'rigs':
-        return `Possiedi ${requirement.count} RIG`;
+        return 'RIG posseduti';
     }
+  }
+
+  requirementProgress(requirement: ResearchRequirement): string {
+    if (requirement.kind === 'node')
+      return this.requirementMet(requirement) ? 'Sbloccato' : 'Da sbloccare';
+    const world = this.game.world();
+    const count =
+      requirement.kind === 'rigs'
+        ? countUnlockedRigs(world)
+        : Object.values(world.cryptoChains).reduce(
+            (total, chain) => total + chain.settledBlockIds.length,
+            0,
+          );
+    return `${Math.min(count, requirement.count)} / ${requirement.count}`;
   }
 
   requirementMet(requirement: ResearchRequirement): boolean {
@@ -297,6 +343,7 @@ export class ResearchTreeComponent implements OnDestroy {
         const paths = [
           this.selected()?.model,
           ...this.layout().nodes.map(({ node }) => node.model),
+          ...this.categories.map((branch) => branch.model),
         ];
         const path = paths.find(
           (path) => path && !this.thumbnails()[path] && !this.failedPaths.has(path),

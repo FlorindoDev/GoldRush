@@ -8,17 +8,22 @@ test('apre l’albero a schermo intero e mostra modello, requisiti e costo', asy
   const bounds = await dialog.boundingBox();
   expect(bounds?.width).toBe(page.viewportSize()?.width);
   expect(bounds?.height).toBe(page.viewportSize()?.height);
+  const icon = await dialog.locator('.research-title-group .research-tree-icon').boundingBox();
+  expect(icon?.width).toBeGreaterThan(20);
+  expect(icon?.height).toBeGreaterThan(20);
 
   await dialog.getByRole('navigation').getByRole('button', { name: 'Filtri' }).click();
   await dialog.getByRole('button', { name: 'Filtro magnetico a rete, bloccato' }).click();
   await expect(dialog.getByRole('heading', { name: 'Filtro magnetico a rete' })).toBeVisible();
-  await expect(dialog.getByText('Sblocca Filtri')).toBeVisible();
+  await expect(dialog.getByText('Polvere trattenuta')).toBeVisible();
+  await expect(dialog.getByText('55%', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Fondi insufficienti', { exact: true })).toBeVisible();
   await expect(
     dialog
       .getByRole('complementary', { name: 'Dettagli della ricerca' })
       .getByText('80,00 €', { exact: true }),
   ).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Sblocca ricerca' })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Sblocca', exact: true })).toBeDisabled();
   await expect(
     dialog.getByAltText('Modello 3D statico di Filtro magnetico a rete').first(),
   ).toBeVisible();
@@ -74,7 +79,7 @@ test('zoom al cursore, trascinamento senza selezione e navigazione tra requisiti
 
   await dialog.getByRole('button', { name: 'Centra albero' }).click();
   await dialog.getByRole('button', { name: /Miner H1.*bloccato/ }).click();
-  await dialog.getByRole('button', { name: 'Sblocca Cyclone 200', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Cyclone 200', exact: true }).click();
   await expect(dialog.getByRole('heading', { name: 'Cyclone 200' })).toBeVisible();
   await expect(
     dialog.getByRole('navigation').getByRole('button', { name: 'Ventole' }),
@@ -132,7 +137,7 @@ test('albero utilizzabile su schermo stretto e senza anteprima disponibile', asy
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('navigation').getByRole('button', { name: 'Filtri' }).click();
   await expect(dialog.getByRole('heading', { name: 'Filtro magnetico a rete' })).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Sblocca ricerca' })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Sblocca', exact: true })).toBeDisabled();
   await expect(dialog.locator('.detail-model app-icon')).toBeVisible();
   const viewport = (await dialog.locator('.tree-scroll').boundingBox())!;
   expect(viewport.width).toBe(390);

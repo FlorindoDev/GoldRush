@@ -1,4 +1,4 @@
-<dialog
+﻿<dialog
   #dialog
   class="research-dialog"
   aria-labelledby="research-title"
@@ -8,197 +8,224 @@
   (dragstart)="$event.preventDefault()"
 >
   <div class="research-screen">
-    <header class="research-header">
-      <div class="research-title-group">
-        <span class="research-mark"><app-icon name="tree" /></span>
-        <div>
-          <span class="eyebrow">SVILUPPO DELLA FARM</span>
-          <h1 id="research-title">Albero della ricerca</h1>
+    <section
+      class="tree-viewport"
+      aria-label="Albero degli sblocchi"
+    >
+      <div class="map-heading">
+        <div class="research-title-group">
+          <app-icon name="tree" />
+          <div>
+            <h1 id="research-title">Albero della ricerca</h1>
+            <span class="branch-name">{{
+              category().id === tree.id ? 'Tutte le ricerche' : category().name
+            }}</span>
+          </div>
+        </div>
+        <span class="research-counter">{{ unlockedCount() }} / {{ totalCount }} sbloccati</span>
+      </div>
+      <nav
+        class="research-branches"
+        aria-label="Rami della ricerca"
+      >
+        @for (branch of categories; track branch.id) {
+          <button
+            type="button"
+            [class.active]="category().id === branch.id"
+            [attr.aria-pressed]="category().id === branch.id"
+            [attr.aria-label]="branch.name"
+            [title]="branch.name"
+            (click)="showCategory(branch)"
+          >
+            @if (thumbnails()[branch.model]; as image) {
+              <img
+                [src]="image"
+                alt=""
+                draggable="false"
+              />
+            } @else {
+              <app-icon
+                [name]="
+                  branch.id === 'gpu'
+                    ? 'gpu'
+                    : branch.id === 'rig'
+                      ? 'rack'
+                      : branch.id === 'crypto'
+                        ? 'wallet'
+                        : branch.id === 'fan'
+                          ? 'rotate'
+                          : 'layers'
+                "
+              />
+            }
+            <span>{{ branchLabels[branch.id] }}</span>
+          </button>
+        }
+        <button
+          type="button"
+          class="overview-button"
+          aria-label="Tutto l’albero"
+          title="Tutto l’albero"
+          [class.active]="category().id === tree.id"
+          [attr.aria-pressed]="category().id === tree.id"
+          (click)="showCategory(tree)"
+        >
+          <app-icon name="tree" /><span>Tutto</span>
+        </button>
+      </nav>
+      <div
+        #treeScroll
+        class="tree-scroll"
+        tabindex="0"
+        role="region"
+        aria-label="Mappa ricerca: trascina per spostarti, rotella per zoomare"
+        [class.dragging]="dragging()"
+        (wheel)="wheel($event)"
+        (pointerdown)="pointerDown($event)"
+        (pointermove)="pointerMove($event)"
+        (document:pointerup)="pointerUp($event)"
+        (pointercancel)="pointerUp($event)"
+        (lostpointercapture)="pointerUp($event)"
+        (keydown)="navigate($event)"
+      >
+        <div
+          class="tree-canvas"
+          [style.width.px]="layout().width"
+          [style.height.px]="layout().height"
+          [style.transform]="transform()"
+        >
+          @for (column of layout().columns; track column.x) {
+            <span
+              class="level-label"
+              [style.left.px]="column.x"
+              >{{ column.label }}</span
+            >
+          }
+          <svg
+            class="tree-links"
+            [attr.width]="layout().width"
+            [attr.height]="layout().height"
+            aria-hidden="true"
+          >
+            @for (link of layout().links; track link.id) {
+              <path
+                [attr.d]="link.path"
+                [class.unlocked]="game.isResearchUnlocked(link.target.id)"
+                [class.selected]="selected()?.id === link.target.id"
+              />
+            }
+          </svg>
+          @for (item of layout().nodes; track item.node.id) {
+            <button
+              type="button"
+              class="research-node"
+              [style.left.px]="item.x"
+              [style.top.px]="item.y"
+              [class.selected]="selected()?.id === item.node.id"
+              [class.unlocked]="game.isResearchUnlocked(item.node.id)"
+              [class.available]="available(item.node)"
+              [attr.aria-pressed]="selected()?.id === item.node.id"
+              [attr.aria-label]="
+                item.node.name +
+                (game.isResearchUnlocked(item.node.id) ? ', sbloccato' : ', bloccato')
+              "
+              (click)="nodeClick($event, item.node)"
+            >
+              <span class="node-model">
+                @if (thumbnails()[item.node.model]; as image) {
+                  <img
+                    [src]="image"
+                    [alt]="'Modello 3D statico di ' + item.node.name"
+                    draggable="false"
+                  />
+                } @else {
+                  <app-icon name="cube" />
+                }
+              </span>
+              <span class="node-state"
+                ><app-icon
+                  [name]="
+                    game.isResearchUnlocked(item.node.id)
+                      ? 'check'
+                      : available(item.node)
+                        ? 'plus'
+                        : 'lock'
+                  "
+              /></span>
+              <span class="node-name">{{ item.node.name }}</span>
+              <span class="node-meta">{{
+                game.isResearchUnlocked(item.node.id) ? 'Sbloccato' : formatEuros(item.node.costEur)
+              }}</span>
+            </button>
+          }
         </div>
       </div>
-      <div class="research-header-actions">
-        <span class="research-counter">{{ unlockedCount() }} / {{ totalCount }} sbloccati</span>
-        <span class="research-wallet"><app-icon name="wallet" /> {{ formatEuros(balance()) }}</span>
+      <footer class="tree-toolbar">
+        <span class="map-hint"><app-icon name="mouse" /> Trascina · Rotella per zoomare</span>
+        <div
+          class="zoom-controls"
+          aria-label="Controlli zoom"
+        >
+          <button
+            type="button"
+            aria-label="Riduci zoom"
+            (click)="zoom(1 / 1.2)"
+            [disabled]="scale() <= minZoom"
+          >
+            −
+          </button>
+          <output aria-label="Livello zoom">{{ zoomLabel() }}</output>
+          <button
+            type="button"
+            aria-label="Aumenta zoom"
+            (click)="zoom(1.2)"
+            [disabled]="scale() >= maxZoom"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            class="fit-button"
+            aria-label="Centra albero"
+            title="Centra albero"
+            (click)="fit()"
+          >
+            <app-icon name="focus" />
+          </button>
+        </div>
+      </footer>
+    </section>
+    <aside
+      class="research-detail"
+      aria-label="Dettagli della ricerca"
+    >
+      <div class="detail-controls">
+        <span
+          class="research-wallet"
+          title="Fondi disponibili: euro e criptovalute"
+          ><app-icon name="wallet" /> {{ formatEuros(balance()) }}</span
+        >
         <button
           type="button"
           class="close-button"
           aria-label="Chiudi albero della ricerca"
           (click)="close()"
         >
-          <app-icon name="close" />
+          <kbd>Esc</kbd><app-icon name="close" />
         </button>
       </div>
-    </header>
-
-    <nav
-      class="research-categories"
-      aria-label="Rami della ricerca"
-    >
-      @for (branch of categories; track branch.id; let index = $index) {
-        <button
-          type="button"
-          [class.active]="category().id === branch.id"
-          [attr.aria-pressed]="category().id === branch.id"
-          (click)="showCategory(branch)"
-        >
-          <span class="category-index">0{{ index + 1 }}</span
-          >{{ branch.name }}
-        </button>
-      }
-      <button
-        type="button"
-        class="overview-button"
-        [class.active]="category().id === tree.id"
-        [attr.aria-pressed]="category().id === tree.id"
-        (click)="showCategory(tree)"
-      >
-        Tutto l’albero
-      </button>
-    </nav>
-
-    <div class="research-content">
-      <section
-        class="tree-viewport"
-        aria-label="Albero degli sblocchi"
-      >
-        <div class="tree-intro">
-          <span class="eyebrow">{{ category().name }}</span>
-          <span class="tree-legend"
-            ><i class="legend-unlocked"></i> Sbloccato <i class="legend-available"></i> Disponibile
-            <i></i> Bloccato</span
-          >
-        </div>
-        <div
-          #treeScroll
-          class="tree-scroll"
-          tabindex="0"
-          role="region"
-          aria-label="Mappa ricerca: trascina per spostarti, rotella per zoomare"
-          [class.dragging]="dragging()"
-          (wheel)="wheel($event)"
-          (pointerdown)="pointerDown($event)"
-          (pointermove)="pointerMove($event)"
-          (document:pointerup)="pointerUp($event)"
-          (pointercancel)="pointerUp($event)"
-          (lostpointercapture)="pointerUp($event)"
-          (keydown)="navigate($event)"
-        >
-          <div
-            class="tree-canvas"
-            [style.width.px]="layout().width"
-            [style.height.px]="layout().height"
-            [style.transform]="transform()"
-          >
-            @for (column of layout().columns; track column.x) {
-              <span
-                class="level-label"
-                [style.left.px]="column.x"
-                >{{ column.label }}</span
-              >
-            }
-            <svg
-              class="tree-links"
-              [attr.width]="layout().width"
-              [attr.height]="layout().height"
-              aria-hidden="true"
-            >
-              @for (link of layout().links; track link.id) {
-                <path
-                  [attr.d]="link.path"
-                  [class.unlocked]="game.isResearchUnlocked(link.target.id)"
-                  [class.selected]="selected()?.id === link.target.id"
-                />
-              }
-            </svg>
-            @for (item of layout().nodes; track item.node.id) {
-              <button
-                type="button"
-                class="research-node"
-                [style.left.px]="item.x"
-                [style.top.px]="item.y"
-                [class.selected]="selected()?.id === item.node.id"
-                [class.unlocked]="game.isResearchUnlocked(item.node.id)"
-                [class.available]="available(item.node)"
-                [attr.aria-pressed]="selected()?.id === item.node.id"
-                [attr.aria-label]="
-                  item.node.name +
-                  (game.isResearchUnlocked(item.node.id) ? ', sbloccato' : ', bloccato')
-                "
-                (click)="nodeClick($event, item.node)"
-              >
-                <span class="node-model">
-                  @if (thumbnails()[item.node.model]; as image) {
-                    <img
-                      [src]="image"
-                      [alt]="'Modello 3D statico di ' + item.node.name"
-                      draggable="false"
-                    />
-                  } @else {
-                    <app-icon name="cube" />
-                  }
-                </span>
-                <span class="node-state"
-                  ><app-icon [name]="game.isResearchUnlocked(item.node.id) ? 'check' : 'lock'"
-                /></span>
-                <span class="node-name">{{ item.node.name }}</span>
-                <span class="node-meta">{{
-                  game.isResearchUnlocked(item.node.id)
-                    ? 'Sbloccato'
-                    : formatEuros(item.node.costEur)
-                }}</span>
-              </button>
-            }
-          </div>
-        </div>
-        <footer class="tree-toolbar">
-          <span
-            >Trascina per spostarti <span class="hint-divider">/</span> Rotella per zoomare</span
-          >
-          <div
-            class="zoom-controls"
-            aria-label="Controlli zoom"
-          >
-            <button
-              type="button"
-              aria-label="Riduci zoom"
-              (click)="zoom(1 / 1.2)"
-              [disabled]="scale() <= minZoom"
-            >
-              −
-            </button>
-            <output aria-label="Livello zoom">{{ zoomLabel() }}</output>
-            <button
-              type="button"
-              aria-label="Aumenta zoom"
-              (click)="zoom(1.2)"
-              [disabled]="scale() >= maxZoom"
-            >
-              +
-            </button>
-            <button
-              type="button"
-              class="fit-button"
-              (click)="fit()"
-            >
-              Centra albero
-            </button>
-          </div>
-        </footer>
-      </section>
-
-      <aside
-        class="research-detail"
-        aria-label="Dettagli della ricerca"
-      >
-        @if (selected(); as node) {
+      @if (selected(); as node) {
+        <div class="detail-body">
           <div class="detail-top">
-            <span class="eyebrow">SCHEDA RICERCA</span>
+            <span class="category-label">{{ categoryNames[node.category] }}</span>
             <span
               class="detail-status"
               [class.unlocked]="game.isResearchUnlocked(node.id)"
+              [class.available]="canUnlock()"
             >
-              <app-icon [name]="game.isResearchUnlocked(node.id) ? 'check' : 'lock'" />
-              {{ game.isResearchUnlocked(node.id) ? 'SBLOCCATO' : 'DA SBLOCCARE' }}
+              <app-icon
+                [name]="game.isResearchUnlocked(node.id) ? 'check' : canUnlock() ? 'plus' : 'lock'"
+              />{{ selectionStatus() }}
             </span>
           </div>
           <div class="detail-model">
@@ -213,72 +240,78 @@
             }
           </div>
           <div class="detail-copy">
-            <span class="category-label">{{
-              node.category === 'root' ? 'RICERCA' : node.category.toUpperCase()
-            }}</span>
             <h2>{{ node.name }}</h2>
             <p>{{ node.description }}</p>
           </div>
-          <div class="detail-section">
-            <h3>Requisiti</h3>
-            @for (requirement of requirements(); track $index) {
-              <div
-                class="requirement"
-                [class.met]="requirementMet(requirement)"
-              >
-                <app-icon [name]="requirementMet(requirement) ? 'check' : 'lock'" />
-                @if (requirement.kind === 'node') {
-                  <button
-                    type="button"
-                    class="requirement-link"
-                    (click)="goToRequirement(requirement.id)"
-                  >
-                    {{ requirementLabel(requirement) }}
-                  </button>
-                } @else {
-                  <span>{{ requirementLabel(requirement) }}</span>
-                }
-                <b>{{ requirementMet(requirement) ? 'OK' : 'MANCANTE' }}</b>
-              </div>
-            } @empty {
-              <p class="detail-muted">Nessun requisito.</p>
-            }
-          </div>
-          <div class="detail-bottom">
-            <div class="price-row">
-              <span>Costo ricerca</span><strong>{{ formatEuros(node.costEur) }}</strong>
-            </div>
-            @if (game.isResearchUnlocked(node.id)) {
-              <div class="unlocked-banner"><app-icon name="check" /> Ricerca completata</div>
-            } @else {
-              <button
-                type="button"
-                class="unlock-button"
-                [disabled]="!canUnlock()"
-                (click)="unlock()"
-              >
-                <app-icon name="lock" /> Sblocca ricerca
-              </button>
-              @if (balance() < node.costEur) {
-                <p class="detail-muted">
-                  Servono {{ formatEuros(node.costEur - balance()) }} in più.
-                </p>
+          @if (stats().length) {
+            <dl class="detail-stats">
+              @for (stat of stats(); track stat.label) {
+                <div>
+                  <dt>{{ stat.label }}</dt>
+                  <dd>{{ stat.value }}</dd>
+                </div>
               }
-            }
-            <p
-              class="feedback"
-              role="status"
+            </dl>
+          }
+          @if (requirements().length && !game.isResearchUnlocked(node.id)) {
+            <div class="detail-section">
+              <h3>Richiede</h3>
+              @for (requirement of requirements(); track $index) {
+                <div
+                  class="requirement"
+                  [class.met]="requirementMet(requirement)"
+                >
+                  <app-icon [name]="requirementMet(requirement) ? 'check' : 'lock'" />
+                  @if (requirement.kind === 'node') {
+                    <button
+                      type="button"
+                      class="requirement-link"
+                      (click)="goToRequirement(requirement.id)"
+                    >
+                      {{ requirementLabel(requirement) }}<app-icon name="chevron" />
+                    </button>
+                    <span class="sr-only">{{ requirementProgress(requirement) }}</span>
+                  } @else {
+                    <span>{{ requirementLabel(requirement) }}</span
+                    ><b>{{ requirementProgress(requirement) }}</b>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+        <div class="detail-bottom">
+          @if (game.isResearchUnlocked(node.id)) {
+            <div class="unlocked-banner"><app-icon name="check" /> Già sbloccato</div>
+          } @else {
+            <div class="price-row">
+              <span>Costo</span><strong>{{ formatEuros(node.costEur) }}</strong>
+            </div>
+            <button
+              type="button"
+              class="unlock-button"
+              [disabled]="!canUnlock()"
+              (click)="unlock()"
             >
-              {{ feedback() }}
-            </p>
-          </div>
-        } @else {
-          <div class="empty-detail">
-            <app-icon name="tree" />
-            <p>Seleziona una tecnologia.</p>
-          </div>
-        }
-      </aside>
-    </div>
+              <span>Sblocca</span><app-icon name="arrow" />
+            </button>
+            @if (balance() < node.costEur) {
+              <p class="funds-hint">Mancano {{ formatEuros(node.costEur - balance()) }}</p>
+            }
+          }
+          <p
+            class="feedback"
+            role="status"
+          >
+            {{ feedback() }}
+          </p>
+        </div>
+      } @else {
+        <div class="empty-detail">
+          <app-icon name="tree" />
+          <p>Seleziona una ricerca</p>
+        </div>
+      }
+    </aside>
   </div>
 </dialog>

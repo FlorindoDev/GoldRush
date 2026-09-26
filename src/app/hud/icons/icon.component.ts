@@ -15,7 +15,6 @@ const PATHS: Record<string, string | readonly string[]> = {
   book: 'M12 5v16m0-16C8 2 4 3 2 4v15c4-2 7-1 10 2 3-3 6-4 10-2V4c-2-1-6-2-10 1Z',
   gpu: 'M4 6h16v12H4V6ZM1 9h3m-3 6h3m16-6h3m-3 6h3M8 10h3v4H8v-4Zm7 0h2v4h-2v-4ZM7 3v3m5-3v3m5-3v3M7 18v3m5-3v3m5-3v3',
   rack: 'M4 3h16v7H4V3Zm0 11h16v7H4v-7ZM7 6h.01M7 17h.01M11 6h6M11 17h6',
-  tree: 'M12 21v-8m0 4-5-4m5 1 5-5M7 13C4 13 2 11 2 8c0-2 1-4 4-4 1-2 3-3 6-3s5 1 6 3c3 0 4 2 4 4 0 3-2 5-5 5H7Zm2 8h6',
   camcorder: 'M3 7h11v10H3V7Zm11 3 7-4v12l-7-4',
   video:
     'M3 10h12v10H3V10Zm12 3 6-3v10l-6-3M8 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM15 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',

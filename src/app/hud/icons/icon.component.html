@@ -1,17 +1,24 @@
-<svg
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="1.6"
-  stroke-linecap="round"
-  stroke-linejoin="round"
-  aria-hidden="true"
->
-  @for (path of paths(); track $index) {
-    <path
-      [attr.d]="path"
-      [attr.fill]="name() === 'start' ? 'currentColor' : null"
-      [attr.stroke]="name() === 'start' ? 'none' : null"
-    />
-  }
-</svg>
+@if (name() === 'tree') {
+  <span
+    class="research-tree-icon"
+    aria-hidden="true"
+  ></span>
+} @else {
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    @for (path of paths(); track $index) {
+      <path
+        [attr.d]="path"
+        [attr.fill]="name() === 'start' ? 'currentColor' : null"
+        [attr.stroke]="name() === 'start' ? 'none' : null"
+      />
+    }
+  </svg>
+}

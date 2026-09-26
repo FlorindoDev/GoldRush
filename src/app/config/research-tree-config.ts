@@ -25,7 +25,7 @@ export const RESEARCH_TREE: ResearchNode = {
   name: 'Laboratorio',
   category: 'root',
   model: model('rigs', 'rig-gameplay'),
-  description: 'Sviluppa la farm sbloccando hardware e nuove valute.',
+  description: 'Progetti hardware e valute da minare.',
   costEur: 0,
   initiallyUnlocked: true,
   children: [
@@ -34,7 +34,7 @@ export const RESEARCH_TREE: ResearchNode = {
       name: 'Schede video',
       category: 'gpu',
       model: model('gpus', 'gpu-compact'),
-      description: 'Modelli di schede video per la farm.',
+      description: 'Schede video con frequenze, consumi e raffreddamento diversi.',
       costEur: 0,
       initiallyUnlocked: true,
       children: [
@@ -43,7 +43,7 @@ export const RESEARCH_TREE: ResearchNode = {
           name: 'Miner S1 · Compact',
           category: 'gpu',
           model: model('gpus', 'gpu-compact'),
-          description: 'Scheda iniziale.',
+          description: 'Scheda di base a una ventola, con consumi contenuti.',
           costEur: 0,
           initiallyUnlocked: true,
           children: [
@@ -52,7 +52,8 @@ export const RESEARCH_TREE: ResearchNode = {
               name: 'Miner D2 · Dual',
               category: 'gpu',
               model: model('gpus', 'gpu-dual'),
-              description: 'Due ventole e maggior potenza di calcolo.',
+              description:
+                'Più veloce della Compact, ma consuma di più. Raffreddamento a due ventole.',
               costEur: 120,
               children: [
                 {
@@ -60,7 +61,7 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Miner T3 · Triple',
                   category: 'gpu',
                   model: model('gpus', 'gpu-triple'),
-                  description: 'Tre ventole per carichi elevati.',
+                  description: 'Tre ventole e una frequenza di mining più alta della Dual.',
                   costEur: 350,
                   requirements: [{ kind: 'blocks', count: 2 }],
                 },
@@ -69,7 +70,7 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Miner A3 · Atelier',
                   category: 'gpu',
                   model: model('gpus', 'gpu-proart'),
-                  description: 'Scheda compatta di fascia alta.',
+                  description: 'Tre ventole in un telaio compatto.',
                   costEur: 420,
                   requirements: [{ kind: 'blocks', count: 3 }],
                 },
@@ -78,7 +79,8 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Miner N3 · Neon',
                   category: 'gpu',
                   model: model('gpus', 'gpu-nitro'),
-                  description: 'Scheda ad alte prestazioni.',
+                  description:
+                    'Frequenza elevata e tre ventole. Richiede più energia della Triple.',
                   costEur: 520,
                   requirements: [{ kind: 'blocks', count: 4 }],
                 },
@@ -89,7 +91,7 @@ export const RESEARCH_TREE: ResearchNode = {
               name: 'Miner B1 · Blower',
               category: 'gpu',
               model: model('gpus', 'gpu-blower'),
-              description: 'Espulsione diretta dell’aria calda.',
+              description: 'Una turbina espelle l’aria calda dal retro della scheda.',
               costEur: 180,
               children: [
                 {
@@ -97,7 +99,7 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Miner W2 · Workstation',
                   category: 'gpu',
                   model: model('gpus', 'gpu-workstation'),
-                  description: 'Scheda professionale.',
+                  description: 'Due ventole e più margine di frequenza rispetto alla Blower.',
                   costEur: 450,
                   requirements: [{ kind: 'blocks', count: 3 }],
                 },
@@ -106,7 +108,7 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Miner LP2 · Slim',
                   category: 'gpu',
                   model: model('gpus', 'gpu-low-profile'),
-                  description: 'Scheda a basso profilo.',
+                  description: 'Formato ribassato a due ventole. Consuma meno della Blower.',
                   costEur: 260,
                 },
               ],
@@ -116,7 +118,8 @@ export const RESEARCH_TREE: ResearchNode = {
               name: 'Miner P0 · Passive',
               category: 'gpu',
               model: model('gpus', 'gpu-passive'),
-              description: 'Scheda iniziale a raffreddamento passivo.',
+              description:
+                'Nessuna ventola. Consuma poco, ma il calore si accumula più facilmente.',
               costEur: 0,
               initiallyUnlocked: true,
               children: [
@@ -125,7 +128,8 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Miner L0 · Hydro',
                   category: 'gpu',
                   model: model('gpus', 'gpu-liquid'),
-                  description: 'Raffreddamento a liquido.',
+                  description:
+                    'Il circuito a liquido mantiene basse le temperature durante il mining.',
                   costEur: 600,
                   requirements: [{ kind: 'node', id: 'rig-8-frame-bracket' }],
                 },
@@ -134,7 +138,8 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Miner H1 · Hybrid',
                   category: 'gpu',
                   model: model('gpus', 'gpu-hybrid'),
-                  description: 'Sistema di raffreddamento ibrido.',
+                  description:
+                    'Circuito a liquido e ventola sulla scheda. Consuma meno della Hydro.',
                   costEur: 700,
                   requirements: [{ kind: 'node', id: 'fan-turbine-200' }],
                 },
@@ -149,7 +154,7 @@ export const RESEARCH_TREE: ResearchNode = {
       name: 'Ventole',
       category: 'fan',
       model: model('fans', 'fan-airflow-120'),
-      description: 'Ventole installabili nei RIG.',
+      description: 'Ventole da montare sul RIG per raffreddare le schede.',
       costEur: 0,
       initiallyUnlocked: true,
       children: [
@@ -158,7 +163,7 @@ export const RESEARCH_TREE: ResearchNode = {
           name: 'Flow 120',
           category: 'fan',
           model: model('fans', 'fan-airflow-120'),
-          description: 'Ventola iniziale.',
+          description: 'Ventola da 120 mm in dotazione ai primi RIG.',
           costEur: 0,
           initiallyUnlocked: true,
           children: [
@@ -167,7 +172,7 @@ export const RESEARCH_TREE: ResearchNode = {
               name: 'Pressure 140',
               category: 'fan',
               model: model('fans', 'fan-pressure-140'),
-              description: 'Più pressione statica.',
+              description: 'Sposta più aria della Flow 120. Si monta dal banco RIG.',
               costEur: 90,
               children: [
                 {
@@ -175,7 +180,8 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Forge 140',
                   category: 'fan',
                   model: model('fans', 'fan-industrial-140'),
-                  description: 'Ventola industriale.',
+                  description:
+                    'Più giri e più portata rispetto alla Pressure 140, con un consumo maggiore.',
                   costEur: 210,
                   children: [
                     {
@@ -183,7 +189,7 @@ export const RESEARCH_TREE: ResearchNode = {
                       name: 'Cyclone 200',
                       category: 'fan',
                       model: model('fans', 'fan-turbine-200'),
-                      description: 'Grande portata d’aria.',
+                      description: 'Turbina da 200 mm per aumentare il flusso d’aria nel RIG.',
                       costEur: 390,
                       children: [
                         {
@@ -191,7 +197,8 @@ export const RESEARCH_TREE: ResearchNode = {
                           name: 'Prism 200',
                           category: 'fan',
                           model: model('fans', 'fan-rgb-200'),
-                          description: 'Ventola luminosa ad alta portata.',
+                          description:
+                            'Ventola da 200 mm con anello luminoso. Più portata della Cyclone.',
                           costEur: 480,
                         },
                         {
@@ -199,7 +206,8 @@ export const RESEARCH_TREE: ResearchNode = {
                           name: 'Counter 200',
                           category: 'fan',
                           model: model('fans', 'fan-counter-200'),
-                          description: 'Doppio flusso controrotante.',
+                          description:
+                            'Due rotori controrotanti spingono più aria attraverso il RIG.',
                           costEur: 550,
                           children: [
                             {
@@ -207,7 +215,8 @@ export const RESEARCH_TREE: ResearchNode = {
                               name: 'Server Jet 240',
                               category: 'fan',
                               model: model('fans', 'fan-server-240'),
-                              description: 'Ventola più potente.',
+                              description:
+                                'La portata più alta tra le ventole disponibili. Anche il consumo è il più alto.',
                               costEur: 750,
                               requirements: [{ kind: 'blocks', count: 6 }],
                             },
@@ -228,7 +237,7 @@ export const RESEARCH_TREE: ResearchNode = {
       name: 'RIG',
       category: 'rig',
       model: model('rigs', 'rig-gameplay'),
-      description: 'Telai per ospitare più schede.',
+      description: 'Telai aperti, supporti esterni e varianti filtrate.',
       costEur: 0,
       initiallyUnlocked: true,
       children: [
@@ -237,7 +246,7 @@ export const RESEARCH_TREE: ResearchNode = {
           name: 'RIG 4 · Modular',
           category: 'rig',
           model: model('rigs', 'rig-gameplay'),
-          description: 'RIG iniziale.',
+          description: 'Telaio aperto a quattro posti. In dotazione all’inizio della partita.',
           costEur: 0,
           initiallyUnlocked: true,
           children: [
@@ -246,7 +255,7 @@ export const RESEARCH_TREE: ResearchNode = {
               name: 'RIG 8 · Telaio base',
               category: 'rig',
               model: model('rigs', 'rig-8-frame-none'),
-              description: 'Telaio più capiente.',
+              description: 'Progetto di un telaio aperto a otto posti.',
               costEur: 350,
               requirements: [{ kind: 'rigs', count: 7 }],
               children: [
@@ -255,7 +264,8 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'RIG 8 · Supporto esterno',
                   category: 'rig',
                   model: model('rigs', 'rig-8-frame-bracket'),
-                  description: 'Telaio con supporto per raffreddamento.',
+                  description:
+                    'Telaio a otto posti con supporto laterale per il raffreddamento esterno.',
                   costEur: 520,
                   requirements: [{ kind: 'node', id: 'fan-pressure-140' }],
                 },
@@ -264,7 +274,7 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'RIG 8 · Telaio filtrato',
                   category: 'rig',
                   model: model('rigs', 'rig-8-frame-filtered'),
-                  description: 'Telaio protetto dalla polvere.',
+                  description: 'Variante a otto posti con pannello filtrante frontale.',
                   costEur: 500,
                   requirements: [{ kind: 'node', id: 'filter-mesh' }],
                 },
@@ -279,7 +289,7 @@ export const RESEARCH_TREE: ResearchNode = {
       name: 'Filtri',
       category: 'filter',
       model: model('filters', 'filter-mesh'),
-      description: 'Protezione antipolvere per i RIG.',
+      description: 'Rallentano l’accumulo di polvere, ma ostacolano il passaggio dell’aria.',
       costEur: 0,
       initiallyUnlocked: true,
       children: [
@@ -288,7 +298,7 @@ export const RESEARCH_TREE: ResearchNode = {
           name: 'Filtro magnetico a rete',
           category: 'filter',
           model: model('filters', 'filter-mesh'),
-          description: 'Protezione base dalla polvere.',
+          description: 'Riduce la polvere sulle GPU con una piccola penalità al raffreddamento.',
           costEur: 80,
           children: [
             {
@@ -296,7 +306,8 @@ export const RESEARCH_TREE: ResearchNode = {
               name: 'Filtro pieghettato',
               category: 'filter',
               model: model('filters', 'filter-pleated'),
-              description: 'Cattura più particelle.',
+              description:
+                'Trattiene più polvere della rete magnetica, ma fa salire la temperatura.',
               costEur: 230,
               children: [
                 {
@@ -304,7 +315,8 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Filtro a doppio strato',
                   category: 'filter',
                   model: model('filters', 'filter-carbon'),
-                  description: 'Massima filtrazione.',
+                  description:
+                    'La protezione più efficace contro la polvere. Oppone anche più resistenza all’aria.',
                   costEur: 440,
                   requirements: [{ kind: 'blocks', count: 4 }],
                 },
@@ -319,7 +331,7 @@ export const RESEARCH_TREE: ResearchNode = {
       name: 'Criptovalute',
       category: 'crypto',
       model: model('coins', 'bitcoin'),
-      description: 'Algoritmi e valute da minare.',
+      description: 'Nuove valute da assegnare alle GPU per il mining.',
       costEur: 0,
       initiallyUnlocked: true,
       children: [
@@ -328,7 +340,7 @@ export const RESEARCH_TREE: ResearchNode = {
           name: 'Bitcoin · BTC',
           category: 'crypto',
           model: model('coins', 'bitcoin'),
-          description: 'Valuta iniziale.',
+          description: 'La prima valuta disponibile. Le GPU iniziano a minare Bitcoin.',
           costEur: 0,
           initiallyUnlocked: true,
           children: [
@@ -337,7 +349,7 @@ export const RESEARCH_TREE: ResearchNode = {
               name: 'Litecoin · LTC',
               category: 'crypto',
               model: model('coins', 'litecoin'),
-              description: 'Sblocca il mining di Litecoin.',
+              description: 'Permette di assegnare le GPU al mining di Litecoin.',
               costEur: 100,
               children: [
                 {
@@ -345,7 +357,7 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Dogecoin · DOGE',
                   category: 'crypto',
                   model: model('coins', 'dogecoin'),
-                  description: 'Sblocca il mining di Dogecoin.',
+                  description: 'Permette di assegnare le GPU al mining di Dogecoin.',
                   costEur: 180,
                 },
                 {
@@ -353,7 +365,7 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Ethereum Classic · ETC',
                   category: 'crypto',
                   model: model('coins', 'ethereum-classic'),
-                  description: 'Sblocca il mining di ETC.',
+                  description: 'Permette di assegnare le GPU al mining di Ethereum Classic.',
                   costEur: 250,
                 },
               ],
@@ -363,7 +375,7 @@ export const RESEARCH_TREE: ResearchNode = {
               name: 'Monero · XMR',
               category: 'crypto',
               model: model('coins', 'monero'),
-              description: 'Sblocca il mining di Monero.',
+              description: 'Permette di assegnare le GPU al mining di Monero.',
               costEur: 300,
               children: [
                 {
@@ -371,7 +383,7 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Ravencoin · RVN',
                   category: 'crypto',
                   model: model('coins', 'ravencoin'),
-                  description: 'Sblocca il mining di Ravencoin.',
+                  description: 'Permette di assegnare le GPU al mining di Ravencoin.',
                   costEur: 380,
                 },
                 {
@@ -379,7 +391,7 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Ergo · ERG',
                   category: 'crypto',
                   model: model('coins', 'ergo'),
-                  description: 'Sblocca il mining di Ergo.',
+                  description: 'Permette di assegnare le GPU al mining di Ergo.',
                   costEur: 400,
                 },
                 {
@@ -387,7 +399,7 @@ export const RESEARCH_TREE: ResearchNode = {
                   name: 'Kaspa · KAS',
                   category: 'crypto',
                   model: model('coins', 'kaspa'),
-                  description: 'Sblocca il mining di Kaspa.',
+                  description: 'Permette di assegnare le GPU al mining di Kaspa.',
                   costEur: 460,
                   requirements: [{ kind: 'blocks', count: 5 }],
                 },
