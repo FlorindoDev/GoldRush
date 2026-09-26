@@ -37,7 +37,7 @@ export class ResearchThumbnails {
       const bounds = new THREE.Box3().setFromObject(model);
       const center = bounds.getCenter(new THREE.Vector3());
       const size = bounds.getSize(new THREE.Vector3());
-      const radius = Math.max(size.length() / 2, 0.15);
+      const radius = Math.max(size.length() / 2, path.includes('/gpus/') ? 1.45 : 0.15);
       const distance = (radius / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2))) * 1.05;
       this.camera.position
         .copy(center)

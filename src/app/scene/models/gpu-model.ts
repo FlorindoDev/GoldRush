@@ -1,4 +1,14 @@
 import * as THREE from 'three';
+import { GPU_MODELS_BY_ID, type GpuModelId } from '../../config/gpu-config';
+import { SCENE_CONFIG } from '../../config/scene-config';
+
+/** Mantiene le proporzioni tra le schede invece di portarle tutte alla stessa larghezza. */
+export function gpuSceneWidth(modelId: GpuModelId): number {
+  return (
+    (SCENE_CONFIG.gpuModelWidth * GPU_MODELS_BY_ID[modelId].length) /
+    GPU_MODELS_BY_ID['gpu-passive'].length
+  );
+}
 
 export function fitGpuModel(model: THREE.Group, width: number): void {
   orientGpuModel(model);

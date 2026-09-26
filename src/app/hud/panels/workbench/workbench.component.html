@@ -192,42 +192,65 @@
               </button>
             }
             @case ('fan') {
-              <h3>Kit di raffreddamento</h3>
+              <h3>Ventole GPU</h3>
+              @if (!gpuSupportsFanKits()) {
+                <p class="detail-note">
+                  Questa GPU non supporta ventole: resta a 0 RPM e non puoi installare altri kit.
+                </p>
+              }
               <div
                 class="fan-kits"
                 role="group"
                 aria-label="Kit ventole"
               >
                 @for (kit of fanKits; track kit.id) {
-                  <button
-                    type="button"
-                    class="fan-kit"
-                    [attr.aria-pressed]="card.fanKit === kit.id"
-                    [disabled]="game.running()"
-                    (click)="service({ kind: 'fan', kit: kit.id })"
-                  >
-                    <span class="fan-kit-copy">
-                      <strong>{{ kit.label }}</strong>
-                      <span class="fan-kit-specs">
-                        <span>{{ kit.maxRpm }} rpm</span>
-                        @if (kit.id !== 'stock') {
-                          <span class="fan-kit-impact">
-                            · {{ kit.extraPowerWatts > 0 ? '+' : '' }}{{ kit.extraPowerWatts }} W ·
-                            {{ kit.coolingCelsius < 0 ? '+' : '' }}{{ -kit.coolingCelsius }} °C
-                          </span>
-                        }
+                  @if (gpuSupportsFanKits() || kit.id === 'stock') {
+                    <button
+                      type="button"
+                      class="fan-kit"
+                      [attr.aria-pressed]="card.fanKit === kit.id"
+                      [disabled]="
+                        game.running() ||
+                        !gpuSupportsFanKits() ||
+                        (kit.researchId !== null && !game.isResearchUnlocked(kit.researchId))
+                      "
+                      (click)="service({ kind: 'fan', kit: kit.id })"
+                    >
+                      <span class="fan-kit-copy">
+                        <strong>{{ kit.label }}</strong>
+                        <span class="fan-kit-specs">
+                          <span>{{ gpuSupportsFanKits() ? kit.maxRpm : 0 }} rpm</span>
+                          @if (
+                            kit.researchId !== null &&
+                            !game.isResearchUnlocked(kit.researchId)
+                          ) {
+                            <span>· Da sbloccare nella ricerca</span>
+                          }
+                          @if (kit.id !== 'stock') {
+                            <span class="fan-kit-impact">
+                              · {{ kit.extraPowerWatts > 0 ? '+' : '' }}{{ kit.extraPowerWatts }} W ·
+                              {{ kit.coolingCelsius < 0 ? '+' : '' }}{{ -kit.coolingCelsius }} °C
+                            </span>
+                          }
+                        </span>
                       </span>
-                    </span>
-                    @if (card.fanKit === kit.id) {
-                      <app-icon name="check" />
-                    }
-                  </button>
+                      @if (card.fanKit === kit.id) {
+                        <app-icon name="check" />
+                      } @else if (
+                        kit.researchId !== null && !game.isResearchUnlocked(kit.researchId)
+                      ) {
+                        <app-icon name="lock" />
+                      }
+                    </button>
+                  }
                 }
               </div>
-              <p class="detail-note">
-                Consumi e temperature a regime, rispetto al kit originale. La ventola cambia anche
-                sulla scheda.
-              </p>
+              @if (gpuSupportsFanKits()) {
+                <p class="detail-note">
+                  Consumi e temperature a regime, rispetto al kit originale. La ventola cambia anche
+                  sulla scheda.
+                </p>
+              }
             }
           }
         </section>

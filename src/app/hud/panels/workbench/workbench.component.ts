@@ -8,6 +8,8 @@ import {
   signal,
 } from '@angular/core';
 import { GAME_BALANCE } from '../../../config/game-balance';
+import { GPU_MODELS_BY_ID } from '../../../config/gpu-config';
+import { gpuFanResearchId, type GpuFanModelId } from '../../../config/fan-config';
 import { GameService } from '../../../game/game.service';
 import {
   dustWearMultiplier,
@@ -38,10 +40,15 @@ export class WorkbenchComponent implements OnDestroy {
   readonly fanKits = Object.entries(GAME_BALANCE.gpu.fanKits).map(([id, kit]) => ({
     ...kit,
     id: id as GpuFanKit,
+    researchId: id === 'stock' ? null : gpuFanResearchId(id as GpuFanModelId),
   }));
   readonly gpu = computed(() => {
     const id = this.game.inspectedGpuId();
     return id === null ? null : getGpu(this.game.world(), id);
+  });
+  readonly gpuSupportsFanKits = computed(() => {
+    const gpu = this.gpu();
+    return gpu !== null && GPU_MODELS_BY_ID[gpu.modelId].supportsFanKits;
   });
   private readonly tick = signal(0);
   private readonly timer = setInterval(() => this.tick.update((tick) => tick + 1), 200);

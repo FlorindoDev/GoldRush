@@ -105,7 +105,21 @@ export const FAN_MODELS_BY_ID = Object.fromEntries(
 /** Kit di ventole GPU montabili dal banco, distinti dalle ventole installate sul rig. */
 export const GPU_FAN_KITS = {
   stock: { label: 'Originale', coolingCelsius: 0, extraPowerWatts: 0, maxRpm: 3200 },
-  performance: { label: 'Alta portata', coolingCelsius: 9, extraPowerWatts: 12, maxRpm: 4200 },
-  industrial: { label: 'Industriale', coolingCelsius: 15, extraPowerWatts: 24, maxRpm: 5200 },
+  silent: { label: 'Silent 90', coolingCelsius: 5, extraPowerWatts: 4, maxRpm: 3500 },
+  performance: { label: 'Axial Flow', coolingCelsius: 9, extraPowerWatts: 12, maxRpm: 4200 },
+  pressure: { label: 'Pressure Ring', coolingCelsius: 12, extraPowerWatts: 18, maxRpm: 4700 },
+  industrial: { label: 'Forge GPU', coolingCelsius: 15, extraPowerWatts: 24, maxRpm: 5200 },
   server: { label: 'Server Jet', coolingCelsius: 21, extraPowerWatts: 40, maxRpm: 6500 },
 } as const;
+
+/** Ventole GPU originali. Valori nominali di gioco, non specifiche dei prodotti di riferimento. */
+export const GPU_FAN_MODELS = [
+  { id: 'silent', blades: 7, accent: 'copper', profile: 'swept' },
+  { id: 'performance', blades: 9, accent: 'blue', profile: 'axial' },
+  { id: 'pressure', blades: 11, accent: 'lime', profile: 'ring' },
+  { id: 'industrial', blades: 9, accent: 'orange', profile: 'guard' },
+  { id: 'server', blades: 13, accent: 'steel', profile: 'duct' },
+] as const;
+
+export type GpuFanModelId = (typeof GPU_FAN_MODELS)[number]['id'];
+export const gpuFanResearchId = (id: GpuFanModelId) => `gpu-fan-${id}`;

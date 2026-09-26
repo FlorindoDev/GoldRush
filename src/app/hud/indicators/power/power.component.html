@@ -86,9 +86,6 @@
           <div class="meter-row">
             <span>Temperatura</span><strong>{{ stats.temperatureCelsius.toFixed(1) }} °C</strong>
           </div>
-          <div class="meter-row">
-            <span>Sporco</span><strong>{{ stats.dustPercent.toFixed(1) }}%</strong>
-          </div>
           <meter
             aria-label="Temperatura GPU"
             [value]="stats.temperatureCelsius"
@@ -98,6 +95,9 @@
             [high]="stats.maxTemperatureCelsius"
             optimum="0"
           ></meter>
+          <div class="meter-row">
+            <span>Sporco</span><strong>{{ stats.dustPercent.toFixed(1) }}%</strong>
+          </div>
           <div class="meter-row">
             <span>Ventole</span
             ><strong>{{ stats.currentFanSpeedRpm }} RPM · {{ stats.fanSpeed }}%</strong>

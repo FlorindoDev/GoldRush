@@ -5,6 +5,14 @@
   "description": "Modelli originali low poly. Specifiche delle ventole fittizie per progressione di gioco; nessuna modifica automatica al bilanciamento della partita.",
   "references": [
     {
+      "name": "Ventole GPU assiali - ASUS Axial-tech",
+      "url": "https://www.asus.com/ie/motherboards-components/graphics-cards/dual/dual-rtx4060ti-o8g-evo/"
+    },
+    {
+      "name": "Anello delle pale - ARCTIC P12 Max",
+      "url": "https://www.arctic.de/en/blog/p12-max"
+    },
+    {
       "name": "GPU professionali · NVIDIA RTX PRO",
       "url": "https://www.nvidia.com/en-us/products/workstations/professional-desktop-gpus/rtx-pro-6000-family/"
     },
@@ -495,16 +503,91 @@
       "duct": true
     },
     {
+      "id": "gpu-fan-silent",
+      "name": "Ventola GPU · silent",
+      "category": "fans",
+      "path": "assets/models/fans/gpu-fan-silent.glb",
+      "dimensions": [
+        0.93,
+        0.93,
+        0.124
+      ],
+      "bytes": 175076,
+      "description": "Ventola GPU originale low poly. Montabile sulle schede con almeno un rotore.",
+      "blades": 7,
+      "profile": "swept"
+    },
+    {
+      "id": "gpu-fan-performance",
+      "name": "Ventola GPU · performance",
+      "category": "fans",
+      "path": "assets/models/fans/gpu-fan-performance.glb",
+      "dimensions": [
+        0.93,
+        0.93,
+        0.124
+      ],
+      "bytes": 216384,
+      "description": "Ventola GPU originale low poly. Montabile sulle schede con almeno un rotore.",
+      "blades": 9,
+      "profile": "axial"
+    },
+    {
+      "id": "gpu-fan-pressure",
+      "name": "Ventola GPU · pressure",
+      "category": "fans",
+      "path": "assets/models/fans/gpu-fan-pressure.glb",
+      "dimensions": [
+        0.93,
+        0.93,
+        0.124
+      ],
+      "bytes": 268196,
+      "description": "Ventola GPU originale low poly. Montabile sulle schede con almeno un rotore.",
+      "blades": 11,
+      "profile": "ring"
+    },
+    {
+      "id": "gpu-fan-industrial",
+      "name": "Ventola GPU · industrial",
+      "category": "fans",
+      "path": "assets/models/fans/gpu-fan-industrial.glb",
+      "dimensions": [
+        0.95,
+        0.95,
+        0.172
+      ],
+      "bytes": 230876,
+      "description": "Ventola GPU originale low poly. Montabile sulle schede con almeno un rotore.",
+      "blades": 9,
+      "profile": "guard"
+    },
+    {
+      "id": "gpu-fan-server",
+      "name": "Ventola GPU · server",
+      "category": "fans",
+      "path": "assets/models/fans/gpu-fan-server.glb",
+      "dimensions": [
+        1.03,
+        1.03,
+        0.207
+      ],
+      "bytes": 312780,
+      "description": "Ventola GPU originale low poly. Montabile sulle schede con almeno un rotore.",
+      "blades": 13,
+      "profile": "duct"
+    },
+    {
       "id": "gpu-compact",
       "name": "Miner S1 · Compact",
       "category": "gpus",
       "path": "assets/models/gpus/gpu-compact.glb",
       "dimensions": [
-        1.753,
-        0.509,
-        1.396
+        1.283,
+        0.407,
+        1.117
       ],
-      "bytes": 131192,
+      "bytes": 131200,
       "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
       "fanCount": 1,
       "cooling": "compact",
@@ -1418,11 +1501,11 @@
       "category": "workshop",
       "path": "assets/models/workshop/workbench.glb",
       "dimensions": [
-        5,
+        5.25,
         4.203,
-        3.6
+        3.8
       ],
-      "bytes": 458824,
+      "bytes": 458828,
       "description": "Banco GLB con attrezzi, oscilloscopio e punti di montaggio per GPU e monete."
     },
     {

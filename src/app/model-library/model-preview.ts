@@ -69,12 +69,17 @@ export class ModelPreview {
     const size = bounds.getSize(new THREE.Vector3());
     const center = bounds.getCenter(new THREE.Vector3());
     model.position.sub(new THREE.Vector3(center.x, bounds.min.y, center.z));
-    this.radius = Math.max(size.length() / 2, 0.2);
+    this.radius = Math.max(size.length() / 2, asset.category === 'gpus' ? 1.45 : 0.2);
     this.height = size.y;
     this.rpm = asset.rpm ?? 1500;
     this.model = model;
     this.scene.add(model);
-    this.grid = new THREE.GridHelper(Math.max(size.x, size.z, 2) * 2.4, 24, 0x547174, 0x2d4146);
+    this.grid = new THREE.GridHelper(
+      (asset.category === 'gpus' ? 2.8 : Math.max(size.x, size.z, 2)) * 2.4,
+      24,
+      0x547174,
+      0x2d4146,
+    );
     this.grid.position.y = -0.012;
     this.scene.add(this.grid);
     model.traverse((object) => {

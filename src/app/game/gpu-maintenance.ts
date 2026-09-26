@@ -1,4 +1,5 @@
 import { GAME_BALANCE } from '../config/game-balance';
+import { GPU_MODELS_BY_ID } from '../config/gpu-config';
 import type { GpuDustDamageConfig } from '../config/gpu-config';
 import type { GpuOperatingState } from './gpu-operation';
 
@@ -20,8 +21,7 @@ export function dustWearMultiplier(
 ): number {
   const excess = Math.max(0, Math.min(100, dustPercent) - dustDamage.wearThresholdPercent);
   return (
-    1 +
-    (excess / (100 - dustDamage.wearThresholdPercent)) * (dustDamage.maxWearMultiplier - 1)
+    1 + (excess / (100 - dustDamage.wearThresholdPercent)) * (dustDamage.maxWearMultiplier - 1)
   );
 }
 
@@ -46,6 +46,9 @@ export function maintainGpu(
     case 'fan':
       if (!Object.hasOwn(GAME_BALANCE.gpu.fanKits, action.kit)) {
         throw new Error('Kit ventole inesistente.');
+      }
+      if (!GPU_MODELS_BY_ID[gpu.modelId].supportsFanKits) {
+        throw new Error('Questo modello non supporta kit ventole GPU.');
       }
       return { ...gpu, fanKit: action.kit };
   }

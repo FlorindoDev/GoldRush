@@ -1,4 +1,5 @@
 import { GAME_BALANCE } from '../config/game-balance';
+import { GPU_DEFAULT_MODEL_ID, GPU_MODELS_BY_ID, type GpuModelId } from '../config/gpu-config';
 import { FAN_MODELS_BY_ID } from '../config/fan-config';
 import { RIG_COOLING_METHODS } from '../config/cooling-config';
 import { RIG_DUST_SYSTEMS } from '../config/dust-filter-config';
@@ -8,6 +9,7 @@ import { dustWearMultiplier, type GpuFanKit } from './gpu-maintenance';
 const { gpu: config, economy } = GAME_BALANCE;
 
 export interface GpuOperatingState {
+  readonly modelId: GpuModelId;
   readonly targetFrequencyGhz: number;
   readonly targetFanSpeedPercent: number | null;
   readonly temperatureCelsius: number;
@@ -21,8 +23,11 @@ export interface GpuOperatingState {
   readonly lastUpdatedAt: number;
 }
 
-export function createGpuOperatingState(): GpuOperatingState {
+export function createGpuOperatingState(
+  modelId: GpuModelId = GPU_DEFAULT_MODEL_ID,
+): GpuOperatingState {
   return {
+    modelId,
     targetFrequencyGhz: config.mining.frequencyGhz,
     targetFanSpeedPercent: null,
     temperatureCelsius: config.idle.temperatureCelsius,
@@ -48,9 +53,7 @@ export function gpuTemperature(
   }
   const cooling = Math.min(1, Math.max(0, now - gpu.lastUpdatedAt) / config.cooldownMs);
   const idleTemperature = config.idle.temperatureCelsius - rigFanCoolingCelsius(rigSetup);
-  return (
-    gpu.temperatureCelsius + (idleTemperature - gpu.temperatureCelsius) * cooling
-  );
+  return gpu.temperatureCelsius + (idleTemperature - gpu.temperatureCelsius) * cooling;
 }
 
 export function gpuTemperatureWhilePoweredDown(
@@ -96,19 +99,29 @@ export function gpuIdlePowerWatts(rigSetup: RigSetup = GAMEPLAY_RIG_SETUP): numb
   return config.idle.powerWatts + rigAuxiliaryPowerWattsPerGpu(rigSetup);
 }
 
-export function gpuMaxFanSpeedRpm(fanKit: GpuFanKit = 'stock'): number {
+export function gpuMaxFanSpeedRpm(
+  fanKit: GpuFanKit = 'stock',
+  modelId: GpuModelId = GPU_DEFAULT_MODEL_ID,
+): number {
+  const model = GPU_MODELS_BY_ID[modelId];
+  if (!model.supportsFanKits) return 0;
   const kitMaxRpm = config.fanKits[fanKit].maxRpm;
   const configuredMaxRpm =
-    fanKit === 'stock' ? Math.min(config.limits.fanSpeedRpm, kitMaxRpm) : kitMaxRpm;
+    fanKit === 'stock' ? Math.min(model.specifications.limits.fanSpeedRpm, kitMaxRpm) : kitMaxRpm;
   return Math.max(0, configuredMaxRpm);
 }
 
 /** Se profilo nominale è 0%, usa 100% come riferimento ed evita divisione per zero. */
-export function gpuFanSpeedRatio(fanSpeedPercent: number, fanKit: GpuFanKit = 'stock'): number {
-  if (gpuMaxFanSpeedRpm(fanKit) === 0) {
+export function gpuFanSpeedRatio(
+  fanSpeedPercent: number,
+  fanKit: GpuFanKit = 'stock',
+  modelId: GpuModelId = GPU_DEFAULT_MODEL_ID,
+): number {
+  if (gpuMaxFanSpeedRpm(fanKit, modelId) === 0) {
     return 0;
   }
-  const referenceSpeedPercent = config.mining.fanSpeedPercent || 100;
+  const referenceSpeedPercent =
+    GPU_MODELS_BY_ID[modelId].specifications.mining.fanSpeedPercent || 100;
   return fanSpeedPercent / referenceSpeedPercent;
 }
 
@@ -180,13 +193,13 @@ export function applyGpuWork(
   );
   const dustLoad = (gpu.dustPercent + dustPercent) / 200;
   const initialTemperature = gpuTemperature(gpu, startedAt, rigSetup);
+  const nominalFanSpeed = GPU_MODELS_BY_ID[gpu.modelId].specifications.mining.fanSpeedPercent;
   const fanSpeedPercent =
-    gpuMaxFanSpeedRpm(gpu.fanKit) > 0
-      ? (gpu.targetFanSpeedPercent ?? config.mining.fanSpeedPercent)
+    gpuMaxFanSpeedRpm(gpu.fanKit, gpu.modelId) > 0
+      ? (gpu.targetFanSpeedPercent ?? nominalFanSpeed)
       : 0;
-  const fanCooling =
-    (config.mining.fanSpeedPercent - fanSpeedPercent) * config.fanCoolingCelsiusPerPercent;
-  const fanSpeedRatio = gpuFanSpeedRatio(fanSpeedPercent, gpu.fanKit);
+  const fanCooling = (nominalFanSpeed - fanSpeedPercent) * config.fanCoolingCelsiusPerPercent;
+  const fanSpeedRatio = gpuFanSpeedRatio(fanSpeedPercent, gpu.fanKit, gpu.modelId);
   const rigDustSystem = RIG_DUST_SYSTEMS[rigSetup.dustSystemId];
   const rigCoolingMethod = RIG_COOLING_METHODS[rigSetup.coolingMethodId];
   const equilibrium =

@@ -1,6 +1,6 @@
 import { CRYPTO_CONFIG } from '../../config/crypto-config';
 import { FILTER_MODELS } from '../../config/dust-filter-config';
-import { FAN_MODELS } from '../../config/fan-config';
+import { FAN_MODELS, GPU_FAN_KITS, GPU_FAN_MODELS } from '../../config/fan-config';
 import { GPU_MODELS } from '../../config/gpu-config';
 import type { ResearchNode } from '../../config/research-tree-config';
 
@@ -33,6 +33,16 @@ export function researchStats(node: ResearchNode): readonly ResearchStat[] {
       { label: 'Portata d’aria', value: `${fan.airflowCfm} CFM` },
       { label: 'Velocità', value: `${number.format(fan.rpm)} RPM` },
       { label: 'Consumo', value: `${number.format(fan.powerWatts)} W` },
+    ];
+  }
+  const gpuFan = GPU_FAN_MODELS.find((item) => `gpu-fan-${item.id}` === node.id);
+  if (gpuFan) {
+    const kit = GPU_FAN_KITS[gpuFan.id];
+    return [
+      { label: 'Pale', value: `${gpuFan.blades}` },
+      { label: 'Velocità massima', value: `${number.format(kit.maxRpm)} RPM` },
+      { label: 'Consumo aggiuntivo', value: `+${number.format(kit.extraPowerWatts)} W` },
+      { label: 'Raffreddamento', value: `-${number.format(kit.coolingCelsius)} °C` },
     ];
   }
   const filter = FILTER_MODELS.find((item) => item.id === node.id);

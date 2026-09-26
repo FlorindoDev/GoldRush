@@ -153,6 +153,9 @@ export class GpuScriptObject implements ScriptObject {
 export function gpuIdsFromVector(value: Value, line: number, operation = 'setCrypto'): number[] {
   const vector = requireVector(value, line);
   const length = vector.getAttribute('length', line) as number;
+  if (length === 0) {
+    throw new ScriptError(`${operation} richiede almeno una GPU.`, line);
+  }
   return Array.from({ length }, (_, index) => {
     const gpu = vector.getItem(index, line);
     if (!(gpu instanceof GpuScriptObject)) {

@@ -97,8 +97,8 @@ export const LAYOUT_CONFIG = {
     slotDepth: 4.8,
   },
   workbench: {
-    width: 5,
-    depth: 3.6,
+    width: 5.25,
+    depth: 3.8,
     surfaceY: 1.8,
     bitcoinTrayPosition: [1.6, 1.87, 1.04] as const,
   },

@@ -454,7 +454,7 @@ export class GameService {
   }
 
   select(id: number): void {
-    if (!this.running() && isGpuUnlocked(this.world(), id)) {
+    if (isGpuUnlocked(this.world(), id)) {
       this.viewedRigId.set(rigIdForGpu(id));
       this.viewedPlotId.set(plotIdForGpu(id));
       this.selectedGpuId.set(id);

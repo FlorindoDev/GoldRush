@@ -13,7 +13,9 @@ export const GPU_MODELS = [
     name: 'Miner S1 · Compact',
     style: 'compact',
     fans: 1,
-    length: 1.65,
+    supportsFanKits: true,
+    length: 1.5,
+    visualScale: 0.8,
     accent: 'white',
     specifications: {
       idle: { frequencyGhz: 0.45, powerWatts: 22, temperatureCelsius: 32, fanSpeedPercent: 15 },
@@ -41,6 +43,7 @@ export const GPU_MODELS = [
     name: 'Miner D2 · Dual',
     style: 'dual',
     fans: 2,
+    supportsFanKits: true,
     length: 2.65,
     accent: 'lime',
     specifications: {
@@ -69,6 +72,7 @@ export const GPU_MODELS = [
     name: 'Miner T3 · Triple',
     style: 'triple',
     fans: 3,
+    supportsFanKits: true,
     length: 3.1,
     accent: 'blue',
     specifications: {
@@ -97,6 +101,7 @@ export const GPU_MODELS = [
     name: 'Miner B1 · Blower',
     style: 'blower',
     fans: 1,
+    supportsFanKits: true,
     length: 2.65,
     accent: 'orange',
     specifications: {
@@ -125,6 +130,7 @@ export const GPU_MODELS = [
     name: 'Miner P0 · Passive',
     style: 'passive',
     fans: 0,
+    supportsFanKits: false,
     length: 2.65,
     accent: 'copper',
     specifications: {
@@ -153,6 +159,7 @@ export const GPU_MODELS = [
     name: 'Miner L0 · Hydro',
     style: 'liquid',
     fans: 0,
+    supportsFanKits: false,
     length: 2.65,
     accent: 'blue',
     specifications: {
@@ -181,6 +188,7 @@ export const GPU_MODELS = [
     name: 'Miner A3 · Atelier',
     style: 'proart',
     fans: 3,
+    supportsFanKits: true,
     length: 2.9,
     accent: 'gold',
     specifications: {
@@ -209,6 +217,7 @@ export const GPU_MODELS = [
     name: 'Miner N3 · Neon',
     style: 'nitro',
     fans: 3,
+    supportsFanKits: true,
     length: 3.2,
     accent: 'orange',
     specifications: {
@@ -237,6 +246,7 @@ export const GPU_MODELS = [
     name: 'Miner W2 · Workstation',
     style: 'workstation',
     fans: 2,
+    supportsFanKits: true,
     length: 2.85,
     accent: 'gold',
     specifications: {
@@ -265,6 +275,7 @@ export const GPU_MODELS = [
     name: 'Miner LP2 · Slim',
     style: 'low-profile',
     fans: 2,
+    supportsFanKits: true,
     length: 1.8,
     accent: 'steel',
     specifications: {
@@ -293,6 +304,7 @@ export const GPU_MODELS = [
     name: 'Miner H1 · Hybrid',
     style: 'hybrid',
     fans: 1,
+    supportsFanKits: true,
     length: 2.8,
     accent: 'blue',
     specifications: {
@@ -325,7 +337,7 @@ export const GPU_MODELS_BY_ID = Object.fromEntries(
 ) as Record<GpuModelId, GpuModelConfig>;
 
 export const GPU_DEFAULT_MODEL_ID: GpuModelId = 'gpu-passive';
-export const GPU_FALLBACK_MODEL_ID: GpuModelId = 'gpu-compact';
+export const GPU_FALLBACK_MODEL_ID: GpuModelId = 'gpu-passive';
 
 /** Regole condivise tra modelli; le prestazioni della GPU stanno nelle specifiche sopra. */
 export const GPU_RUNTIME_CONFIG = {

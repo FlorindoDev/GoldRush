@@ -6,7 +6,7 @@ import {
   type CryptoAmounts,
 } from '../config/crypto-config';
 import { GAMEPLAY_RIG_SETUP, MAX_RIG_FANS, type RigSetup } from '../config/rig-config';
-import { FAN_MODELS_BY_ID } from '../config/fan-config';
+import { FAN_MODELS_BY_ID, gpuFanResearchId, type GpuFanModelId } from '../config/fan-config';
 import { RIG_COOLING_METHODS } from '../config/cooling-config';
 import { RIG_DUST_SYSTEMS } from '../config/dust-filter-config';
 import { maintainGpu, type GpuMaintenanceAction } from './gpu-maintenance';
@@ -403,7 +403,17 @@ export function serviceGpu(
   gpuId: number,
   action: GpuMaintenanceAction,
 ): MiningWorld {
-  return updateGpu(world, gpuId, (gpu) => maintainGpu(gpu, action));
+  return updateGpu(world, gpuId, (gpu) => {
+    const maintained = maintainGpu(gpu, action);
+    if (
+      action.kind === 'fan' &&
+      action.kit !== 'stock' &&
+      !world.unlockedResearchIds.includes(gpuFanResearchId(action.kit as GpuFanModelId))
+    ) {
+      throw new Error('Sblocca questa ventola GPU nell’albero della ricerca.');
+    }
+    return maintained;
+  });
 }
 
 export function setGpuWorkbenchState(

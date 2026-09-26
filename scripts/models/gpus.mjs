@@ -42,6 +42,7 @@ export function createGpu(spec) {
     }
   }
   addVariantDetails(root, spec);
+  root.scale.multiplyScalar(spec.visualScale ?? 1);
   return root;
 }
 

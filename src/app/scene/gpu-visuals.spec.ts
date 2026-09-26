@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GAME_BALANCE } from '../config/game-balance';
-import { createWorld, stopGpu, type MiningWorld } from '../game/mining-world';
+import { createWorld, serviceGpu, stopGpu, type MiningWorld } from '../game/mining-world';
 import { GpuVisuals, type GpuPose } from './gpu-visuals';
+import { gpuSceneWidth } from './models/gpu-model';
 import { loadTestGpu } from './testing/load-test-gpu';
 
 const visualsToDispose: GpuVisuals[] = [];
@@ -28,7 +29,11 @@ function worldWithGpus(...ids: number[]): MiningWorld {
       rigs: plot.rigs.map((rig) => ({
         ...rig,
         unlocked: rig.gpus.some((gpu) => ids.includes(gpu.id)),
-        gpus: rig.gpus.map((gpu) => ({ ...gpu, unlocked: ids.includes(gpu.id) })),
+        gpus: rig.gpus.map((gpu) => ({
+          ...gpu,
+          unlocked: ids.includes(gpu.id),
+          modelId: 'gpu-compact' as const,
+        })),
       })),
     })),
   };
@@ -77,6 +82,33 @@ function expectAtMount(gpu: THREE.Group, mount: THREE.Object3D): void {
 }
 
 describe('GPU visuals', () => {
+  it('keeps Compact visibly smaller than Passive after scene fitting', () => {
+    expect(gpuSceneWidth('gpu-compact')).toBeLessThan(gpuSceneWidth('gpu-passive') * 0.6);
+  });
+  it('replaces rotors with the unlocked fan model and restores the original kit', async () => {
+    const { visuals } = setup();
+    const rotor = new THREE.Group();
+    rotor.name = 'gpu-fan-rotor';
+    rotor.add(new THREE.Mesh(new THREE.CircleGeometry(0.38), new THREE.MeshBasicMaterial()));
+    const asset = new THREE.Group();
+    asset.add(rotor);
+    vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockResolvedValue({ scene: asset } as GLTF);
+    const base = worldWithGpus(1);
+    const unlocked = { ...base, unlockedResearchIds: ['gpu-fan-silent'] };
+    const upgraded = serviceGpu(unlocked, 1, { kind: 'fan', kit: 'silent' });
+    visuals.sync(upgraded, null);
+    await vi.waitFor(() => {
+      expect(visuals.objects[0].getObjectByName('gpu-fan-rotor')).toBeTruthy();
+    });
+    const preview = visuals.createWorkbenchPreview(1);
+    expect(preview.getObjectByName('gpu-fan-rotor')).toBeTruthy();
+    visuals.sync(serviceGpu(upgraded, 1, { kind: 'fan', kit: 'stock' }), null);
+    expect(visuals.objects[0].getObjectByName('gpu-fan-rotor')).toBeUndefined();
+    preview.traverse((object) => {
+      if (object instanceof THREE.Mesh) object.geometry.dispose();
+    });
+  });
+
   it('only spins the active GPU and stops its fans after a stop', () => {
     const { visuals } = setup();
     const world = worldWithGpus(1, 2);

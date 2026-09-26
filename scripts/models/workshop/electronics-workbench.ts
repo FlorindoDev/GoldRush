@@ -28,7 +28,7 @@ function createDesktop(): THREE.Group {
   const desktop = new THREE.Group();
   desktop.position.y = WORKBENCH_SURFACE_Y;
   desktop.add(createBox([WORKBENCH_WIDTH, 0.2, WORKBENCH_DEPTH], 0xa87a4c, [0, -0.1, 0], true));
-  desktop.add(createBox([3.65, 0.025, 2.05], 0x376963, [-0.35, 0.014, -0.02], true));
+  desktop.add(createBox([3.85, 0.025, 2.2], 0x376963, [-0.35, 0.014, -0.02], true));
   return desktop;
 }
 function addDesktopComponents(desktop: THREE.Group): void {

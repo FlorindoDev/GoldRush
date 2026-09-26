@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { GPU_MODEL_PATH } from '../assets/models/gpu/gpu-model-path';
 import { GAME_BALANCE } from '../config/game-balance';
+import { GPU_MODELS_BY_ID } from '../config/gpu-config';
+import type { GpuFanModelId } from '../config/fan-config';
+import type { GpuFanKit } from '../game/gpu-maintenance';
 import { GPU_COUNT, getGpu, getRig, isGpuUnlocked, type MiningWorld } from '../game/mining-world';
 import {
   gpuFanSpeedRatio,
@@ -14,11 +17,11 @@ import type { GpuTelemetry } from '../game/gpu-telemetry';
 import type { RigSetup } from '../config/rig-config';
 import { GpuConditionEffects } from './gpu-condition-effects';
 import { easeTransition, transitionProgress } from './animation/scene-transition';
-import { fitGpuModel, styleGpuModel } from './models/gpu-model';
+import { fitGpuModel, gpuSceneWidth, styleGpuModel } from './models/gpu-model';
 import { disposeObject } from './resources/dispose-object';
 
 const ANIMATION = GAME_BALANCE.animation;
-const GPU_MODEL_WIDTH = GAME_BALANCE.scene.gpuModelWidth;
+const GPU_MODEL_WIDTH = gpuSceneWidth(GAME_BALANCE.models.startingGpuId);
 
 export interface GpuPose {
   readonly position: THREE.Vector3;
@@ -34,6 +37,7 @@ interface GpuTransfer {
 interface GpuVisual {
   readonly root: THREE.Group;
   fans: THREE.Object3D[];
+  installedFanKit?: GpuFanKit;
   operational: boolean;
   state: GpuOperatingState;
   rigSetup: RigSetup;
@@ -44,6 +48,12 @@ interface GpuVisual {
 
 export class GpuVisuals {
   private readonly gpus = new Map<number, GpuVisual>();
+  private readonly stockRotors = new WeakMap<
+    THREE.Object3D,
+    { children: THREE.Object3D[]; diameter: number }
+  >();
+  private readonly fanAssets = new Map<GpuFanModelId, THREE.Group>();
+  private readonly loadingFans = new Set<GpuFanModelId>();
   private template: THREE.Group;
   private clips: THREE.AnimationClip[] = [];
   private inspectedGpuId: number | null = null;
@@ -66,7 +76,8 @@ export class GpuVisuals {
   }
 
   createWorkbenchPreview(gpuId: number): THREE.Group {
-    const preview = this.template.clone(true);
+    const source = this.gpus.get(gpuId)?.root.children[0];
+    const preview = source instanceof THREE.Group ? source.clone(true) : this.template.clone(true);
     preview.name = `gpu-workbench-preview-${gpuId}`;
     const materials = new Map<THREE.Material, THREE.Material>();
     const cloneMaterial = (material: THREE.Material): THREE.Material => {
@@ -100,6 +111,7 @@ export class GpuVisuals {
     for (const [id, gpu] of this.gpus) {
       const state = getGpu(world, id);
       gpu.state = state;
+      this.updateFanKit(gpu);
       gpu.rigSetup = getRig(world, state.rigId).setup;
       gpu.operational = isGpuOperational(gpu.state);
       if (!isGpuUnlocked(world, id)) {
@@ -133,6 +145,7 @@ export class GpuVisuals {
         operational: isGpuOperational(state),
       };
       this.attachModel(gpu);
+      this.updateFanKit(gpu);
       this.gpus.set(id, gpu);
       this.scene.add(root);
     }
@@ -174,11 +187,12 @@ export class GpuVisuals {
       const fanSpeed =
         telemetry?.fanSpeed ??
         gpu.state.targetFanSpeedPercent ??
-        GAME_BALANCE.gpu.mining.fanSpeedPercent;
-      const modelMaxRpm = GAME_BALANCE.gpu.limits.fanSpeedRpm;
-      const kitMaxRpm = gpuMaxFanSpeedRpm(gpu.state.fanKit);
+        GPU_MODELS_BY_ID[gpu.state.modelId].specifications.mining.fanSpeedPercent;
+      const modelMaxRpm = GPU_MODELS_BY_ID[gpu.state.modelId].specifications.limits.fanSpeedRpm;
+      const kitMaxRpm = gpuMaxFanSpeedRpm(gpu.state.fanKit, gpu.state.modelId);
       const fanKitSpeedRatio = modelMaxRpm > 0 ? kitMaxRpm / modelMaxRpm : kitMaxRpm > 0 ? 1 : 0;
-      const fanRatio = gpuFanSpeedRatio(fanSpeed, gpu.state.fanKit) * fanKitSpeedRatio;
+      const fanRatio =
+        gpuFanSpeedRatio(fanSpeed, gpu.state.fanKit, gpu.state.modelId) * fanKitSpeedRatio;
       gpu.mixer?.update(delta * ANIMATION.gpuMixerTimeScale * fanRatio);
       for (const fan of gpu.fans) {
         const axis: unknown = fan.userData['animationAxis'];
@@ -211,6 +225,7 @@ export class GpuVisuals {
       this.clips = gltf.animations;
       for (const gpu of this.gpus.values()) {
         this.attachModel(gpu);
+        this.updateFanKit(gpu);
       }
       disposeObject(previous);
     } catch {
@@ -227,6 +242,7 @@ export class GpuVisuals {
       this.removeGpu(id, gpu);
     }
     disposeObject(this.template);
+    for (const asset of this.fanAssets.values()) disposeObject(asset);
     this.clips = [];
   }
 
@@ -240,6 +256,7 @@ export class GpuVisuals {
     gpu.effects = new GpuConditionEffects(clone);
     gpu.root.add(clone, gpu.effects.root);
     gpu.fans = [];
+    gpu.installedFanKit = 'stock';
     clone.traverse((object) => {
       if (
         object.name === 'Spin' ||
@@ -254,6 +271,67 @@ export class GpuVisuals {
       this.clips.forEach((clip) => mixer.clipAction(clip).play());
       gpu.mixer = mixer;
     }
+  }
+
+  private updateFanKit(gpu: GpuVisual): void {
+    const kit = gpu.state.fanKit;
+    if (gpu.installedFanKit === kit || !gpu.fans.length) return;
+    if (kit === 'stock') {
+      for (const fan of gpu.fans) {
+        const stock = this.stockRotors.get(fan)?.children;
+        if (stock) {
+          fan.clear();
+          fan.add(...stock);
+        }
+      }
+      gpu.installedFanKit = kit;
+      return;
+    }
+    const id = kit as GpuFanModelId;
+    const rotor = this.fanAssets.get(id)?.getObjectByName('gpu-fan-rotor');
+    if (!rotor) {
+      this.loadFanAsset(id);
+      return;
+    }
+    const replacementSize = new THREE.Box3().setFromObject(rotor).getSize(new THREE.Vector3());
+    const replacementDiameter = Math.max(replacementSize.x, replacementSize.y);
+    for (const fan of gpu.fans) {
+      let stock = this.stockRotors.get(fan);
+      if (!stock) {
+        const original = fan.clone(true);
+        original.position.set(0, 0, 0);
+        original.rotation.set(0, 0, 0);
+        original.scale.set(1, 1, 1);
+        const size = new THREE.Box3().setFromObject(original).getSize(new THREE.Vector3());
+        stock = { children: [...fan.children], diameter: Math.max(size.x, size.y, size.z) };
+        this.stockRotors.set(fan, stock);
+      }
+      const diameter = stock.diameter;
+      if (diameter <= 0 || replacementDiameter <= 0) continue;
+      fan.clear();
+      const installed = rotor.clone(true);
+      installed.scale.setScalar(diameter / replacementDiameter);
+      if (fan.userData['animationAxis'] === 'y') installed.rotation.x = -Math.PI / 2;
+      fan.add(installed);
+    }
+    gpu.installedFanKit = kit;
+  }
+
+  private loadFanAsset(id: GpuFanModelId): void {
+    if (this.loadingFans.has(id) || this.disposed) return;
+    this.loadingFans.add(id);
+    void new GLTFLoader()
+      .loadAsync(`assets/models/fans/gpu-fan-${id}.glb`)
+      .then(({ scene }) => {
+        if (this.disposed) {
+          disposeObject(scene);
+          return;
+        }
+        this.fanAssets.set(id, scene);
+        for (const gpu of this.gpus.values()) this.updateFanKit(gpu);
+      })
+      .catch(() => {})
+      .finally(() => this.loadingFans.delete(id));
   }
 
   private removeGpu(id: number, gpu: GpuVisual): void {

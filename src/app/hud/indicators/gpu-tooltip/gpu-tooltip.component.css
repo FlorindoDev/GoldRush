@@ -50,6 +50,9 @@ p {
   color: #a3a99b;
   font-size: 9px;
 }
+.fan-note {
+  color: #d5bd8b;
+}
 @keyframes tooltip-enter {
   from {
     opacity: 0;

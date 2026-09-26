@@ -24,7 +24,18 @@
         <dt>Consumo</dt>
         <dd>{{ stats.powerWatts.toFixed(0) }} W</dd>
       </div>
+      @if (gpuModel(); as model) {
+        <div>
+          <dt>Kit ventole</dt>
+          <dd>{{ model.supportsFanKits ? 'Compatibili' : 'Non supportati' }}</dd>
+        </div>
+      }
     </dl>
+    @if (gpuModel(); as model) {
+      @if (!model.supportsFanKits) {
+        <p class="fan-note">Questo modello non prevede ventole GPU sostituibili.</p>
+      }
+    }
     <p>Doppio clic per il banco</p>
   </aside>
 }

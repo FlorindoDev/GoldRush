@@ -4,7 +4,7 @@ import { batchMeshes } from './primitives.mjs';
 import { GAME_BALANCE } from '../../src/app/config/game-balance.ts';
 import { createPlot, createRigSlot, createWorldFloor } from './environment.mjs';
 import { loadBitcoinMaster, createCoin, COIN_MODELS } from './coins.mjs';
-import { createFan, FAN_MODELS } from './fans.mjs';
+import { createFan, createGpuFan, FAN_MODELS, GPU_FAN_MODELS } from './fans.mjs';
 import { createGpu, GPU_MODELS } from './gpus.mjs';
 import {
   createFilter,
@@ -21,6 +21,11 @@ import { createRigWorkbench } from './workshop/rig-workbench.ts';
 import { createToolArea } from './workshop/tool-area.ts';
 
 const references = [
+  {
+    name: 'Ventole GPU assiali - ASUS Axial-tech',
+    url: 'https://www.asus.com/ie/motherboards-components/graphics-cards/dual/dual-rtx4060ti-o8g-evo/',
+  },
+  { name: 'Anello delle pale - ARCTIC P12 Max', url: 'https://www.arctic.de/en/blog/p12-max' },
   {
     name: 'GPU professionali · NVIDIA RTX PRO',
     url: 'https://www.nvidia.com/en-us/products/workstations/professional-desktop-gpus/rtx-pro-6000-family/',
@@ -163,6 +168,20 @@ export async function exportLibrary(save) {
       dualRotor: Boolean(spec.dualRotor),
       duct: Boolean(spec.duct),
     });
+  }
+  for (const spec of GPU_FAN_MODELS) {
+    await add(
+      `gpu-fan-${spec.id}`,
+      `Ventola GPU · ${spec.id}`,
+      'fans',
+      createGpuFan(spec),
+      {
+        description: 'Ventola GPU originale low poly. Montabile sulle schede con almeno un rotore.',
+        blades: spec.blades,
+        profile: spec.profile,
+      },
+      false,
+    );
   }
   for (const spec of GPU_MODELS) {
     await add(spec.id, spec.name, 'gpus', createGpu(spec), {

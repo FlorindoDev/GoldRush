@@ -37,8 +37,11 @@ describe('Albero della ricerca', () => {
 
   it('requires its parent and extra milestones before purchase', () => {
     const initial = { ...createWorld(), holdings: { bitcoin: 1 } };
+    expect(isResearchUnlocked(initial, 'gpu-passive')).toBe(true);
+    expect(isResearchUnlocked(initial, 'gpu-compact')).toBe(false);
     expect(() => unlockResearch(initial, 'gpu-triple')).toThrow('Requisiti');
-    const dual = unlockResearch(initial, 'gpu-dual');
+    const compact = unlockResearch(initial, 'gpu-compact');
+    const dual = unlockResearch(compact, 'gpu-dual');
     expect(() => unlockResearch(dual, 'gpu-triple')).toThrow('Requisiti');
     const chain = dual.cryptoChains.bitcoin;
     const progressed = {

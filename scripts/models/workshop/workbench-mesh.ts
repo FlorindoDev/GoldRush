@@ -49,7 +49,7 @@ function addGpuMount(root: THREE.Group): THREE.Group {
   gpuMount.rotation.y = -0.12;
   root.add(gpuMount);
   const gpuStand = createBox(
-    [2.55, 0.08, 1.4],
+    [2.9, 0.08, 1.65],
     0x1b2824,
     [-0.55, WORKBENCH_SURFACE_Y + 0.07, 0.14],
     true,

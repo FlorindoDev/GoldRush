@@ -9,8 +9,55 @@ import {
   bolt,
   panelFrame,
 } from './primitives.mjs';
-import { FAN_MODELS } from '../../src/app/config/fan-config.ts';
-export { FAN_MODELS };
+import { FAN_MODELS, GPU_FAN_MODELS } from '../../src/app/config/fan-config.ts';
+export { FAN_MODELS, GPU_FAN_MODELS };
+
+/** Rotori GPU originali ispirati a pale assiali, anelli di pressione e condotti reali. */
+export function createGpuFan(spec) {
+  const root = group(`gpu-fan-${spec.id}`);
+  root.userData = { modelId: `gpu-fan-${spec.id}`, blades: spec.blades };
+  const accent = m[spec.accent];
+  ring(root, 0.43, 0.035, m.black, [0, 0, -0.035]);
+  ring(root, 0.43, 0.014, accent, [0, 0, 0.025]);
+  const rotor = group('gpu-fan-rotor');
+  rotor.userData = { animationAxis: 'z' };
+  const hub = cylinder(rotor, spec.profile === 'axial' ? 0.075 : 0.095, 0.07, m.black);
+  hub.rotation.x = Math.PI / 2;
+  const reach = spec.profile === 'swept' ? 0.37 : 0.385;
+  const halfWidth = spec.profile === 'swept' ? 0.09 : spec.profile === 'duct' ? 0.052 : 0.068;
+  for (let index = 0; index < spec.blades; index++) {
+    const shape = new THREE.Shape();
+    shape.moveTo(0.07, -halfWidth * 0.55);
+    shape.quadraticCurveTo(0.24, -halfWidth * 2.2, reach, -halfWidth);
+    shape.quadraticCurveTo(reach + 0.018, halfWidth * 0.28, reach * 0.87, halfWidth);
+    shape.quadraticCurveTo(0.19, halfWidth * 0.6, 0.07, halfWidth * 0.55);
+    shape.closePath();
+    const blade = mesh(
+      rotor,
+      new THREE.ExtrudeGeometry(shape, {
+        depth: 0.018,
+        bevelEnabled: true,
+        bevelSize: 0.004,
+        bevelThickness: 0.004,
+        curveSegments: 4,
+      }),
+      spec.profile === 'swept' ? m.copper : spec.profile === 'duct' ? m.steel : m.frame,
+    );
+    blade.rotation.z = (index * Math.PI * 2) / spec.blades;
+  }
+  const cap = cylinder(rotor, 0.064, 0.028, accent, [0, 0, 0.045]);
+  cap.rotation.x = Math.PI / 2;
+  root.add(rotor);
+  if (spec.profile === 'ring') ring(rotor, 0.38, 0.014, accent, [0, 0, 0.02]);
+  if (spec.profile === 'guard' || spec.profile === 'duct') {
+    ring(root, 0.45, spec.profile === 'duct' ? 0.065 : 0.025, m.steel, [0, 0, 0.085]);
+    for (const angle of [0, Math.PI / 2]) {
+      const guard = box(root, [0.82, 0.012, 0.016], m.steel, [0, 0, 0.09]);
+      guard.rotation.z = angle;
+    }
+  }
+  return root;
+}
 
 export function createRotor(radius, bladeCount, mat) {
   const rotor = group('fan-rotor');

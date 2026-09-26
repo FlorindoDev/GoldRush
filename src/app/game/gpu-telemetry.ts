@@ -1,4 +1,5 @@
 import { GAME_BALANCE } from '../config/game-balance';
+import { GPU_MODELS_BY_ID } from '../config/gpu-config';
 import { GAMEPLAY_RIG_SETUP, type RigSetup } from '../config/rig-config';
 import type { GpuFanKit } from './gpu-maintenance';
 import {
@@ -63,13 +64,19 @@ export function getGpuTelemetry(
     ),
   );
   const fanKit = gpu?.fanKit ?? 'stock';
-  const maxFanSpeedRpm = gpuMaxFanSpeedRpm(fanKit);
+  const maxFanSpeedRpm = gpuMaxFanSpeedRpm(fanKit, gpu?.modelId);
+  const modelIdleFanSpeed = gpu
+    ? GPU_MODELS_BY_ID[gpu.modelId].specifications.idle.fanSpeedPercent
+    : idle.fanSpeedPercent;
+  const modelMiningFanSpeed = gpu
+    ? GPU_MODELS_BY_ID[gpu.modelId].specifications.mining.fanSpeedPercent
+    : mining.fanSpeedPercent;
   const automaticFanSpeed =
     maxFanSpeedRpm === 0
       ? 0
       : gpu
-        ? Math.round(interpolate(idle.fanSpeedPercent, 100, thermalLoad))
-        : Math.round(interpolate(idle.fanSpeedPercent, mining.fanSpeedPercent, load));
+        ? Math.round(interpolate(modelIdleFanSpeed, 100, thermalLoad))
+        : Math.round(interpolate(modelIdleFanSpeed, modelMiningFanSpeed, load));
   const fanSpeed =
     powered && maxFanSpeedRpm > 0 ? (gpu?.targetFanSpeedPercent ?? automaticFanSpeed) : 0;
 
