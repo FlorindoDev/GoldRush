@@ -1,4 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core';
+import { purchaseCart, sellStockItem, storeGpu, installStockGpu, type CartLine } from './inventory';
 import { GAME_BALANCE } from '../config/game-balance';
 import { CRYPTO_CONFIG, cryptoValueEur, requireCrypto } from '../config/crypto-config';
 import { gpuIdsFromVector } from './script-api/gpu-script-object';
@@ -99,6 +100,7 @@ export class GameService {
   readonly world = signal(createWorld());
   readonly gameElapsedMinutes = signal(0);
   readonly started = signal(false);
+  readonly computerOpen = signal(false);
   readonly running = signal(false);
   readonly mining = signal(false);
   readonly miningActions = signal<readonly MiningAction[]>([]);
@@ -147,6 +149,25 @@ export class GameService {
 
   unlockResearch(id: string): void {
     this.world.update((world) => unlockResearch(world, id));
+  }
+
+  buyCart(cart: readonly CartLine[]): void {
+    this.world.update((world) => purchaseCart(world, cart));
+  }
+
+  sellStock(id: number): void {
+    this.world.update((world) => sellStockItem(world, id));
+  }
+
+  moveGpuToStock(id: number): void {
+    if (this.running()) throw new Error('Ferma il programma prima di smontare una GPU.');
+    this.world.update((world) => storeGpu(world, id));
+    if (this.selectedGpuId() === id) this.selectedGpuId.set(null);
+  }
+
+  mountStockGpu(id: number, rigId: number): void {
+    if (this.running()) throw new Error('Ferma il programma prima di montare una GPU.');
+    this.world.update((world) => installStockGpu(world, id, rigId));
   }
   private controller?: AbortController;
   private rigPoweredDownAt = Date.now();
@@ -557,6 +578,7 @@ export class GameService {
     }
     this.returnToRig();
     this.world.set(createWorld());
+    this.computerOpen.set(false);
     this.gameElapsedMinutes.set(0);
     this.billedGameDay = 0;
     this.clearLineEffects();

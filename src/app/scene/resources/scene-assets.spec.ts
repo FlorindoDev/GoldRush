@@ -54,7 +54,7 @@ describe('scene GLB resources', () => {
       return { scene: root } as GLTF;
     });
     await expect(SceneAssets.load()).rejects.toThrow('GLB');
-    expect(roots).toHaveLength(6);
+    expect(roots).toHaveLength(7);
     disposals.forEach((dispose) => expect(dispose).toHaveBeenCalledOnce());
   });
 });

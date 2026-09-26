@@ -24,6 +24,11 @@ const TOOL_STATION_DEFINITIONS = {
     label: 'Banco RIG',
     ...GAME_BALANCE.toolStations.rigWorkbench,
   },
+  computer: {
+    id: 'computer',
+    label: 'Computer',
+    ...GAME_BALANCE.toolStations.computer,
+  },
 } as const satisfies Record<string, ToolStationDefinition>;
 
 type ToolStation = (typeof TOOL_STATION_DEFINITIONS)[keyof typeof TOOL_STATION_DEFINITIONS];

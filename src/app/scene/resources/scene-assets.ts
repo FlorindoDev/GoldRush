@@ -151,6 +151,7 @@ export class SceneAssets {
             id.startsWith('fan:') ||
             id === 'rig' ||
             id === 'workbench' ||
+            id === 'computer' ||
             id === 'gpuFallback' ||
             id === 'rig-workbench');
         object.receiveShadow = object instanceof THREE.Mesh;

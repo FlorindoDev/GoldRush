@@ -1,0 +1,485 @@
+<dialog
+  #dialog
+  class="computer-dialog"
+  aria-label="Computer del laboratorio"
+  (cancel)="close()"
+  (close)="close()"
+>
+  <header class="system-bar">
+    <button
+      class="system-home"
+      (click)="launch('desktop')"
+      aria-label="Desktop del computer"
+    >
+      <app-icon name="monitor" /><span>LAB / PC</span>
+    </button>
+    <nav
+      class="app-tabs"
+      aria-label="Applicazioni"
+    >
+      <button
+        [class.active]="app() === 'shop'"
+        [attr.aria-pressed]="app() === 'shop'"
+        (click)="launch('shop')"
+      >
+        <app-icon name="cart" />Shop
+      </button>
+      <button
+        [class.active]="app() === 'inventory'"
+        [attr.aria-pressed]="app() === 'inventory'"
+        (click)="launch('inventory')"
+      >
+        <app-icon name="box" />Magazzino
+      </button>
+    </nav>
+    <span class="balance"
+      ><small>Saldo disponibile</small><strong>{{ money(availableBalance()) }}</strong></span
+    >
+    <button
+      class="exit"
+      (click)="close()"
+      aria-label="Esci dal computer"
+    >
+      <span>Esci</span><kbd>Esc</kbd><app-icon name="close" />
+    </button>
+  </header>
+
+  @if (app() === 'desktop') {
+    <main class="desktop">
+      <div class="desktop-heading">
+        <span class="eyebrow">LABORATORIO</span>
+        <h1>Computer</h1>
+        <p>Componenti, ordini e ricambi della tua farm.</p>
+      </div>
+      <div class="desktop-apps">
+        <button
+          (click)="launch('shop')"
+          aria-label="Apri Shop"
+        >
+          <span class="app-symbol"><app-icon name="cart" /></span
+          ><span><strong>Shop</strong><small>Acquista hardware e ricambi</small></span
+          ><app-icon name="arrow" />
+        </button>
+        <button
+          (click)="launch('inventory')"
+          aria-label="Apri Magazzino"
+        >
+          <span class="app-symbol"><app-icon name="box" /></span
+          ><span
+            ><strong>Magazzino</strong
+            ><small>{{ stockCount() }} in stock · {{ brokenCount() }} GPU guaste</small></span
+          ><app-icon name="arrow" />
+        </button>
+      </div>
+      <p class="desktop-note">I nuovi componenti si sbloccano nell’albero della ricerca.</p>
+    </main>
+  } @else {
+    <div class="application-layout">
+      <aside class="categories">
+        <h1>{{ app() === 'shop' ? 'Shop' : 'Magazzino' }}</h1>
+        <span class="eyebrow">COMPONENTI</span>
+        <nav aria-label="Categorie componenti">
+          @for (item of categories; track item.id) {
+            <button
+              [class.active]="category() === item.id"
+              [attr.aria-pressed]="category() === item.id"
+              (click)="selectCategory(item.id)"
+            >
+              <app-icon [name]="item.icon" />{{ item.name }}
+            </button>
+          }
+        </nav>
+        <div class="sidebar-note">
+          <app-icon name="info" />
+          <p>
+            {{
+              app() === 'shop'
+                ? 'Consegna immediata in magazzino. GPU e ricambi venduti separatamente.'
+                : 'Stock e componenti montati. Le GPU guaste restano consultabili e possono essere vendute come ricambi.'
+            }}
+          </p>
+        </div>
+      </aside>
+
+      <main class="catalog">
+        <div class="catalog-toolbar">
+          <label class="search"
+            ><app-icon name="search" /><input
+              type="search"
+              aria-label="Cerca componenti"
+              placeholder="Cerca un componente…"
+              [value]="search()"
+              (input)="search.set($any($event.target).value)"
+          /></label>
+          @if (app() === 'shop') {
+            <select
+              aria-label="Ordina catalogo"
+              [value]="sort()"
+              (change)="sort.set($any($event.target).value)"
+            >
+              <option value="price-asc">Prezzo crescente</option>
+              <option value="price-desc">Prezzo decrescente</option>
+              <option value="name">Nome A–Z</option>
+            </select>
+          } @else {
+            <select
+              aria-label="Filtra stato inventario"
+              [value]="stockFilter()"
+              (change)="stockFilter.set($any($event.target).value)"
+            >
+              <option value="all">Tutto l’inventario</option>
+              <option value="stock">In magazzino</option>
+              <option value="installed">Montati / sul banco</option>
+              <option value="broken">GPU guaste</option>
+            </select>
+          }
+        </div>
+        <div class="catalog-caption">
+          <span>{{
+            app() === 'shop' ? products().length + ' articoli' : visibleEntries().length + ' voci'
+          }}</span
+          ><span>{{
+            app() === 'shop'
+              ? 'Prezzi per unità · EUR'
+              : stockCount() + ' in stock · ' + brokenCount() + ' guaste'
+          }}</span>
+        </div>
+        @if (app() === 'shop') {
+          <div class="product-grid">
+            @for (product of products(); track product.id) {
+              <article
+                class="product"
+                [attr.data-product-id]="product.id"
+              >
+                <div class="product-image">
+                  @if (thumbnails().get(product.id); as image) {
+                    <img
+                      [src]="image"
+                      [alt]="product.name"
+                    />
+                  } @else {
+                    <app-icon
+                      [name]="
+                        product.category === 'gpu'
+                          ? 'gpu'
+                          : product.category === 'fan'
+                            ? 'fan'
+                            : 'box'
+                      "
+                    />
+                  }
+                  @if (!available(product)) {
+                    <span class="research-lock"><app-icon name="lock" />Ricerca richiesta</span>
+                  }
+                </div>
+                <div class="product-info">
+                  <h2>{{ product.name }}</h2>
+                  <dl>
+                    @for (spec of product.specs; track spec.label) {
+                      <div>
+                        <dt>{{ spec.label }}</dt>
+                        <dd>{{ spec.value }}</dd>
+                      </div>
+                    }
+                  </dl>
+                </div>
+                <div class="product-price">
+                  <strong>{{ money(product.priceEur) }}</strong
+                  ><span>In stock: {{ stock(product.id) }}</span>
+                </div>
+                <div class="buy-controls">
+                  <input
+                    type="number"
+                    min="1"
+                    [max]="maxQuantity"
+                    [value]="quantity(product.id)"
+                    [attr.aria-label]="'Quantità ' + product.name"
+                    (change)="setQuantity(product.id, $any($event.target).value)"
+                  /><button
+                    [disabled]="!available(product)"
+                    (click)="addToCart(product)"
+                  >
+                    <app-icon name="plus" />Aggiungi
+                  </button>
+                </div>
+              </article>
+            } @empty {
+              <div class="empty-state">
+                <app-icon name="search" />
+                <h2>Nessun componente trovato</h2>
+                <p>Prova un altro nome o un’altra categoria.</p>
+              </div>
+            }
+          </div>
+        } @else {
+          <div
+            class="inventory-list"
+            role="list"
+            aria-label="Componenti posseduti"
+          >
+            <div class="inventory-columns">
+              <span>Componente</span><span>Stato / posizione</span><span>Qtà</span>
+            </div>
+            @for (entry of visibleEntries(); track entry.key) {
+              <button
+                class="inventory-row"
+                [class.selected]="selectedEntry()?.key === entry.key"
+                [attr.aria-pressed]="selectedEntry()?.key === entry.key"
+                (click)="selectEntry(entry)"
+                [attr.aria-label]="
+                  entry.product.name + ', ' + conditionLabel(entry) + ', ' + entry.location
+                "
+              >
+                <span class="item-name">
+                  @if (thumbnails().get(entry.product.id); as image) {
+                    <img
+                      [src]="image"
+                      alt=""
+                    />
+                  } @else {
+                    <app-icon name="box" />
+                  }
+                  <span
+                    ><strong>{{ entry.product.name }}</strong
+                    ><small>{{
+                      entry.gpuId !== undefined
+                        ? 'GPU #' + entry.gpuId
+                        : entry.stockId !== undefined
+                          ? 'Stock #' + entry.stockId
+                          : entry.product.id
+                    }}</small></span
+                  ></span
+                >
+                <span class="item-state"
+                  ><strong [class.broken]="entry.condition === 'broken'">{{
+                    conditionLabel(entry)
+                  }}</strong
+                  ><small>{{ entry.location }}</small></span
+                ><span class="item-count">{{ entry.quantity }}</span>
+              </button>
+            } @empty {
+              <div class="empty-state">
+                <app-icon name="box" />
+                <h2>
+                  {{ stockFilter() === 'broken' ? 'Nessuna GPU guasta' : 'Nessun componente' }}
+                </h2>
+                <p>
+                  {{
+                    search()
+                      ? 'Nessun risultato per questa ricerca.'
+                      : 'I componenti acquistati nello shop compariranno qui.'
+                  }}
+                </p>
+                <button (click)="launch('shop')">Apri Shop<app-icon name="arrow" /></button>
+              </div>
+            }
+          </div>
+        }
+      </main>
+
+      @if (app() === 'shop') {
+        <aside
+          class="detail-panel cart"
+          aria-label="Carrello"
+        >
+          <div class="detail-heading">
+            <h2>Carrello</h2>
+            <span>{{ cartCount() }} pezzi</span>
+          </div>
+          <div class="cart-items">
+            @for (line of cartLines(); track line.product.id) {
+              <div class="cart-line">
+                <strong>{{ line.product.name }}</strong
+                ><small>{{ money(line.product.priceEur) }} / unità</small>
+                <div>
+                  <span class="stepper"
+                    ><button
+                      [attr.aria-label]="'Rimuovi una unità di ' + line.product.name"
+                      (click)="changeCart(line.product.id, -1)"
+                    >
+                      −</button
+                    ><span>{{ line.quantity }}</span
+                    ><button
+                      [attr.aria-label]="'Aggiungi una unità di ' + line.product.name"
+                      [disabled]="line.quantity >= maxQuantity"
+                      (click)="changeCart(line.product.id, 1)"
+                    >
+                      +
+                    </button></span
+                  ><b>{{ money(line.product.priceEur * line.quantity) }}</b>
+                </div>
+              </div>
+            } @empty {
+              <div class="empty-cart">
+                <app-icon name="cart" />
+                <p>Il carrello è vuoto.</p>
+                <small>Scegli i componenti dal catalogo.</small>
+              </div>
+            }
+          </div>
+          <div class="checkout">
+            <dl>
+              <div>
+                <dt>Consegna</dt>
+                <dd>Immediata · gratuita</dd>
+              </div>
+              <div class="total">
+                <dt>Totale</dt>
+                <dd>{{ money(cartTotal()) }}</dd>
+              </div>
+            </dl>
+            <p>Prima euro, poi cripto al cambio di gioco.</p>
+            <button
+              class="primary"
+              [disabled]="!cartCount() || availableBalance() + 0.000001 < cartTotal()"
+              (click)="checkout()"
+            >
+              Conferma ordine<app-icon name="arrow" />
+            </button>
+            @if (cartCount() && availableBalance() + 0.000001 < cartTotal()) {
+              <p class="insufficient">Mancano {{ money(cartTotal() - availableBalance()) }}</p>
+            }
+          </div>
+        </aside>
+      } @else {
+        <aside
+          class="detail-panel item-detail"
+          aria-label="Dettagli componente"
+        >
+          @if (selectedEntry(); as entry) {
+            <div class="detail-heading">
+              <span class="eyebrow">SCHEDA COMPONENTE</span
+              ><span [class.broken]="entry.condition === 'broken'">{{
+                conditionLabel(entry)
+              }}</span>
+            </div>
+            <div class="detail-image">
+              @if (thumbnails().get(entry.product.id); as image) {
+                <img
+                  [src]="image"
+                  [alt]="entry.product.name"
+                />
+              } @else {
+                <app-icon name="box" />
+              }
+            </div>
+            <h2>{{ entry.product.name }}</h2>
+            <p class="description">{{ entry.product.description }}</p>
+            <dl>
+              <div>
+                <dt>Posizione</dt>
+                <dd>{{ entry.location }}</dd>
+              </div>
+              <div>
+                <dt>Quantità</dt>
+                <dd>{{ entry.quantity }}</dd>
+              </div>
+              @for (spec of entry.product.specs; track spec.label) {
+                <div>
+                  <dt>{{ spec.label }}</dt>
+                  <dd>{{ spec.value }}</dd>
+                </div>
+              }
+              @if (entry.gpu; as gpu) {
+                <div>
+                  <dt>Usura</dt>
+                  <dd [class.broken]="gpu.wearPercent >= 100">{{ gpu.wearPercent.toFixed(1) }}%</dd>
+                </div>
+                <div>
+                  <dt>Polvere</dt>
+                  <dd>{{ gpu.dustPercent.toFixed(1) }}%</dd>
+                </div>
+              }
+            </dl>
+            @if (entry.gpu?.stopReason) {
+              <p
+                class="condition-note"
+                [class.broken]="entry.condition === 'broken'"
+              >
+                {{ entry.gpu!.stopReason }}
+              </p>
+            }
+            <div class="item-actions">
+              @if (entry.gpuId !== undefined) {
+                <button
+                  class="primary"
+                  [disabled]="game.running()"
+                  (click)="inspect(entry)"
+                >
+                  <app-icon name="tool" />Esamina sul banco
+                </button>
+                <button
+                  [disabled]="game.running() || entry.gpu?.onWorkbench"
+                  (click)="store(entry)"
+                >
+                  Sposta in magazzino<app-icon name="box" />
+                </button>
+                @if (game.running()) {
+                  <small>Ferma il programma per spostare componenti.</small>
+                }
+              }
+              @if (entry.stockId !== undefined) {
+                @if (entry.gpu && entry.condition !== 'broken') {
+                  <label class="mount-target"
+                    >Monta in<select
+                      aria-label="RIG di destinazione"
+                      [value]="targetRigId()"
+                      (change)="targetRigId.set(+$any($event.target).value)"
+                    >
+                      @for (rig of rigs(); track rig.id) {
+                        <option [value]="rig.id">RIG {{ rig.id }}</option>
+                      }
+                    </select></label
+                  >
+                  <button
+                    class="primary"
+                    [disabled]="game.running()"
+                    (click)="mount(entry)"
+                  >
+                    Monta GPU<app-icon name="arrow" />
+                  </button>
+                }
+                @if (salePending() === entry.stockId) {
+                  <div class="sale-confirm">
+                    <p>Vendere per {{ money(resale(entry)) }}?</p>
+                    <button
+                      class="primary"
+                      (click)="sell(entry)"
+                    >
+                      Conferma vendita</button
+                    ><button (click)="salePending.set(null)">Annulla</button>
+                  </div>
+                } @else {
+                  <button (click)="salePending.set(entry.stockId!)">
+                    {{ entry.condition === 'broken' ? 'Vendi come ricambi' : 'Vendi'
+                    }}<strong>{{ money(resale(entry)) }}</strong>
+                  </button>
+                }
+              }
+            </div>
+          } @else {
+            <div class="empty-cart">
+              <app-icon name="box" />
+              <p>Seleziona un componente per vedere i dettagli.</p>
+            </div>
+          }
+        </aside>
+      }
+    </div>
+  }
+  <footer class="system-footer">
+    <span
+      [class.error]="feedbackError()"
+      role="status"
+      aria-live="polite"
+      >{{
+        feedback() ||
+          (app() === 'desktop'
+            ? 'PC del laboratorio · 2 applicazioni'
+            : app() === 'shop'
+              ? 'Disponibilità legata alla ricerca sbloccata'
+              : 'Inventario aggiornato con la farm')
+      }}</span
+    ><span class="footer-brand">BLOCKCRAFT</span>
+  </footer>
+</dialog>

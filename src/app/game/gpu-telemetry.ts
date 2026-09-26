@@ -32,8 +32,6 @@ export interface GpuTelemetry {
   readonly maxTemperatureCelsius: number;
 }
 
-const { model, idle, mining, limits } = GAME_BALANCE.gpu;
-
 export function getGpuTelemetry(
   workload: number,
   gpu?: GpuOperatingState,
@@ -42,6 +40,8 @@ export function getGpuTelemetry(
   rigPoweredDownAt = now,
   rigSetup: RigSetup = GAMEPLAY_RIG_SETUP,
 ): GpuTelemetry {
+  const model = GPU_MODELS_BY_ID[gpu?.modelId ?? GAME_BALANCE.models.startingGpuId];
+  const { idle, mining, limits } = model.specifications;
   const operational = !gpu || isGpuOperational(gpu);
   const powered = rigRunning;
   const load = powered && operational ? Math.min(1, Math.max(0, workload)) : 0;
@@ -81,13 +81,13 @@ export function getGpuTelemetry(
     powered && maxFanSpeedRpm > 0 ? (gpu?.targetFanSpeedPercent ?? automaticFanSpeed) : 0;
 
   return {
-    model,
+    model: model.name,
     frequencyGhz: round(frequencyGhz, 2),
     powerWatts:
       powered && operational
         ? round(
             interpolate(
-              gpuIdlePowerWatts(rigSetup),
+              gpuIdlePowerWatts(rigSetup, gpu?.modelId),
               gpu
                 ? gpuMiningPowerWatts(gpu, rigSetup)
                 : mining.powerWatts + rigAuxiliaryPowerWattsPerGpu(rigSetup),

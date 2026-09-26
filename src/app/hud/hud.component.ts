@@ -33,6 +33,7 @@ import { WorkbenchComponent } from './panels/workbench/workbench.component';
 import { RigWorkbenchComponent } from './panels/rig-workbench/rig-workbench.component';
 import { GuideCodeComponent } from './guide-code/guide-code.component';
 import { ResearchTreeComponent } from './research-tree/research-tree.component';
+import { ComputerComponent } from './computer/computer.component';
 
 type WindowName = 'editor' | 'console';
 type GuideSection = 'examples' | 'functions' | 'gpu' | 'energy' | 'constructs' | 'shortcuts';
@@ -96,6 +97,7 @@ const SHORTCUT_GROUPS = [
     RigWorkbenchComponent,
     GuideCodeComponent,
     ResearchTreeComponent,
+    ComputerComponent,
   ],
   templateUrl: './hud.component.html',
   styleUrl: './hud.component.css',

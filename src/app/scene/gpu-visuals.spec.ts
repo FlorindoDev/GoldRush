@@ -46,6 +46,20 @@ function homePose(id: number): GpuPose {
   };
 }
 
+function startingWorldWithGpus(...ids: number[]): MiningWorld {
+  const world = worldWithGpus(...ids);
+  return {
+    ...world,
+    plots: world.plots.map((plot) => ({
+      ...plot,
+      rigs: plot.rigs.map((rig) => ({
+        ...rig,
+        gpus: rig.gpus.map((gpu) => ({ ...gpu, modelId: GAME_BALANCE.models.startingGpuId })),
+      })),
+    })),
+  };
+}
+
 function setup() {
   const scene = new THREE.Scene();
   const workbench = new THREE.Group();
@@ -85,6 +99,17 @@ describe('GPU visuals', () => {
   it('keeps Compact visibly smaller than Passive after scene fitting', () => {
     expect(gpuSceneWidth('gpu-compact')).toBeLessThan(gpuSceneWidth('gpu-passive') * 0.6);
   });
+  it('loads the purchased GPU model once and shares it across matching slots', async () => {
+    const { visuals } = setup();
+    const asset = loadedAsset();
+    const load = vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockResolvedValue(asset.gltf);
+    visuals.sync(worldWithGpus(1, 2), null);
+    await vi.waitFor(() => expect(visuals.objects[0].getObjectByName('loaded-gpu')).toBeTruthy());
+    expect(load).toHaveBeenCalledExactlyOnceWith('assets/models/gpus/gpu-compact.glb');
+    expect((visuals.objects[1].getObjectByName('loaded-gpu') as THREE.Mesh).geometry).toBe(
+      asset.geometry,
+    );
+  });
   it('replaces rotors with the unlocked fan model and restores the original kit', async () => {
     const { visuals } = setup();
     const rotor = new THREE.Group();
@@ -92,7 +117,10 @@ describe('GPU visuals', () => {
     rotor.add(new THREE.Mesh(new THREE.CircleGeometry(0.38), new THREE.MeshBasicMaterial()));
     const asset = new THREE.Group();
     asset.add(rotor);
-    vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockResolvedValue({ scene: asset } as GLTF);
+    vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockImplementation(async (path) => {
+      if (String(path).includes('/fans/')) return { scene: asset } as GLTF;
+      throw new Error('GPU uses the fixture fallback in this fan test');
+    });
     const base = worldWithGpus(1);
     const unlocked = { ...base, unlockedResearchIds: ['gpu-fan-silent'] };
     const upgraded = serviceGpu(unlocked, 1, { kind: 'fan', kit: 'silent' });
@@ -183,7 +211,7 @@ describe('GPU visuals', () => {
 
   it('replaces fallback models during a transfer and releases shared resources only with their owner', async () => {
     const { visuals, mount } = setup();
-    visuals.sync(worldWithGpus(1, 2), 1);
+    visuals.sync(startingWorldWithGpus(1, 2), 1);
     const [first, second] = visuals.objects;
     const fallbackMesh = first.getObjectByProperty('isMesh', true) as THREE.Mesh;
     const disposeFallback = vi.spyOn(fallbackMesh.geometry, 'dispose');
@@ -203,7 +231,7 @@ describe('GPU visuals', () => {
     expect((first.getObjectByName('loaded-gpu') as THREE.Mesh).geometry).toBe(asset.geometry);
     expect((second.getObjectByName('loaded-gpu') as THREE.Mesh).geometry).toBe(asset.geometry);
 
-    visuals.sync(worldWithGpus(1), 1);
+    visuals.sync(startingWorldWithGpus(1), 1);
     visuals.update(duration, false, false);
     expectAtMount(first, mount);
     expect(disposeGeometry).not.toHaveBeenCalled();
@@ -260,7 +288,7 @@ describe('GPU visuals', () => {
       }),
     );
     const loading = visuals.loadModel();
-    visuals.sync(worldWithGpus(1), null);
+    visuals.sync(startingWorldWithGpus(1), null);
     visuals.dispose();
     completeLoading(asset.gltf);
     await loading;

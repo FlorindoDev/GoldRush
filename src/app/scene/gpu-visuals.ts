@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { GPU_MODEL_PATH } from '../assets/models/gpu/gpu-model-path';
 import { GAME_BALANCE } from '../config/game-balance';
-import { GPU_MODELS_BY_ID } from '../config/gpu-config';
+import { GPU_MODELS_BY_ID, type GpuModelId } from '../config/gpu-config';
 import type { GpuFanModelId } from '../config/fan-config';
 import type { GpuFanKit } from '../game/gpu-maintenance';
 import { GPU_COUNT, getGpu, getRig, isGpuUnlocked, type MiningWorld } from '../game/mining-world';
@@ -54,6 +54,8 @@ export class GpuVisuals {
   >();
   private readonly fanAssets = new Map<GpuFanModelId, THREE.Group>();
   private readonly loadingFans = new Set<GpuFanModelId>();
+  private readonly modelAssets = new Map<GpuModelId, THREE.Group>();
+  private readonly loadingModels = new Set<GpuModelId>();
   private template: THREE.Group;
   private clips: THREE.AnimationClip[] = [];
   private inspectedGpuId: number | null = null;
@@ -110,7 +112,9 @@ export class GpuVisuals {
   sync(world: MiningWorld, inspectedGpuId: number | null): void {
     for (const [id, gpu] of this.gpus) {
       const state = getGpu(world, id);
+      const modelChanged = gpu.state.modelId !== state.modelId;
       gpu.state = state;
+      if (modelChanged) this.attachModel(gpu);
       this.updateFanKit(gpu);
       gpu.rigSetup = getRig(world, state.rigId).setup;
       gpu.operational = isGpuOperational(gpu.state);
@@ -243,6 +247,7 @@ export class GpuVisuals {
     }
     disposeObject(this.template);
     for (const asset of this.fanAssets.values()) disposeObject(asset);
+    for (const asset of this.modelAssets.values()) disposeObject(asset);
     this.clips = [];
   }
 
@@ -251,7 +256,11 @@ export class GpuVisuals {
     gpu.mixer?.stopAllAction();
     gpu.mixer = undefined;
     gpu.root.clear();
-    const clone = this.template.clone(true);
+    const model = this.modelAssets.get(gpu.state.modelId);
+    if (!model && gpu.state.modelId !== GAME_BALANCE.models.startingGpuId) {
+      this.loadGpuAsset(gpu.state.modelId);
+    }
+    const clone = (model ?? this.template).clone(true);
     clone.userData['sharedGpu'] = true;
     gpu.effects = new GpuConditionEffects(clone);
     gpu.root.add(clone, gpu.effects.root);
@@ -266,7 +275,7 @@ export class GpuVisuals {
         gpu.fans.push(object);
       }
     });
-    if (this.clips.length) {
+    if (!model && this.clips.length) {
       const mixer = new THREE.AnimationMixer(clone);
       this.clips.forEach((clip) => mixer.clipAction(clip).play());
       gpu.mixer = mixer;
@@ -315,6 +324,34 @@ export class GpuVisuals {
       fan.add(installed);
     }
     gpu.installedFanKit = kit;
+  }
+
+  private loadGpuAsset(id: GpuModelId): void {
+    if (this.loadingModels.has(id) || this.disposed) return;
+    this.loadingModels.add(id);
+    void new GLTFLoader()
+      .loadAsync(`assets/models/gpus/${id}.glb`)
+      .then(({ scene }) => {
+        if (this.disposed) {
+          disposeObject(scene);
+          return;
+        }
+        fitGpuModel(scene, gpuSceneWidth(id));
+        styleGpuModel(scene);
+        const template = new THREE.Group();
+        template.add(scene);
+        this.modelAssets.set(id, template);
+        for (const gpu of this.gpus.values()) {
+          if (gpu.state.modelId === id) {
+            this.attachModel(gpu);
+            this.updateFanKit(gpu);
+          }
+        }
+      })
+      .catch(() => {
+        /* Il fallback resta visibile se il modello non è disponibile. */
+      })
+      .finally(() => this.loadingModels.delete(id));
   }
 
   private loadFanAsset(id: GpuFanModelId): void {

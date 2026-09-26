@@ -114,6 +114,10 @@ export class SceneControlsComponent {
   }
 
   selectToolStation(id: ToolStationId): void {
+    if (id === 'computer') {
+      this.selectedToolStationIdChange.emit(id);
+      return;
+    }
     if (this.game.running() || this.focusedToolStationId() === id) {
       return;
     }

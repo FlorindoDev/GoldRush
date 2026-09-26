@@ -1,4 +1,5 @@
 import { GAME_BALANCE } from '../config/game-balance';
+import type { Inventory } from './inventory';
 import {
   CRYPTO_CONFIG,
   requireCrypto,
@@ -64,6 +65,7 @@ export interface MiningPlot {
 }
 
 export interface MiningWorld {
+  readonly inventory: Inventory;
   readonly blocks: readonly MiningBlock[];
   readonly cryptoChains: Readonly<Record<CryptoId, CryptoChain>>;
   readonly plots: readonly MiningPlot[];
@@ -162,6 +164,7 @@ export function createWorld(): MiningWorld {
     selectedId: 1,
     satoshis: 0,
     cashEur: 0,
+    inventory: { items: [], nextId: 1 },
     unlockedResearchIds: [],
     holdings: {},
     electricity: createElectricityMeter(),
@@ -536,7 +539,7 @@ export function farmPowerWatts(
         ) {
           watts += activeIds.has(gpu.id)
             ? gpuMiningPowerWatts(gpu, rig.setup)
-            : gpuIdlePowerWatts(rig.setup);
+            : gpuIdlePowerWatts(rig.setup, gpu.modelId);
         }
       }
     }

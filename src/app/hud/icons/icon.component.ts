@@ -1,6 +1,13 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 const PATHS: Record<string, string | readonly string[]> = {
+  monitor: 'M3 3h18v13H3V3Zm5 18h8m-4-5v5',
+  cart: 'M2 3h3l3 12h11l3-9H6M9 20h.01M18 20h.01',
+  box: 'm12 3 9 5v11l-9 4-9-4V8l9-5Zm-9 5 9 5 9-5m-9 5v10M7 5l10 5',
+  search: 'M21 21l-5-5m2-6a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z',
+  fan: 'M3 3h18v18H3V3Zm9 7c-6-9-10 2-2 2m4 0c9-6-2-10-2-2m0 4c6 9 10-2 2-2m-4 0c-9 6 2 10 2 2',
+  filter: 'M3 3h18v18H3V3Zm6 0v18m6-18v18M3 9h18M3 15h18',
+  cooling: 'M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M8 4l4 4 4-4M8 20l4-4 4 4',
   cube: 'm12 3 9 5v8l-9 5-9-5V8l9-5Zm0 0v9m9-4-9 4-9-4m9 4v9',
   code: 'm8 7-5 5 5 5m8-10 5 5-5 5M14 4l-4 16',
   terminal: 'm4 6 6 6-6 6m9 0h7',

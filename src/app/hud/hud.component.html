@@ -1,4 +1,5 @@
 <main class="game-shell">
+  <app-computer />
   <app-scene
     #scene
     class="world-scene"
@@ -39,6 +40,14 @@
     role="group"
     aria-label="Strumenti"
   >
+    <button
+      class="icon-button utility-button"
+      aria-label="Apri computer"
+      title="Computer · Shop e Magazzino"
+      (click)="scene.setSelectedToolStationId('computer')"
+    >
+      <app-icon name="monitor" />
+    </button>
     <button
       class="icon-button utility-button research-action"
       aria-label="Albero della ricerca"

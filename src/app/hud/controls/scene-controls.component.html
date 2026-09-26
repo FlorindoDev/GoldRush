@@ -152,11 +152,13 @@
             ' sui banchi'
           : game.inspectedRigId() !== null
             ? 'RIG ' + game.inspectedRigId() + ' sul banco RIG'
-            : focusedToolStationId() === 'rigWorkbench'
-              ? 'Banco RIG vuoto'
-              : game.inspectedGpuId() === null
-                ? 'Banco vuoto. Plot ' + game.viewedPlotId() + ' · RIG ' + game.viewedRigId()
-                : 'GPU ' + gpuNumber(game.inspectedGpuId()!) + ' sul banco'
+            : focusedToolStationId() === 'computer'
+              ? 'Computer · Shop e Magazzino'
+              : focusedToolStationId() === 'rigWorkbench'
+                ? 'Banco RIG vuoto'
+                : game.inspectedGpuId() === null
+                  ? 'Banco vuoto. Plot ' + game.viewedPlotId() + ' · RIG ' + game.viewedRigId()
+                  : 'GPU ' + gpuNumber(game.inspectedGpuId()!) + ' sul banco'
       }}
     </span>
   </div>
@@ -193,10 +195,10 @@
         class="station-choice"
         [attr.aria-label]="'Vai a ' + station.label"
         [attr.aria-pressed]="focusedToolStationId() === station.id"
-        [disabled]="game.running()"
+        [disabled]="game.running() && station.id !== 'computer'"
         (click)="selectToolStation(station.id)"
       >
-        <app-icon name="tool" />
+        <app-icon [name]="station.id === 'computer' ? 'monitor' : 'tool'" />
         <span>{{ station.label }}</span>
         <app-icon
           class="station-arrow"

@@ -5,6 +5,10 @@
   "description": "Modelli originali low poly. Specifiche delle ventole fittizie per progressione di gioco; nessuna modifica automatica al bilanciamento della partita.",
   "references": [
     {
+      "name": "Computer low poly · riferimento silhouette",
+      "url": "https://poly.pizza/m/aIwOp2HlyH-"
+    },
+    {
       "name": "Ventole GPU assiali - ASUS Axial-tech",
       "url": "https://www.asus.com/ie/motherboards-components/graphics-cards/dual/dual-rtx4060ti-o8g-evo/"
     },
@@ -1522,19 +1526,6 @@
       "description": "Postazione di servizio rinforzata con tappeto antistatico, morsetti e ricambi."
     },
     {
-      "id": "tool-area",
-      "name": "Area officina",
-      "category": "environment",
-      "path": "assets/models/environment/tool-area.glb",
-      "dimensions": [
-        16.065,
-        0.14,
-        18.065
-      ],
-      "bytes": 428484,
-      "description": "Pavimento e postazioni officina."
-    },
-    {
       "id": "plot",
       "name": "Plot universale",
       "category": "environment",
@@ -1701,6 +1692,32 @@
       "ticker": "ERG",
       "algorithm": "Autolykos",
       "source": "https://learn.ergoplatform.com/mining/"
+    },
+    {
+      "id": "computer",
+      "name": "PC del laboratorio",
+      "category": "workshop",
+      "path": "assets/models/workshop/computer.glb",
+      "dimensions": [
+        4.6,
+        3.865,
+        2.74
+      ],
+      "bytes": 233992,
+      "description": "Postazione originale low poly con monitor, tower, tastiera e mouse. Accesso a Shop e Magazzino."
+    },
+    {
+      "id": "tool-area",
+      "name": "Area officina",
+      "category": "environment",
+      "path": "assets/models/environment/tool-area.glb",
+      "dimensions": [
+        16.065,
+        0.14,
+        18.065
+      ],
+      "bytes": 411304,
+      "description": "Pavimento e postazioni officina."
     }
   ]
 }

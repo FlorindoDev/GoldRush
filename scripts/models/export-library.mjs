@@ -19,8 +19,10 @@ import { RIG_DUST_SYSTEMS } from '../../src/app/config/dust-filter-config.ts';
 import { createWorkbench } from './workshop/workbench-mesh.ts';
 import { createRigWorkbench } from './workshop/rig-workbench.ts';
 import { createToolArea } from './workshop/tool-area.ts';
+import { createComputer } from './workshop/computer.ts';
 
 const references = [
+  { name: 'Computer low poly · riferimento silhouette', url: 'https://poly.pizza/m/aIwOp2HlyH-' },
   {
     name: 'Ventole GPU assiali - ASUS Axial-tech',
     url: 'https://www.asus.com/ie/motherboards-components/graphics-cards/dual/dual-rtx4060ti-o8g-evo/',
@@ -60,10 +62,11 @@ const references = [
   },
 ];
 
-export async function exportLibrary(save) {
+export async function exportLibrary(save, onlyIds = []) {
   const entries = [];
   const exporter = new GLTFExporter();
   async function add(id, name, category, root, details = {}, optimize = true) {
+    if (onlyIds.length && !onlyIds.includes(id)) return;
     root.name = id;
     root.userData = { ...root.userData, modelId: id };
     if (optimize) {
@@ -98,6 +101,11 @@ export async function exportLibrary(save) {
       }
     });
   }
+
+  await add('computer', 'PC del laboratorio', 'workshop', createComputer(), {
+    description:
+      'Postazione originale low poly con monitor, tower, tastiera e mouse. Accesso a Shop e Magazzino.',
+  });
 
   const filterNames = Object.fromEntries(
     Object.entries(RIG_DUST_SYSTEMS).map(([id, spec]) => [id, spec.name]),

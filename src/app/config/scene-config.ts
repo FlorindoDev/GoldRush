@@ -105,6 +105,11 @@ export const LAYOUT_CONFIG = {
 } as const;
 
 export const TOOL_STATIONS_CONFIG = {
+  computer: {
+    slotIndex: 2,
+    focusTargetOffset: [0, 1.9, 0] as const,
+    cameraOffset: [3.6, 3.1, 7] as const,
+  },
   workbench: {
     slotIndex: 0,
     focusTargetOffset: [-0.2, 1.65, 0] as const,

@@ -94,6 +94,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
             }
           },
           telemetry: (id) => this.game.gpuTelemetry(id),
+          openComputer: () => this.setSelectedToolStationId('computer'),
           hover: (gpuId, x, y) => this.gpuHover.emit(gpuId === null ? null : { gpuId, x, y }),
         },
         assets,
@@ -130,5 +131,6 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
 
   setSelectedToolStationId(id: ToolStationId | null): void {
     this.selectedToolStationId.set(id);
+    if (id === 'computer') this.game.computerOpen.set(true);
   }
 }

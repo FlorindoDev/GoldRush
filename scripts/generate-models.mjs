@@ -7,6 +7,9 @@ import { chromium } from '@playwright/test';
 
 const workspace = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const output = resolve(workspace, 'public/assets/models');
+const onlyIds = (process.argv.find((arg) => arg.startsWith('--only='))?.slice(7) ?? '')
+  .split(',')
+  .filter(Boolean);
 const bundle = await build({
   entryPoints: [resolve(workspace, 'scripts/models/export-library.mjs')],
   bundle: true,
@@ -59,7 +62,18 @@ try {
     console.log(relativePath);
   });
   await page.goto(`http://127.0.0.1:${server.address().port}`);
-  const manifest = await page.evaluate(() => ModelLibrary.exportLibrary(window.saveModel));
+  const manifest = await page.evaluate(
+    (ids) => ModelLibrary.exportLibrary(window.saveModel, ids),
+    onlyIds,
+  );
+  if (onlyIds.length) {
+    const existing = JSON.parse(await readFile(resolve(output, 'catalog.json'), 'utf8'));
+    const updatedIds = new Set(manifest.models.map((model) => model.id));
+    manifest.models = [
+      ...existing.models.filter((model) => !updatedIds.has(model.id)),
+      ...manifest.models,
+    ];
+  }
   await writeFile(resolve(output, 'catalog.json'), JSON.stringify(manifest, null, 2) + '\n');
   await copyFile(
     resolve(workspace, 'scripts/models/source/bitcoin/license.txt'),

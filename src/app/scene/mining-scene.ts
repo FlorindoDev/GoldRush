@@ -39,6 +39,7 @@ const PARTICLE_HEIGHT = ANIMATION.particleHeight;
 const GPU_FAN_SPEED = ANIMATION.gpuFanRadiansPerSecond;
 
 interface GpuInteractions {
+  openComputer(): void;
   select(id: number): void;
   inspect(id: number): void;
   viewRig(id: number): void;
@@ -63,6 +64,7 @@ export class MiningScene {
   private readonly plots = new Map<number, THREE.Group>();
   private readonly workbench: WorkbenchMesh;
   private readonly rigWorkbench: RigWorkbenchMesh;
+  private readonly computer: THREE.Group;
   private readonly gpuVisuals: GpuVisuals;
   private readonly particles: THREE.Points;
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -109,6 +111,9 @@ export class MiningScene {
     this.rigWorkbench = createRigWorkbench(assets.instantiateRigWorkbench());
     this.rigWorkbench.root.position.copy(toolStationPosition('rigWorkbench'));
     this.scene.add(this.rigWorkbench.root);
+    this.computer = assets.instantiate('computer');
+    this.computer.position.copy(toolStationPosition('computer'));
+    this.scene.add(this.computer);
     this.gpuVisuals = new GpuVisuals(
       this.scene,
       (id) => this.gpuHomePose(id),
@@ -529,6 +534,17 @@ export class MiningScene {
     this.previousRigClickTime = this.lastRigClickTime;
     this.lastClickedRigId = null;
     if (!this.cameraController.finishPointer(event)) {
+      return;
+    }
+    const bounds = this.canvas.getBoundingClientRect();
+    this.pointer.set(
+      ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+      -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
+    );
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    if (this.raycaster.intersectObject(this.computer, true).length) {
+      this.clearGpuHover();
+      this.interactions.openComputer();
       return;
     }
     const gpuId = this.findGpuAtPointer(event);
