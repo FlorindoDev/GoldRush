@@ -189,6 +189,8 @@ textarea {
   width: calc(100% - var(--editor-gutter-width));
   padding-left: var(--editor-code-left);
   padding-right: var(--editor-code-right);
+  user-select: text;
+  -webkit-user-select: text;
   color: transparent;
   caret-color: var(--accent);
   resize: none;

@@ -29,6 +29,8 @@
   min-height: 70px;
   padding: 15px 20px;
   overflow: auto;
+  user-select: text;
+  -webkit-user-select: text;
   font: 10px/23px var(--mono);
   background: #121713;
 }
