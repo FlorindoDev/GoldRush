@@ -80,7 +80,7 @@
   "models": [
     {
       "id": "rig-8-none-none",
-      "name": "Rig 8 · Aperto / Air",
+      "name": "Rig 8 · Senza filtro / Nessun modulo esterno",
       "category": "rigs",
       "path": "assets/models/rigs/rig-8-none-none.glb",
       "dimensions": [
@@ -97,7 +97,7 @@
     },
     {
       "id": "rig-8-mesh-none",
-      "name": "Rig 8 · Rete / Air",
+      "name": "Rig 8 · Filtro magnetico a rete / Nessun modulo esterno",
       "category": "rigs",
       "path": "assets/models/rigs/rig-8-mesh-none.glb",
       "dimensions": [
@@ -114,7 +114,7 @@
     },
     {
       "id": "rig-8-pleated-none",
-      "name": "Rig 8 · Cartuccia / Air",
+      "name": "Rig 8 · Filtro a cartuccia pieghettata / Nessun modulo esterno",
       "category": "rigs",
       "path": "assets/models/rigs/rig-8-pleated-none.glb",
       "dimensions": [
@@ -131,7 +131,7 @@
     },
     {
       "id": "rig-8-carbon-none",
-      "name": "Rig 8 · Doppio filtro / Air",
+      "name": "Rig 8 · Filtro a doppio strato / Nessun modulo esterno",
       "category": "rigs",
       "path": "assets/models/rigs/rig-8-carbon-none.glb",
       "dimensions": [
@@ -148,15 +148,15 @@
     },
     {
       "id": "rig-8-none-air",
-      "name": "Rig 8 · Aperto / Air Wall",
+      "name": "Rig 8 · Senza filtro / Air Wall",
       "category": "rigs",
       "path": "assets/models/rigs/rig-8-none-air.glb",
       "dimensions": [
         8.02,
         3.315,
-        3.66
+        3.724
       ],
-      "bytes": 3058828,
+      "bytes": 3258756,
       "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
       "slots": 8,
       "filter": "none",
@@ -165,7 +165,7 @@
     },
     {
       "id": "rig-8-mesh-air",
-      "name": "Rig 8 · Rete / Air Wall",
+      "name": "Rig 8 · Filtro magnetico a rete / Air Wall",
       "category": "rigs",
       "path": "assets/models/rigs/rig-8-mesh-air.glb",
       "dimensions": [
@@ -173,7 +173,7 @@
         3.315,
         3.935
       ],
-      "bytes": 3118244,
+      "bytes": 3318172,
       "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
       "slots": 8,
       "filter": "mesh",
@@ -182,7 +182,7 @@
     },
     {
       "id": "rig-8-pleated-air",
-      "name": "Rig 8 · Cartuccia / Air Wall",
+      "name": "Rig 8 · Filtro a cartuccia pieghettata / Air Wall",
       "category": "rigs",
       "path": "assets/models/rigs/rig-8-pleated-air.glb",
       "dimensions": [
@@ -190,7 +190,7 @@
         3.315,
         4.005
       ],
-      "bytes": 3109908,
+      "bytes": 3309840,
       "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
       "slots": 8,
       "filter": "pleated",
@@ -199,7 +199,7 @@
     },
     {
       "id": "rig-8-carbon-air",
-      "name": "Rig 8 · Doppio filtro / Air Wall",
+      "name": "Rig 8 · Filtro a doppio strato / Air Wall",
       "category": "rigs",
       "path": "assets/models/rigs/rig-8-carbon-air.glb",
       "dimensions": [
@@ -207,7 +207,7 @@
         3.315,
         4.005
       ],
-      "bytes": 3120036,
+      "bytes": 3319968,
       "description": "Otto GPU montate, alimentazione doppia e cinque ventole di ingresso. Moduli separati e punti di montaggio nominati.",
       "slots": 8,
       "filter": "carbon",
@@ -216,7 +216,7 @@
     },
     {
       "id": "rig-8-none-liquid",
-      "name": "Rig 8 · Aperto / Hydro",
+      "name": "Rig 8 · Senza filtro / Hydro Tower",
       "category": "rigs",
       "path": "assets/models/rigs/rig-8-none-liquid.glb",
       "dimensions": [
@@ -233,7 +233,7 @@
     },
     {
       "id": "rig-8-mesh-liquid",
-      "name": "Rig 8 · Rete / Hydro",
+      "name": "Rig 8 · Filtro magnetico a rete / Hydro Tower",
       "category": "rigs",
       "path": "assets/models/rigs/rig-8-mesh-liquid.glb",
       "dimensions": [
@@ -250,7 +250,7 @@
     },
     {
       "id": "rig-8-pleated-liquid",
-      "name": "Rig 8 · Cartuccia / Hydro",
+      "name": "Rig 8 · Filtro a cartuccia pieghettata / Hydro Tower",
       "category": "rigs",
       "path": "assets/models/rigs/rig-8-pleated-liquid.glb",
       "dimensions": [
@@ -267,7 +267,7 @@
     },
     {
       "id": "rig-8-carbon-liquid",
-      "name": "Rig 8 · Doppio filtro / Hydro",
+      "name": "Rig 8 · Filtro a doppio strato / Hydro Tower",
       "category": "rigs",
       "path": "assets/models/rigs/rig-8-carbon-liquid.glb",
       "dimensions": [
@@ -349,7 +349,12 @@
       "rpm": 1500,
       "airflowCfm": 58,
       "powerWatts": 2.4,
-      "diameterMm": 120
+      "diameterMm": 120,
+      "blades": 9,
+      "depth": 0.2,
+      "lighting": false,
+      "dualRotor": false,
+      "duct": false
     },
     {
       "id": "fan-pressure-140",
@@ -367,7 +372,12 @@
       "rpm": 2200,
       "airflowCfm": 92,
       "powerWatts": 4.8,
-      "diameterMm": 140
+      "diameterMm": 140,
+      "blades": 9,
+      "depth": 0.25,
+      "lighting": false,
+      "dualRotor": false,
+      "duct": false
     },
     {
       "id": "fan-industrial-140",
@@ -385,7 +395,12 @@
       "rpm": 3200,
       "airflowCfm": 135,
       "powerWatts": 9.6,
-      "diameterMm": 140
+      "diameterMm": 140,
+      "blades": 11,
+      "depth": 0.34,
+      "lighting": false,
+      "dualRotor": false,
+      "duct": false
     },
     {
       "id": "fan-turbine-200",
@@ -403,7 +418,12 @@
       "rpm": 4200,
       "airflowCfm": 210,
       "powerWatts": 18,
-      "diameterMm": 200
+      "diameterMm": 200,
+      "blades": 13,
+      "depth": 0.42,
+      "lighting": false,
+      "dualRotor": false,
+      "duct": false
     },
     {
       "id": "fan-rgb-200",
@@ -421,7 +441,12 @@
       "rpm": 4600,
       "airflowCfm": 245,
       "powerWatts": 23,
-      "diameterMm": 200
+      "diameterMm": 200,
+      "blades": 9,
+      "depth": 0.5,
+      "lighting": true,
+      "dualRotor": false,
+      "duct": false
     },
     {
       "id": "fan-counter-200",
@@ -439,7 +464,12 @@
       "rpm": 5200,
       "airflowCfm": 300,
       "powerWatts": 34,
-      "diameterMm": 200
+      "diameterMm": 200,
+      "blades": 11,
+      "depth": 0.8,
+      "lighting": false,
+      "dualRotor": true,
+      "duct": false
     },
     {
       "id": "fan-server-240",
@@ -457,7 +487,12 @@
       "rpm": 6500,
       "airflowCfm": 390,
       "powerWatts": 48,
-      "diameterMm": 240
+      "diameterMm": 240,
+      "blades": 13,
+      "depth": 0.75,
+      "lighting": false,
+      "dualRotor": false,
+      "duct": true
     },
     {
       "id": "gpu-compact",
@@ -472,7 +507,37 @@
       "bytes": 131192,
       "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
       "fanCount": 1,
-      "cooling": "compact"
+      "cooling": "compact",
+      "specifications": {
+        "idle": {
+          "frequencyGhz": 0.45,
+          "powerWatts": 22,
+          "temperatureCelsius": 32,
+          "fanSpeedPercent": 15
+        },
+        "mining": {
+          "frequencyGhz": 1.5,
+          "powerWatts": 135,
+          "temperatureCelsius": 68,
+          "fanSpeedPercent": 80
+        },
+        "limits": {
+          "minFrequencyGhz": 0.45,
+          "frequencyGhz": 1.7,
+          "absoluteFrequencyGhz": 2.1,
+          "fanSpeedRpm": 2800,
+          "temperatureCelsius": 86
+        },
+        "thermalResponsePerAction": 0.38,
+        "wearPercentPerHour": 0.004,
+        "dustDamage": {
+          "dustBuildUpMultiplier": 1.15,
+          "maxExtraHeatCelsius": 24,
+          "maxHeatingResponseBonus": 0.9,
+          "wearThresholdPercent": 55,
+          "maxWearMultiplier": 3.4
+        }
+      }
     },
     {
       "id": "gpu-dual",
@@ -487,7 +552,37 @@
       "bytes": 183384,
       "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
       "fanCount": 2,
-      "cooling": "dual"
+      "cooling": "dual",
+      "specifications": {
+        "idle": {
+          "frequencyGhz": 0.5,
+          "powerWatts": 32,
+          "temperatureCelsius": 34,
+          "fanSpeedPercent": 20
+        },
+        "mining": {
+          "frequencyGhz": 1.8,
+          "powerWatts": 205,
+          "temperatureCelsius": 72,
+          "fanSpeedPercent": 70
+        },
+        "limits": {
+          "minFrequencyGhz": 0.5,
+          "frequencyGhz": 2,
+          "absoluteFrequencyGhz": 2.6,
+          "fanSpeedRpm": 3200,
+          "temperatureCelsius": 90
+        },
+        "thermalResponsePerAction": 0.4,
+        "wearPercentPerHour": 0.005,
+        "dustDamage": {
+          "dustBuildUpMultiplier": 1,
+          "maxExtraHeatCelsius": 22,
+          "maxHeatingResponseBonus": 0.8,
+          "wearThresholdPercent": 60,
+          "maxWearMultiplier": 3
+        }
+      }
     },
     {
       "id": "gpu-triple",
@@ -502,7 +597,37 @@
       "bytes": 267420,
       "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
       "fanCount": 3,
-      "cooling": "triple"
+      "cooling": "triple",
+      "specifications": {
+        "idle": {
+          "frequencyGhz": 0.55,
+          "powerWatts": 40,
+          "temperatureCelsius": 35,
+          "fanSpeedPercent": 18
+        },
+        "mining": {
+          "frequencyGhz": 2,
+          "powerWatts": 260,
+          "temperatureCelsius": 76,
+          "fanSpeedPercent": 72
+        },
+        "limits": {
+          "minFrequencyGhz": 0.55,
+          "frequencyGhz": 2.2,
+          "absoluteFrequencyGhz": 2.8,
+          "fanSpeedRpm": 4800,
+          "temperatureCelsius": 94
+        },
+        "thermalResponsePerAction": 0.44,
+        "wearPercentPerHour": 0.006,
+        "dustDamage": {
+          "dustBuildUpMultiplier": 0.95,
+          "maxExtraHeatCelsius": 20,
+          "maxHeatingResponseBonus": 0.75,
+          "wearThresholdPercent": 65,
+          "maxWearMultiplier": 2.8
+        }
+      }
     },
     {
       "id": "gpu-blower",
@@ -517,7 +642,37 @@
       "bytes": 117848,
       "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
       "fanCount": 1,
-      "cooling": "blower"
+      "cooling": "blower",
+      "specifications": {
+        "idle": {
+          "frequencyGhz": 0.5,
+          "powerWatts": 38,
+          "temperatureCelsius": 36,
+          "fanSpeedPercent": 20
+        },
+        "mining": {
+          "frequencyGhz": 1.75,
+          "powerWatts": 225,
+          "temperatureCelsius": 80,
+          "fanSpeedPercent": 85
+        },
+        "limits": {
+          "minFrequencyGhz": 0.5,
+          "frequencyGhz": 2,
+          "absoluteFrequencyGhz": 2.5,
+          "fanSpeedRpm": 5200,
+          "temperatureCelsius": 96
+        },
+        "thermalResponsePerAction": 0.48,
+        "wearPercentPerHour": 0.0065,
+        "dustDamage": {
+          "dustBuildUpMultiplier": 0.8,
+          "maxExtraHeatCelsius": 18,
+          "maxHeatingResponseBonus": 0.65,
+          "wearThresholdPercent": 70,
+          "maxWearMultiplier": 2.4
+        }
+      }
     },
     {
       "id": "gpu-passive",
@@ -532,7 +687,37 @@
       "bytes": 74500,
       "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
       "fanCount": 0,
-      "cooling": "passive"
+      "cooling": "passive",
+      "specifications": {
+        "idle": {
+          "frequencyGhz": 0.4,
+          "powerWatts": 15,
+          "temperatureCelsius": 30,
+          "fanSpeedPercent": 0
+        },
+        "mining": {
+          "frequencyGhz": 1.35,
+          "powerWatts": 110,
+          "temperatureCelsius": 84,
+          "fanSpeedPercent": 0
+        },
+        "limits": {
+          "minFrequencyGhz": 0.4,
+          "frequencyGhz": 1.55,
+          "absoluteFrequencyGhz": 1.9,
+          "fanSpeedRpm": 0,
+          "temperatureCelsius": 95
+        },
+        "thermalResponsePerAction": 0.3,
+        "wearPercentPerHour": 0.0035,
+        "dustDamage": {
+          "dustBuildUpMultiplier": 1.25,
+          "maxExtraHeatCelsius": 28,
+          "maxHeatingResponseBonus": 1,
+          "wearThresholdPercent": 50,
+          "maxWearMultiplier": 4
+        }
+      }
     },
     {
       "id": "gpu-liquid",
@@ -547,7 +732,37 @@
       "bytes": 85000,
       "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
       "fanCount": 0,
-      "cooling": "liquid"
+      "cooling": "liquid",
+      "specifications": {
+        "idle": {
+          "frequencyGhz": 0.55,
+          "powerWatts": 38,
+          "temperatureCelsius": 32,
+          "fanSpeedPercent": 10
+        },
+        "mining": {
+          "frequencyGhz": 2,
+          "powerWatts": 290,
+          "temperatureCelsius": 63,
+          "fanSpeedPercent": 60
+        },
+        "limits": {
+          "minFrequencyGhz": 0.55,
+          "frequencyGhz": 2.3,
+          "absoluteFrequencyGhz": 2.9,
+          "fanSpeedRpm": 2800,
+          "temperatureCelsius": 86
+        },
+        "thermalResponsePerAction": 0.55,
+        "wearPercentPerHour": 0.004,
+        "dustDamage": {
+          "dustBuildUpMultiplier": 0.9,
+          "maxExtraHeatCelsius": 16,
+          "maxHeatingResponseBonus": 0.55,
+          "wearThresholdPercent": 65,
+          "maxWearMultiplier": 2.5
+        }
+      }
     },
     {
       "id": "gpu-proart",
@@ -562,7 +777,37 @@
       "bytes": 293984,
       "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
       "fanCount": 3,
-      "cooling": "proart"
+      "cooling": "proart",
+      "specifications": {
+        "idle": {
+          "frequencyGhz": 0.5,
+          "powerWatts": 35,
+          "temperatureCelsius": 33,
+          "fanSpeedPercent": 18
+        },
+        "mining": {
+          "frequencyGhz": 1.9,
+          "powerWatts": 240,
+          "temperatureCelsius": 68,
+          "fanSpeedPercent": 70
+        },
+        "limits": {
+          "minFrequencyGhz": 0.5,
+          "frequencyGhz": 2.2,
+          "absoluteFrequencyGhz": 2.7,
+          "fanSpeedRpm": 4500,
+          "temperatureCelsius": 89
+        },
+        "thermalResponsePerAction": 0.42,
+        "wearPercentPerHour": 0.005,
+        "dustDamage": {
+          "dustBuildUpMultiplier": 0.9,
+          "maxExtraHeatCelsius": 18,
+          "maxHeatingResponseBonus": 0.65,
+          "wearThresholdPercent": 65,
+          "maxWearMultiplier": 2.5
+        }
+      }
     },
     {
       "id": "gpu-nitro",
@@ -577,7 +822,37 @@
       "bytes": 266512,
       "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
       "fanCount": 3,
-      "cooling": "nitro"
+      "cooling": "nitro",
+      "specifications": {
+        "idle": {
+          "frequencyGhz": 0.55,
+          "powerWatts": 45,
+          "temperatureCelsius": 35,
+          "fanSpeedPercent": 20
+        },
+        "mining": {
+          "frequencyGhz": 2.1,
+          "powerWatts": 320,
+          "temperatureCelsius": 78,
+          "fanSpeedPercent": 75
+        },
+        "limits": {
+          "minFrequencyGhz": 0.55,
+          "frequencyGhz": 2.35,
+          "absoluteFrequencyGhz": 3,
+          "fanSpeedRpm": 5200,
+          "temperatureCelsius": 96
+        },
+        "thermalResponsePerAction": 0.48,
+        "wearPercentPerHour": 0.007,
+        "dustDamage": {
+          "dustBuildUpMultiplier": 1.1,
+          "maxExtraHeatCelsius": 25,
+          "maxHeatingResponseBonus": 0.9,
+          "wearThresholdPercent": 55,
+          "maxWearMultiplier": 3.5
+        }
+      }
     },
     {
       "id": "gpu-workstation",
@@ -592,7 +867,37 @@
       "bytes": 194888,
       "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
       "fanCount": 2,
-      "cooling": "workstation"
+      "cooling": "workstation",
+      "specifications": {
+        "idle": {
+          "frequencyGhz": 0.55,
+          "powerWatts": 42,
+          "temperatureCelsius": 34,
+          "fanSpeedPercent": 22
+        },
+        "mining": {
+          "frequencyGhz": 2,
+          "powerWatts": 290,
+          "temperatureCelsius": 72,
+          "fanSpeedPercent": 70
+        },
+        "limits": {
+          "minFrequencyGhz": 0.55,
+          "frequencyGhz": 2.3,
+          "absoluteFrequencyGhz": 2.85,
+          "fanSpeedRpm": 4800,
+          "temperatureCelsius": 92
+        },
+        "thermalResponsePerAction": 0.44,
+        "wearPercentPerHour": 0.0055,
+        "dustDamage": {
+          "dustBuildUpMultiplier": 0.9,
+          "maxExtraHeatCelsius": 20,
+          "maxHeatingResponseBonus": 0.7,
+          "wearThresholdPercent": 65,
+          "maxWearMultiplier": 2.8
+        }
+      }
     },
     {
       "id": "gpu-low-profile",
@@ -607,7 +912,37 @@
       "bytes": 182316,
       "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
       "fanCount": 2,
-      "cooling": "low-profile"
+      "cooling": "low-profile",
+      "specifications": {
+        "idle": {
+          "frequencyGhz": 0.45,
+          "powerWatts": 18,
+          "temperatureCelsius": 32,
+          "fanSpeedPercent": 25
+        },
+        "mining": {
+          "frequencyGhz": 1.45,
+          "powerWatts": 105,
+          "temperatureCelsius": 66,
+          "fanSpeedPercent": 82
+        },
+        "limits": {
+          "minFrequencyGhz": 0.45,
+          "frequencyGhz": 1.65,
+          "absoluteFrequencyGhz": 2,
+          "fanSpeedRpm": 3200,
+          "temperatureCelsius": 85
+        },
+        "thermalResponsePerAction": 0.36,
+        "wearPercentPerHour": 0.004,
+        "dustDamage": {
+          "dustBuildUpMultiplier": 1.2,
+          "maxExtraHeatCelsius": 26,
+          "maxHeatingResponseBonus": 1,
+          "wearThresholdPercent": 50,
+          "maxWearMultiplier": 3.8
+        }
+      }
     },
     {
       "id": "gpu-hybrid",
@@ -622,7 +957,37 @@
       "bytes": 152628,
       "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
       "fanCount": 1,
-      "cooling": "hybrid"
+      "cooling": "hybrid",
+      "specifications": {
+        "idle": {
+          "frequencyGhz": 0.5,
+          "powerWatts": 32,
+          "temperatureCelsius": 32,
+          "fanSpeedPercent": 15
+        },
+        "mining": {
+          "frequencyGhz": 1.8,
+          "powerWatts": 200,
+          "temperatureCelsius": 67,
+          "fanSpeedPercent": 65
+        },
+        "limits": {
+          "minFrequencyGhz": 0.5,
+          "frequencyGhz": 2,
+          "absoluteFrequencyGhz": 2.6,
+          "fanSpeedRpm": 4200,
+          "temperatureCelsius": 90
+        },
+        "thermalResponsePerAction": 0.5,
+        "wearPercentPerHour": 0.0045,
+        "dustDamage": {
+          "dustBuildUpMultiplier": 0.95,
+          "maxExtraHeatCelsius": 18,
+          "maxHeatingResponseBonus": 0.65,
+          "wearThresholdPercent": 65,
+          "maxWearMultiplier": 2.6
+        }
+      }
     },
     {
       "id": "filter-mesh",
@@ -636,7 +1001,9 @@
       ],
       "bytes": 59912,
       "description": "Pannello estraibile compatibile con il punto filter-mount di ogni rig da otto GPU.",
-      "filter": "mesh"
+      "filter": "mesh",
+      "filterEfficiencyPercent": 55,
+      "airflowResistanceCelsius": 0.8
     },
     {
       "id": "filter-pleated",
@@ -650,7 +1017,9 @@
       ],
       "bytes": 51572,
       "description": "Pannello estraibile compatibile con il punto filter-mount di ogni rig da otto GPU.",
-      "filter": "pleated"
+      "filter": "pleated",
+      "filterEfficiencyPercent": 78,
+      "airflowResistanceCelsius": 1.8
     },
     {
       "id": "filter-carbon",
@@ -664,7 +1033,9 @@
       ],
       "bytes": 62036,
       "description": "Pannello estraibile compatibile con il punto filter-mount di ogni rig da otto GPU.",
-      "filter": "carbon"
+      "filter": "carbon",
+      "filterEfficiencyPercent": 88,
+      "airflowResistanceCelsius": 2.8
     },
     {
       "id": "cooling-bracket",
@@ -682,7 +1053,7 @@
     },
     {
       "id": "cooling-air",
-      "name": "Modulo esterno · Air Wall",
+      "name": "Air Wall",
       "category": "cooling",
       "path": "assets/models/cooling/cooling-air.glb",
       "dimensions": [
@@ -692,11 +1063,26 @@
       ],
       "bytes": 290116,
       "description": "Due ventole industriali su telaio esterno con piedini e staffe.",
-      "cooling": "air"
+      "cooling": "air",
+      "coolingCelsius": 8,
+      "airflowCfm": 270,
+      "extraPowerWatts": 19.2,
+      "radiatorFanId": "fan-industrial-140",
+      "radiatorFanCount": 2,
+      "pumpPowerWatts": 0,
+      "radiator": {
+        "width": 1.6,
+        "height": 2.85,
+        "depth": 0.32,
+        "fanYPositions": [
+          1.17,
+          2.57
+        ]
+      }
     },
     {
       "id": "cooling-liquid",
-      "name": "Modulo esterno · Hydro Tower",
+      "name": "Hydro Tower",
       "category": "cooling",
       "path": "assets/models/cooling/cooling-liquid.glb",
       "dimensions": [
@@ -706,7 +1092,22 @@
       ],
       "bytes": 260424,
       "description": "Radiatore verticale, due ventole, serbatoio, pompa e raccordi.",
-      "cooling": "liquid"
+      "cooling": "liquid",
+      "coolingCelsius": 14,
+      "airflowCfm": 184,
+      "extraPowerWatts": 17.6,
+      "radiatorFanId": "fan-pressure-140",
+      "radiatorFanCount": 2,
+      "pumpPowerWatts": 8,
+      "radiator": {
+        "width": 1.6,
+        "height": 2.85,
+        "depth": 0.32,
+        "fanYPositions": [
+          1.17,
+          2.57
+        ]
+      }
     },
     {
       "id": "rig-gameplay",
@@ -725,7 +1126,7 @@
     },
     {
       "id": "rig-gameplay-none-none",
-      "name": "Rig 4 · Aperto / Air",
+      "name": "Rig 4 · Senza filtro / Nessun modulo esterno",
       "category": "rigs",
       "path": "assets/models/rigs/rig-gameplay-none-none.glb",
       "dimensions": [
@@ -738,11 +1139,18 @@
       "slots": 4,
       "filter": "none",
       "cooling": "none",
-      "populated": false
+      "populated": false,
+      "isStartingModel": true,
+      "fanModelId": "fan-airflow-120",
+      "fanCount": 5,
+      "dustFilterEfficiencyPercent": 0,
+      "coolingCelsius": 0,
+      "coolingAirflowCfm": 0,
+      "coolingPowerWatts": 0
     },
     {
       "id": "rig-gameplay-mesh-none",
-      "name": "Rig 4 · Rete / Air",
+      "name": "Rig 4 · Filtro magnetico a rete / Nessun modulo esterno",
       "category": "rigs",
       "path": "assets/models/rigs/rig-gameplay-mesh-none.glb",
       "dimensions": [
@@ -755,11 +1163,18 @@
       "slots": 4,
       "filter": "mesh",
       "cooling": "none",
-      "populated": false
+      "populated": false,
+      "isStartingModel": false,
+      "fanModelId": "fan-airflow-120",
+      "fanCount": 5,
+      "dustFilterEfficiencyPercent": 55,
+      "coolingCelsius": 0,
+      "coolingAirflowCfm": 0,
+      "coolingPowerWatts": 0
     },
     {
       "id": "rig-gameplay-pleated-none",
-      "name": "Rig 4 · Cartuccia / Air",
+      "name": "Rig 4 · Filtro a cartuccia pieghettata / Nessun modulo esterno",
       "category": "rigs",
       "path": "assets/models/rigs/rig-gameplay-pleated-none.glb",
       "dimensions": [
@@ -772,11 +1187,18 @@
       "slots": 4,
       "filter": "pleated",
       "cooling": "none",
-      "populated": false
+      "populated": false,
+      "isStartingModel": false,
+      "fanModelId": "fan-airflow-120",
+      "fanCount": 5,
+      "dustFilterEfficiencyPercent": 78,
+      "coolingCelsius": 0,
+      "coolingAirflowCfm": 0,
+      "coolingPowerWatts": 0
     },
     {
       "id": "rig-gameplay-carbon-none",
-      "name": "Rig 4 · Doppio filtro / Air",
+      "name": "Rig 4 · Filtro a doppio strato / Nessun modulo esterno",
       "category": "rigs",
       "path": "assets/models/rigs/rig-gameplay-carbon-none.glb",
       "dimensions": [
@@ -789,11 +1211,18 @@
       "slots": 4,
       "filter": "carbon",
       "cooling": "none",
-      "populated": false
+      "populated": false,
+      "isStartingModel": false,
+      "fanModelId": "fan-airflow-120",
+      "fanCount": 5,
+      "dustFilterEfficiencyPercent": 88,
+      "coolingCelsius": 0,
+      "coolingAirflowCfm": 0,
+      "coolingPowerWatts": 0
     },
     {
       "id": "rig-gameplay-none-air",
-      "name": "Rig 4 · Aperto / Air Wall",
+      "name": "Rig 4 · Senza filtro / Air Wall",
       "category": "rigs",
       "path": "assets/models/rigs/rig-gameplay-none-air.glb",
       "dimensions": [
@@ -806,11 +1235,18 @@
       "slots": 4,
       "filter": "none",
       "cooling": "air",
-      "populated": false
+      "populated": false,
+      "isStartingModel": false,
+      "fanModelId": "fan-airflow-120",
+      "fanCount": 5,
+      "dustFilterEfficiencyPercent": 0,
+      "coolingCelsius": 8,
+      "coolingAirflowCfm": 270,
+      "coolingPowerWatts": 19.2
     },
     {
       "id": "rig-gameplay-mesh-air",
-      "name": "Rig 4 · Rete / Air Wall",
+      "name": "Rig 4 · Filtro magnetico a rete / Air Wall",
       "category": "rigs",
       "path": "assets/models/rigs/rig-gameplay-mesh-air.glb",
       "dimensions": [
@@ -823,11 +1259,18 @@
       "slots": 4,
       "filter": "mesh",
       "cooling": "air",
-      "populated": false
+      "populated": false,
+      "isStartingModel": false,
+      "fanModelId": "fan-airflow-120",
+      "fanCount": 5,
+      "dustFilterEfficiencyPercent": 55,
+      "coolingCelsius": 8,
+      "coolingAirflowCfm": 270,
+      "coolingPowerWatts": 19.2
     },
     {
       "id": "rig-gameplay-pleated-air",
-      "name": "Rig 4 · Cartuccia / Air Wall",
+      "name": "Rig 4 · Filtro a cartuccia pieghettata / Air Wall",
       "category": "rigs",
       "path": "assets/models/rigs/rig-gameplay-pleated-air.glb",
       "dimensions": [
@@ -840,11 +1283,18 @@
       "slots": 4,
       "filter": "pleated",
       "cooling": "air",
-      "populated": false
+      "populated": false,
+      "isStartingModel": false,
+      "fanModelId": "fan-airflow-120",
+      "fanCount": 5,
+      "dustFilterEfficiencyPercent": 78,
+      "coolingCelsius": 8,
+      "coolingAirflowCfm": 270,
+      "coolingPowerWatts": 19.2
     },
     {
       "id": "rig-gameplay-carbon-air",
-      "name": "Rig 4 · Doppio filtro / Air Wall",
+      "name": "Rig 4 · Filtro a doppio strato / Air Wall",
       "category": "rigs",
       "path": "assets/models/rigs/rig-gameplay-carbon-air.glb",
       "dimensions": [
@@ -857,11 +1307,18 @@
       "slots": 4,
       "filter": "carbon",
       "cooling": "air",
-      "populated": false
+      "populated": false,
+      "isStartingModel": false,
+      "fanModelId": "fan-airflow-120",
+      "fanCount": 5,
+      "dustFilterEfficiencyPercent": 88,
+      "coolingCelsius": 8,
+      "coolingAirflowCfm": 270,
+      "coolingPowerWatts": 19.2
     },
     {
       "id": "rig-gameplay-none-liquid",
-      "name": "Rig 4 · Aperto / Hydro",
+      "name": "Rig 4 · Senza filtro / Hydro Tower",
       "category": "rigs",
       "path": "assets/models/rigs/rig-gameplay-none-liquid.glb",
       "dimensions": [
@@ -874,11 +1331,18 @@
       "slots": 4,
       "filter": "none",
       "cooling": "liquid",
-      "populated": false
+      "populated": false,
+      "isStartingModel": false,
+      "fanModelId": "fan-airflow-120",
+      "fanCount": 5,
+      "dustFilterEfficiencyPercent": 0,
+      "coolingCelsius": 14,
+      "coolingAirflowCfm": 184,
+      "coolingPowerWatts": 17.6
     },
     {
       "id": "rig-gameplay-mesh-liquid",
-      "name": "Rig 4 · Rete / Hydro",
+      "name": "Rig 4 · Filtro magnetico a rete / Hydro Tower",
       "category": "rigs",
       "path": "assets/models/rigs/rig-gameplay-mesh-liquid.glb",
       "dimensions": [
@@ -891,11 +1355,18 @@
       "slots": 4,
       "filter": "mesh",
       "cooling": "liquid",
-      "populated": false
+      "populated": false,
+      "isStartingModel": false,
+      "fanModelId": "fan-airflow-120",
+      "fanCount": 5,
+      "dustFilterEfficiencyPercent": 55,
+      "coolingCelsius": 14,
+      "coolingAirflowCfm": 184,
+      "coolingPowerWatts": 17.6
     },
     {
       "id": "rig-gameplay-pleated-liquid",
-      "name": "Rig 4 · Cartuccia / Hydro",
+      "name": "Rig 4 · Filtro a cartuccia pieghettata / Hydro Tower",
       "category": "rigs",
       "path": "assets/models/rigs/rig-gameplay-pleated-liquid.glb",
       "dimensions": [
@@ -908,11 +1379,18 @@
       "slots": 4,
       "filter": "pleated",
       "cooling": "liquid",
-      "populated": false
+      "populated": false,
+      "isStartingModel": false,
+      "fanModelId": "fan-airflow-120",
+      "fanCount": 5,
+      "dustFilterEfficiencyPercent": 78,
+      "coolingCelsius": 14,
+      "coolingAirflowCfm": 184,
+      "coolingPowerWatts": 17.6
     },
     {
       "id": "rig-gameplay-carbon-liquid",
-      "name": "Rig 4 · Doppio filtro / Hydro",
+      "name": "Rig 4 · Filtro a doppio strato / Hydro Tower",
       "category": "rigs",
       "path": "assets/models/rigs/rig-gameplay-carbon-liquid.glb",
       "dimensions": [
@@ -925,7 +1403,14 @@
       "slots": 4,
       "filter": "carbon",
       "cooling": "liquid",
-      "populated": false
+      "populated": false,
+      "isStartingModel": false,
+      "fanModelId": "fan-airflow-120",
+      "fanCount": 5,
+      "dustFilterEfficiencyPercent": 88,
+      "coolingCelsius": 14,
+      "coolingAirflowCfm": 184,
+      "coolingPowerWatts": 17.6
     },
     {
       "id": "workbench",
@@ -941,6 +1426,19 @@
       "description": "Banco GLB con attrezzi, oscilloscopio e punti di montaggio per GPU e monete."
     },
     {
+      "id": "rig-workbench",
+      "name": "Banco manutenzione rig",
+      "category": "workshop",
+      "path": "assets/models/workshop/rig-workbench.glb",
+      "dimensions": [
+        6.12,
+        3.54,
+        4.519
+      ],
+      "bytes": 762528,
+      "description": "Postazione di servizio rinforzata con tappeto antistatico, morsetti e ricambi."
+    },
+    {
       "id": "tool-area",
       "name": "Area officina",
       "category": "environment",
@@ -950,7 +1448,7 @@
         0.14,
         18.065
       ],
-      "bytes": 445508,
+      "bytes": 428484,
       "description": "Pavimento e postazioni officina."
     },
     {
@@ -963,7 +1461,7 @@
         0.06,
         20.465
       ],
-      "bytes": 171468,
+      "bytes": 171464,
       "description": "Plot a sei slot, dimensionato per tutti i rig del catalogo."
     },
     {
@@ -976,7 +1474,7 @@
         0.145,
         5.465
       ],
-      "bytes": 98224,
+      "bytes": 96216,
       "description": "Piazzola compatibile con rig aperti, filtrati e con moduli esterni."
     },
     {

@@ -17,6 +17,7 @@ import { GAMEPLAY_RIG_MODEL_ID, GAMEPLAY_RIG_SETUP } from '../../src/app/config/
 import { RIG_COOLING_METHODS } from '../../src/app/config/cooling-config.ts';
 import { RIG_DUST_SYSTEMS } from '../../src/app/config/dust-filter-config.ts';
 import { createWorkbench } from './workshop/workbench-mesh.ts';
+import { createRigWorkbench } from './workshop/rig-workbench.ts';
 import { createToolArea } from './workshop/tool-area.ts';
 
 const references = [
@@ -252,6 +253,16 @@ export async function exportLibrary(save) {
     'workshop',
     bench.root,
     { description: 'Banco GLB con attrezzi, oscilloscopio e punti di montaggio per GPU e monete.' },
+    false,
+  );
+  await add(
+    'rig-workbench',
+    'Banco manutenzione rig',
+    'workshop',
+    createRigWorkbench(),
+    {
+      description: 'Postazione di servizio rinforzata con tappeto antistatico, morsetti e ricambi.',
+    },
     false,
   );
   await add(
