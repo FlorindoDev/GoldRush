@@ -600,18 +600,50 @@ button.primary {
   font-size: 12px;
   margin: 12px 0 20px;
 }
+.selected-copy {
+  margin: -12px 0 4px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.group-summary {
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
 .instance-picker {
   display: grid;
   gap: 6px;
-  max-height: 180px;
-  overflow-y: auto;
-  margin: -6px 0 18px;
+  margin: 16px 0 0;
 }
 .instance-picker > strong {
   margin-bottom: 2px;
   color: var(--muted);
   font-size: 11px;
   font-weight: 500;
+}
+.copy-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 10px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: #161c15;
+}
+.copy-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+}
+.copy-list {
+  display: grid;
+  gap: 6px;
+  max-height: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .instance-picker button {
   display: flex;
@@ -629,6 +661,11 @@ button.primary {
 .instance-picker button small {
   font-size: 10px;
 }
+.no-copies {
+  padding: 12px 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
 .item-detail dl > div {
   border-bottom: 1px solid #343d30;
   padding: 9px 0;
@@ -644,10 +681,16 @@ button.primary {
   color: #e7a58e;
 }
 .item-actions {
+  position: sticky;
+  bottom: -24px;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 24px;
+  margin: 20px -24px 0;
+  padding: 12px 24px;
+  border-top: 1px solid var(--line);
+  background: #1d241c;
 }
 .item-actions button {
   width: 100%;
@@ -739,7 +782,7 @@ button.primary {
     grid-template-columns: minmax(0, 1fr) 110px 25px;
   }
   .item-name img {
-    width: 45px;
+    width: 75px;
   }
   .inventory-list {
     padding: 0 12px 16px;

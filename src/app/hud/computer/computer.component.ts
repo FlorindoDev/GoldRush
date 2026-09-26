@@ -30,7 +30,7 @@ import { IconComponent } from '../icons/icon.component';
 import { ResearchThumbnails } from '../research-tree/research-thumbnails';
 
 type Application = 'desktop' | 'shop' | 'inventory';
-type StockFilter = 'all' | 'stock' | 'installed' | 'broken';
+type StockFilter = 'all' | 'stock' | 'installed' | 'stock-new' | 'stock-used' | 'broken';
 type InventorySort = 'name' | 'quantity-desc' | 'value-desc';
 
 @Component({
@@ -50,6 +50,7 @@ export class ComputerComponent implements OnDestroy {
   readonly stockFilter = signal<StockFilter>('all');
   readonly inventorySort = signal<InventorySort>('name');
   readonly selection = signal<string | null>(null);
+  readonly instanceSearch = signal('');
   readonly cart = signal<ReadonlyMap<string, number>>(new Map());
   readonly quantities = signal<ReadonlyMap<string, number>>(new Map());
   readonly feedback = signal('');
@@ -77,10 +78,7 @@ export class ComputerComponent implements OnDestroy {
     this.entries().filter(
       (entry) =>
         this.matches(entry.product) &&
-        (this.stockFilter() === 'all' ||
-          (this.stockFilter() === 'broken' && entry.condition === 'broken') ||
-          (this.stockFilter() === 'stock' && entry.stockId !== undefined) ||
-          (this.stockFilter() === 'installed' && entry.stockId === undefined)),
+        this.matchesInventoryFilter(entry),
     ),
   );
   readonly inventoryGroups = computed(() => {
@@ -104,6 +102,14 @@ export class ComputerComponent implements OnDestroy {
     const group = this.selectedGroup();
     return (
       group?.entries.find((entry) => entry.key === this.selection()) ?? group?.entries[0] ?? null
+    );
+  });
+  readonly visibleCopies = computed(() => {
+    const query = this.instanceSearch().trim().toLocaleLowerCase('it');
+    return (this.selectedGroup()?.entries ?? []).filter((entry) =>
+      `${this.copyLabel(entry)} ${this.copyDetails(entry)} ${entry.product.id}`
+        .toLocaleLowerCase('it')
+        .includes(query),
     );
   });
   readonly cartLines = computed(() =>
@@ -180,6 +186,7 @@ export class ComputerComponent implements OnDestroy {
   }
   selectGroup(group: InventoryGroup): void {
     this.selection.set(group.entries[0]?.key ?? null);
+    this.instanceSearch.set('');
     this.salePending.set(null);
   }
   money(value: number): string {
@@ -203,18 +210,12 @@ export class ComputerComponent implements OnDestroy {
           (categoryId === 'all' || product.category === categoryId) && this.matches(product, false),
       ).length;
     }
-    const filteredEntries = this.entries().filter((entry) => {
-      const matchesState =
-        this.stockFilter() === 'all' ||
-        (this.stockFilter() === 'broken' && entry.condition === 'broken') ||
-        (this.stockFilter() === 'stock' && entry.stockId !== undefined) ||
-        (this.stockFilter() === 'installed' && entry.stockId === undefined);
-      return (
-        matchesState &&
+    const filteredEntries = this.entries().filter(
+      (entry) =>
+        this.matchesInventoryFilter(entry) &&
         (categoryId === 'all' || entry.product.category === categoryId) &&
-        this.matches(entry.product, false)
-      );
-    });
+        this.matches(entry.product, false),
+    );
     return groupInventoryEntries(filteredEntries).length;
   }
   quantity(id: string): number {
@@ -261,27 +262,68 @@ export class ComputerComponent implements OnDestroy {
   conditionLabel(entry: InventoryEntry): string {
     return entry.condition === 'broken' ? 'Guasta' : entry.condition === 'used' ? 'Usato' : 'Nuovo';
   }
+  copyLabel(entry: InventoryEntry): string {
+    if (entry.gpuId !== undefined) return `GPU #${entry.gpuId}`;
+    if (entry.stockId !== undefined) return `Stock #${entry.stockId}`;
+    return entry.location;
+  }
+  copyDetails(entry: InventoryEntry): string {
+    const telemetry = entry.gpu
+      ? ` · Usura ${entry.gpu.wearPercent.toFixed(1)}% · Polvere ${entry.gpu.dustPercent.toFixed(1)}%`
+      : entry.quantity > 1
+        ? ` · ${entry.quantity} unità`
+        : '';
+    return `${this.conditionLabel(entry)} · ${entry.location}${telemetry}`;
+  }
+  stockQuantity(group: InventoryGroup): number {
+    return group.entries
+      .filter((entry) => entry.stockId !== undefined)
+      .reduce((sum, entry) => sum + entry.quantity, 0);
+  }
+  mountedQuantity(group: InventoryGroup): number {
+    return group.quantity - this.stockQuantity(group);
+  }
+  freeSlots(rigId: number): number {
+    const rig = this.rigs().find((entry) => entry.id === rigId);
+    return rig?.gpus.filter((gpu) => !gpu.unlocked).length ?? 0;
+  }
+  hasFreeSlot(rigId: number): boolean {
+    return this.freeSlots(rigId) > 0;
+  }
   resale(entry: InventoryEntry): number {
     const item = this.game.world().inventory.items.find((item) => item.id === entry.stockId);
     return item ? resaleValue(item) : 0;
   }
   sell(entry: InventoryEntry): void {
     if (entry.stockId === undefined) return;
-    this.perform(() => {
-      this.game.sellStock(entry.stockId!);
-      this.salePending.set(null);
-    }, 'Articolo venduto. Importo accreditato in euro.');
+    this.performEntryAction(
+      entry,
+      () => {
+        this.game.sellStock(entry.stockId!);
+        this.salePending.set(null);
+      },
+      'Articolo venduto. Importo accreditato in euro.',
+    );
   }
   store(entry: InventoryEntry): void {
     if (entry.gpuId === undefined) return;
-    this.perform(
+    this.performEntryAction(
+      entry,
       () => this.game.moveGpuToStock(entry.gpuId!),
       'GPU trasferita in magazzino. Lo slot nel RIG è libero.',
     );
   }
   mount(entry: InventoryEntry): void {
-    if (entry.stockId === undefined) return;
-    this.perform(
+    if (
+      entry.stockId === undefined ||
+      entry.condition === 'broken' ||
+      !entry.gpu ||
+      this.game.running() ||
+      !this.hasFreeSlot(this.targetRigId())
+    )
+      return;
+    this.performEntryAction(
+      entry,
       () => this.game.mountStockGpu(entry.stockId!, this.targetRigId()),
       'GPU montata nel RIG.',
     );
@@ -298,6 +340,41 @@ export class ComputerComponent implements OnDestroy {
         .toLocaleLowerCase('it')
         .includes(this.search().trim().toLocaleLowerCase('it'))
     );
+  }
+  private matchesInventoryFilter(entry: InventoryEntry): boolean {
+    switch (this.stockFilter()) {
+      case 'stock':
+        return entry.stockId !== undefined;
+      case 'installed':
+        return entry.stockId === undefined;
+      case 'stock-new':
+        return entry.stockId !== undefined && entry.condition === 'new';
+      case 'stock-used':
+        return entry.stockId !== undefined && entry.condition === 'used';
+      case 'broken':
+        return entry.condition === 'broken';
+      default:
+        return true;
+    }
+  }
+  private performEntryAction(entry: InventoryEntry, action: () => void, message: string): void {
+    const previousGroup = this.inventoryGroups().find((group) =>
+      group.entries.some((member) => member.key === entry.key),
+    );
+    const previousKeys = new Set(previousGroup?.entries.map((member) => member.key) ?? []);
+    const previousIndex = previousGroup?.entries.findIndex((member) => member.key === entry.key) ?? 0;
+
+    this.perform(action, message);
+    if (this.feedbackError()) return;
+
+    const nextGroup = this.inventoryGroups().find((group) => group.key === previousGroup?.key);
+    const nextEntry =
+      nextGroup?.entries.find((member) => member.key === entry.key) ??
+      nextGroup?.entries.find((member) => !previousKeys.has(member.key)) ??
+      nextGroup?.entries[Math.min(previousIndex, (nextGroup?.entries.length ?? 1) - 1)] ??
+      null;
+    this.selection.set(nextEntry?.key ?? null);
+    if (!nextEntry || nextEntry.key !== entry.key) this.instanceSearch.set('');
   }
   private perform(action: () => void, message: string): void {
     try {

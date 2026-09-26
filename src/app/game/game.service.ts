@@ -172,9 +172,9 @@ export class GameService {
     if (this.selectedGpuId() === id) this.selectedGpuId.set(null);
   }
 
-  mountStockGpu(id: number, rigId: number): void {
+  mountStockGpu(id: number, rigId: number, slotGpuId?: number): void {
     if (this.running()) throw new Error('Ferma il programma prima di montare una GPU.');
-    this.world.update((world) => installStockGpu(world, id, rigId));
+    this.world.update((world) => installStockGpu(world, id, rigId, slotGpuId));
   }
 
   replaceGpuFromStock(gpuId: number, stockId: number): void {

@@ -208,14 +208,21 @@ export function storeGpu(world: MiningWorld, gpuId: number): MiningWorld {
   };
 }
 
-export function installStockGpu(world: MiningWorld, stockId: number, rigId: number): MiningWorld {
+export function installStockGpu(
+  world: MiningWorld,
+  stockId: number,
+  rigId: number,
+  slotGpuId?: number,
+): MiningWorld {
   const item = world.inventory.items.find((entry) => entry.id === stockId);
   if (!item?.gpu || item.gpu.wearPercent >= 100)
     throw new Error('Serve una GPU funzionante in magazzino.');
   const rig = world.plots
     .flatMap((plot) => plot.rigs)
     .find((entry) => entry.id === rigId && entry.unlocked);
-  const slot = rig?.gpus.find((gpu) => !gpu.unlocked);
+  const slot = rig?.gpus.find(
+    (gpu) => !gpu.unlocked && (slotGpuId === undefined || gpu.id === slotGpuId),
+  );
   if (!slot) throw new Error('Nessuno slot libero nel RIG selezionato.');
   return {
     ...world,

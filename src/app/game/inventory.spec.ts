@@ -130,6 +130,14 @@ describe('Shop e magazzino', () => {
     expect(getGpu(after, 1).rigId).toBe(1);
     expect(() => installStockGpu(stored, 1, 36)).toThrow('slot libero');
   });
+  it('mounts stock into the requested empty GPU slot instead of the first free slot', () => {
+    const stored = storeGpu(storeGpu(createWorld(), 1), 2);
+    const mounted = installStockGpu(stored, 1, 1, 2);
+
+    expect(getGpu(mounted, 1).unlocked).toBe(false);
+    expect(getGpu(mounted, 2).unlocked).toBe(true);
+    expect(mounted.inventory.items).toHaveLength(1);
+  });
   it('rejects moving hardware while mining and clears stock on a new game', () => {
     const game = new GameService();
     game.world.set(buy(funded()));
