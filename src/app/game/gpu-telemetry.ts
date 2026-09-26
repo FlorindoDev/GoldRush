@@ -1,4 +1,5 @@
 import { GAME_BALANCE } from '../config/game-balance';
+import { GAMEPLAY_RIG_SETUP, type RigSetup } from '../config/rig-config';
 import type { GpuFanKit } from './gpu-maintenance';
 import {
   gpuMiningPowerWatts,
@@ -38,6 +39,7 @@ export function getGpuTelemetry(
   now = Date.now(),
   rigRunning = true,
   rigPoweredDownAt = now,
+  rigSetup: RigSetup = GAMEPLAY_RIG_SETUP,
 ): GpuTelemetry {
   const operational = !gpu || isGpuOperational(gpu);
   const powered = rigRunning;
@@ -47,8 +49,8 @@ export function getGpuTelemetry(
     powered && operational ? interpolate(idle.frequencyGhz, targetFrequencyGhz, load) : 0;
   const temperatureCelsius = gpu
     ? rigRunning
-      ? gpuTemperature(gpu, now)
-      : gpuTemperatureWhilePoweredDown(gpu, now, rigPoweredDownAt)
+      ? gpuTemperature(gpu, now, rigSetup)
+      : gpuTemperatureWhilePoweredDown(gpu, now, rigPoweredDownAt, rigSetup)
     : rigRunning
       ? interpolate(idle.temperatureCelsius, mining.temperatureCelsius, load)
       : 0;
@@ -78,8 +80,10 @@ export function getGpuTelemetry(
       powered && operational
         ? round(
             interpolate(
-              gpuIdlePowerWatts(),
-              gpu ? gpuMiningPowerWatts(gpu) : mining.powerWatts + rigAuxiliaryPowerWattsPerGpu(),
+              gpuIdlePowerWatts(rigSetup),
+              gpu
+                ? gpuMiningPowerWatts(gpu, rigSetup)
+                : mining.powerWatts + rigAuxiliaryPowerWattsPerGpu(rigSetup),
               load,
             ),
             2,

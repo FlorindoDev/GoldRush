@@ -4,6 +4,10 @@
   height: 100%;
 }
 .game-shell {
+  --hud-status-top: 24px;
+  --hud-controls-bottom: 24px;
+  --hud-overlay-gap: 16px;
+  --hud-status-area-height: max(48px, min(300px, calc(50dvh - 32px)));
   position: relative;
   width: 100%;
   height: 100dvh;
@@ -20,17 +24,25 @@ app-scene.world-scene {
 .status-panels {
   position: absolute;
   z-index: 24;
-  top: 24px;
+  top: var(--hud-status-top);
   left: 24px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(230px, 0.95fr);
   align-items: start;
   gap: 16px;
-  width: min(576px, calc(100vw - 48px));
-  pointer-events: none;
+  width: min(900px, calc(100vw - 48px));
+  pointer-events: auto;
 }
 .status-panels app-power {
+  display: contents;
   pointer-events: auto;
+}
+.status-panels > app-wallet {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: stretch;
+  justify-self: end;
+  max-width: 290px;
 }
 .utility-actions {
   position: absolute;
@@ -54,7 +66,7 @@ app-scene.world-scene {
 }
 .floating-window {
   position: fixed;
-  z-index: 20;
+  z-index: 31;
   pointer-events: auto;
 }
 .floating-window[hidden] {
@@ -186,6 +198,8 @@ dialog::backdrop {
   border-radius: 12px;
   background: #0d1117;
   color: var(--text);
+  user-select: text;
+  -webkit-user-select: text;
 }
 .guide-frame {
   display: flex;
@@ -259,7 +273,11 @@ dialog::backdrop {
   border-radius: 0;
   background: transparent;
   color: var(--muted);
-  font: 500 13px system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font:
+    500 13px system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
   cursor: pointer;
 }
 .guide-navigation button:hover {
@@ -751,10 +769,15 @@ dialog h3 {
   accent-color: var(--accent);
 }
 @media (max-width: 900px) {
+  .game-shell {
+    --hud-status-top: 14px;
+    --hud-controls-bottom: 216px;
+    --hud-overlay-gap: 12px;
+    --hud-status-area-height: max(48px, min(300px, calc(50dvh - 121px)));
+  }
   .status-panels {
-    top: 14px;
     left: 14px;
-    width: min(576px, calc(100vw - 28px));
+    width: min(900px, calc(100vw - 28px));
   }
   .utility-actions {
     top: 14px;
@@ -769,11 +792,29 @@ dialog h3 {
   }
 }
 @media (max-width: 600px) {
+  app-scene.world-scene {
+    z-index: auto;
+  }
+  .game-shell {
+    --hud-status-top: 54px;
+    --hud-controls-bottom: calc(min(170px, 23dvh) + 24px);
+    --hud-status-area-height: max(
+      48px,
+      calc(
+        100dvh - var(--hud-status-top) - var(--hud-controls-bottom) - var(--hud-overlay-gap) - 150px
+      )
+    );
+  }
   .status-panels {
-    top: 10px;
     left: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
     width: calc(100vw - 20px);
+  }
+  .status-panels > app-wallet {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-self: start;
   }
   .utility-actions {
     top: 10px;
@@ -842,9 +883,8 @@ dialog h3 {
 }
 @media (max-width: 440px) {
   .status-panels {
-    top: 54px;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
   .editor-window {
     top: 282px;

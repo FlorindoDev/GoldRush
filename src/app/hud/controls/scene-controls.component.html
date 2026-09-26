@@ -23,43 +23,46 @@
   <div
     class="hud-group rig-controls"
     role="group"
-    aria-label="Slot GPU e rig"
+    aria-label="Slot GPU e RIG"
   >
     <div class="hud-heading">
-      <span class="section-title"><app-icon name="rack" /> Rig</span>
+      <span class="section-title"><app-icon name="rack" /> RIG</span>
       <span
         class="rig-status"
         [attr.aria-label]="
           'Farm con ' +
           rigCapacity +
-          ' rig e ' +
+          ' RIG e ' +
           gpuCapacity +
           ' slot GPU. ' +
           game.unlockedRigCount() +
-          ' rig e ' +
+          ' RIG e ' +
           game.unlockedGpuCount() +
           ' GPU sbloccati.'
         "
-        title="Le GPU di un rig bloccato non sono utilizzabili"
+        title="Le GPU di un RIG bloccato non sono utilizzabili"
       >
-        {{ game.unlockedRigCount() }}/{{ rigCapacity }} rig
+        {{ game.unlockedRigCount() }}/{{ rigCapacity }} RIG
       </span>
     </div>
     <div
       class="rig-options"
       role="group"
-      aria-label="Rig nel plot"
+      aria-label="RIG nel plot"
     >
       @for (id of rigIds(); track id) {
         <button
           type="button"
           class="rig-choice"
           [class.locked]="!isRigUnlocked(id)"
-          [attr.aria-label]="'Visualizza Rig ' + id + (isRigUnlocked(id) ? '' : ' bloccato')"
+          [attr.aria-label]="'Seleziona RIG ' + id + (isRigUnlocked(id) ? '' : ' bloccato')"
           [attr.aria-pressed]="game.viewedRigId() === id"
           [disabled]="!isRigUnlocked(id)"
-          [title]="'Visualizza ' + (isRigUnlocked(id) ? 'Rig ' + id : 'slot Rig bloccato ' + id)"
+          aria-keyshortcuts="Alt+Enter"
+          [title]="rigTitle(id)"
           (click)="selectRig(id)"
+          (dblclick)="openRigWorkbench(id)"
+          (keydown)="handleRigKey($event, id)"
         >
           {{ id }}
         </button>
@@ -83,8 +86,8 @@
           [attr.aria-pressed]="game.selectedGpuId() === slot.id"
           aria-keyshortcuts="Alt+Enter"
           [title]="isGpuUnlocked(slot.id) ? null : 'GPU ' + gpuNumber(slot.id) + ' bloccata'"
-          (click)="game.select(slot.id)"
-          (dblclick)="game.inspectGpu(slot.id)"
+          (click)="selectGpu(slot.id)"
+          (dblclick)="inspectGpu(slot.id)"
           (keydown)="handleGpuKey($event, slot.id)"
         >
           @if (isGpuUnlocked(slot.id)) {
@@ -98,13 +101,30 @@
       }
     </div>
     <p class="gpu-interaction-hint">
-      @if (game.running()) {
-        Clic: seleziona · Banco disponibile a programma fermo
+      @if (game.inspectedRigId() !== null) {
+        Clic su un RIG per cambiarlo direttamente sul banco
+      } @else if (game.inspectedGpuId() !== null) {
+        Clic su una GPU per cambiarla direttamente sul banco
+      } @else if (focusedToolStationId() === 'rigWorkbench') {
+        Scegli un RIG qui o cliccalo nella scena; doppio clic per aprire il banco
+      } @else if (game.running()) {
+        Clic: seleziona · Banchi disponibili a programma fermo
       } @else {
         Clic: seleziona · Doppio clic: banco
       }
     </p>
-    @if (game.inspectedGpuId() !== null) {
+    @if (game.inspectedRigId() !== null) {
+      <button
+        type="button"
+        class="back-to-rig"
+        (click)="returnToRig()"
+        aria-label="Torna alla farm dal banco RIG"
+        title="Torna alla farm"
+      >
+        <app-icon name="arrow" />
+        Torna alla farm
+      </button>
+    } @else if (game.inspectedGpuId() !== null) {
       <button
         type="button"
         class="back-to-rig"
@@ -121,9 +141,13 @@
       aria-live="polite"
     >
       {{
-        game.inspectedGpuId() === null
-          ? 'Banco vuoto. Plot ' + game.viewedPlotId() + ' · Rig ' + game.viewedRigId()
-          : 'GPU ' + gpuNumber(game.inspectedGpuId()!) + ' sul banco'
+        game.inspectedRigId() !== null
+          ? 'RIG ' + game.inspectedRigId() + ' sul banco RIG'
+          : focusedToolStationId() === 'rigWorkbench'
+            ? 'Banco RIG vuoto'
+            : game.inspectedGpuId() === null
+              ? 'Banco vuoto. Plot ' + game.viewedPlotId() + ' · RIG ' + game.viewedRigId()
+              : 'GPU ' + gpuNumber(game.inspectedGpuId()!) + ' sul banco'
       }}
     </span>
   </div>

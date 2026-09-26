@@ -1,5 +1,5 @@
 :host {
-  --bench-accent: #e6c489;
+  --bench-accent: #b8f575;
   --bench-text: #f1f0e8;
   --bench-muted: #b9bcb2;
   --bench-line: #464c42;
@@ -230,7 +230,7 @@ h3 {
   text-align: left;
 }
 .service-button:hover:enabled {
-  background: #f0d4a5;
+  background: color-mix(in srgb, var(--bench-accent) 82%, white);
 }
 .service-button:disabled {
   color: var(--bench-muted);
@@ -311,7 +311,7 @@ footer {
 }
 .fan-kit[aria-pressed='true'] {
   color: var(--bench-accent);
-  background: #e6c4890c;
+  background: #b8f5750c;
   box-shadow: inset 3px 0 var(--bench-accent);
 }
 .fan-kit:hover:enabled {

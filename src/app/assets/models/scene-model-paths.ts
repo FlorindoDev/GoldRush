@@ -10,3 +10,5 @@ export const SCENE_MODEL_PATHS = {
   floor: 'assets/models/environment/world-floor.glb',
 } as const;
 export type SceneModelId = keyof typeof SCENE_MODEL_PATHS;
+
+export const RIG_WORKBENCH_MODEL_PATH = 'assets/models/workshop/rig-workbench.glb';

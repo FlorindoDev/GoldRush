@@ -1,5 +1,6 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { GAME_BALANCE } from '../config/game-balance';
+import type { RigSetup } from '../config/rig-config';
 import { delay, execute } from '../language/interpreter';
 import { ScriptError } from '../language/syntax';
 import { createWorldBindings } from './script-api/world-bindings';
@@ -22,9 +23,11 @@ import {
   BLOCK_REWARD,
   countUnlockedGpus,
   countUnlockedRigs,
+  configureRig,
   createWorld,
   farmPowerWatts,
   getGpu,
+  getRig,
   serviceGpu,
   setGpuWorkbenchState,
   recordGpuWork,
@@ -37,6 +40,7 @@ import {
   expandWorld,
   GPU_COUNT,
   isGpuUnlocked,
+  isRigUnlocked,
   mineGpu as mineGpuOnWorld,
   plotCount as worldPlotCount,
   plotIdForGpu,
@@ -82,6 +86,7 @@ export class GameService {
   readonly activeGpuId = computed(() => this.activeGpuIds()[0] ?? null);
   readonly selectedGpuId = signal<number | null>(null);
   readonly inspectedGpuId = signal<number | null>(null);
+  readonly inspectedRigId = signal<number | null>(null);
   readonly viewedRigId = signal(1);
   readonly viewedPlotId = signal(1);
   readonly rigCount = computed(() => rigCount(this.world()));
@@ -132,7 +137,7 @@ export class GameService {
     }
     this.started.set(true);
     this.log(
-      `Ambiente pronto. ${STARTING_RIG_COUNT} rig e ${STARTING_GPU_COUNT} GPU sbloccati; il resto della farm è bloccato.`,
+      `Ambiente pronto. ${STARTING_RIG_COUNT} RIG e ${STARTING_GPU_COUNT} GPU sbloccati; il resto della farm è bloccato.`,
       'success',
     );
     this.log('Esegui il codice per iniziare a minare.');
@@ -257,8 +262,7 @@ export class GameService {
             () => this.readElectricity(),
           ),
           print: (message) => this.log(message, 'output'),
-          mine: (parallelGroupId) =>
-            this.mineUnlockedGpus(controller.signal, parallelGroupId),
+          mine: (parallelGroupId) => this.mineUnlockedGpus(controller.signal, parallelGroupId),
           progress: () => this.selected().progress,
         },
         controller.signal,
@@ -418,12 +422,32 @@ export class GameService {
     }
   }
 
+  inspectRig(id: number): void {
+    if (this.running() || !isRigUnlocked(this.world(), id)) {
+      return;
+    }
+    this.returnToRig();
+    this.viewedRigId.set(id);
+    this.viewedPlotId.set(plotIdForRig(id));
+    this.selectedGpuId.set(null);
+    this.inspectedRigId.set(id);
+  }
+
+  configureInspectedRig(update: Partial<RigSetup>): void {
+    const rigId = this.inspectedRigId();
+    if (rigId === null || this.running()) {
+      throw new Error('Ferma il programma e seleziona un RIG sul banco.');
+    }
+    this.world.update((world) => configureRig(world, rigId, update));
+  }
+
   returnToRig(): void {
     const gpuId = this.inspectedGpuId();
     if (gpuId !== null) {
       this.world.update((world) => setGpuWorkbenchState(world, gpuId, false));
     }
     this.inspectedGpuId.set(null);
+    this.inspectedRigId.set(null);
   }
 
   serviceInspectedGpu(action: GpuMaintenanceAction): void {
@@ -481,23 +505,23 @@ export class GameService {
     this.logs.set([]);
   }
 
-  private async mineUnlockedGpus(
-    signal: AbortSignal,
-    parallelGroupId?: number,
-  ): Promise<void> {
+  private async mineUnlockedGpus(signal: AbortSignal, parallelGroupId?: number): Promise<void> {
     const world = this.world();
     const unlockedGpuIds = Array.from({ length: GPU_COUNT }, (_, index) => index + 1).filter(
       (gpuId) => isGpuUnlocked(world, gpuId),
     );
     const benchGpuIds = unlockedGpuIds.filter((gpuId) => getGpu(world, gpuId).onWorkbench);
     for (const gpuId of benchGpuIds) {
-      this.log(`GPU ${gpuId} al banco: mining ignorato. Rimontala nel rig.`, 'warning');
+      this.log(`GPU ${gpuId} al banco: mining ignorato. Rimontala nel RIG.`, 'warning');
     }
     const mountedGpuIds = unlockedGpuIds.filter((gpuId) => !getGpu(world, gpuId).onWorkbench);
     const gpuIds = mountedGpuIds.filter((gpuId) => {
       const gpu = getGpu(world, gpuId);
       if (gpu.stopped) {
-        this.log(`GPU ${gpuId} ferma: mining ignorato. Usa gpu.clearStop() per riavviarla.`, 'warning');
+        this.log(
+          `GPU ${gpuId} ferma: mining ignorato. Usa gpu.clearStop() per riavviarla.`,
+          'warning',
+        );
         return false;
       }
       if (!isGpuOperational(gpu)) {
@@ -652,7 +676,12 @@ export class GameService {
           ...rig,
           gpus: rig.gpus.map((gpu) => ({
             ...gpu,
-            temperatureCelsius: gpuTemperatureWhilePoweredDown(gpu, now, this.rigPoweredDownAt),
+            temperatureCelsius: gpuTemperatureWhilePoweredDown(
+              gpu,
+              now,
+              this.rigPoweredDownAt,
+              rig.setup,
+            ),
             lastUpdatedAt: now,
           })),
         })),
@@ -663,14 +692,16 @@ export class GameService {
   /** Telemetria della singola scheda, inclusi calore e usura dell'azione in corso. */
   gpuTelemetry(gpuId: number) {
     const now = Date.now();
-    const gpu = getGpu(this.world(), gpuId);
+    const world = this.world();
+    const gpu = getGpu(world, gpuId);
+    const rigSetup = getRig(world, gpu.rigId).setup;
     const action = this.miningActions().find((item) => item.gpuId === gpuId);
     if (!action) {
-      return getGpuTelemetry(0, gpu, now, this.running(), this.rigPoweredDownAt);
+      return getGpuTelemetry(0, gpu, now, this.running(), this.rigPoweredDownAt, rigSetup);
     }
     const fraction = Math.min(1, Math.max(0, (now - action.startedAt) / action.durationMs));
-    const projected = applyGpuWork(gpu, fraction, action.startedAt, now);
-    return getGpuTelemetry(1, projected, now, this.running(), this.rigPoweredDownAt);
+    const projected = applyGpuWork(gpu, fraction, action.startedAt, now, rigSetup);
+    return getGpuTelemetry(1, projected, now, this.running(), this.rigPoweredDownAt, rigSetup);
   }
 
   setGpuFrequencyGhz(gpuId: number, frequencyGhz: number): void {

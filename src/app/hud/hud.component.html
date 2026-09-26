@@ -1,10 +1,11 @@
 <main class="game-shell">
   <app-scene
+    #scene
     class="world-scene"
     (gpuHover)="hoveredGpu.set($event)"
   />
 
-  @if (game.inspectedGpuId() === null && hoveredGpu(); as hover) {
+  @if (game.inspectedGpuId() === null && game.inspectedRigId() === null && hoveredGpu(); as hover) {
     <app-gpu-tooltip [hover]="hover" />
   }
 
@@ -13,7 +14,9 @@
     <app-wallet />
   </div>
 
-  @if (game.inspectedGpuId(); as gpuId) {
+  @if (game.inspectedRigId() !== null) {
+    <app-rig-workbench (closeBench)="scene.setSelectedToolStationId(null)" />
+  } @else if (game.inspectedGpuId(); as gpuId) {
     @for (id of [gpuId]; track id) {
       <app-workbench />
     }
@@ -44,10 +47,10 @@
 
   <div
     class="floating-window editor-window"
-    [hidden]="game.inspectedGpuId() !== null"
+    [hidden]="game.inspectedGpuId() !== null || game.inspectedRigId() !== null"
     [style.left.px]="editorPosition()?.x ?? null"
     [style.top.px]="editorPosition()?.y ?? null"
-    [style.zIndex]="activeWindow() === 'editor' ? 22 : 21"
+    [style.zIndex]="activeWindow() === 'editor' ? 32 : 31"
     (pointerdown)="startWindowDrag($event, 'editor')"
     (pointermove)="moveWindow($event)"
     (pointerup)="stopWindowInteraction($event)"
@@ -86,10 +89,10 @@
   @if (!consoleDocked()) {
     <div
       class="floating-window console-window"
-      [hidden]="game.inspectedGpuId() !== null"
+      [hidden]="game.inspectedGpuId() !== null || game.inspectedRigId() !== null"
       [style.left.px]="consolePosition()?.x ?? null"
       [style.top.px]="consolePosition()?.y ?? null"
-      [style.zIndex]="activeWindow() === 'console' ? 22 : 20"
+      [style.zIndex]="activeWindow() === 'console' ? 32 : 31"
       (pointerdown)="startWindowDrag($event, 'console')"
       (pointermove)="moveWindow($event)"
       (pointerup)="stopWindowInteraction($event)"
@@ -236,9 +239,7 @@
           </ol>
           <div class="guide-examples">
             @for (example of examples; track example.name) {
-              <details
-                class="guide-example"
-              >
+              <details class="guide-example">
                 <summary>{{ example.name }}</summary>
                 <pre>{{ example.code }}</pre>
                 <button
@@ -262,8 +263,8 @@
             modello 3D per temperatura, usura, sporco e consumo. Da tastiera, Alt+Invio sul pulsante
             GPU la porta al banco. La farm ha {{ rigCapacity }} quadrati di sblocco e
             {{ gpuCapacity }} alloggiamenti GPU; all'avvio sono sbloccati
-            {{ balance.world.startingRigCount }} rig e {{ balance.world.startingGpuCount }} GPU.
-            Completare un blocco non sblocca rig o GPU. Usa “Torna al quadrato” per rimettere la
+            {{ balance.world.startingRigCount }} RIG e {{ balance.world.startingGpuCount }} GPU.
+            Completare un blocco non sblocca RIG o GPU. Usa “Torna al quadrato” per rimettere la
             scheda al suo posto. Trascina la barra del titolo per spostare editor e console. Puoi
             agganciare la console sotto l'editor o sganciarla per spostarla da sola. Ridimensiona le
             finestre dal manico nell'angolo. Per la console agganciata, trascina il bordo inferiore.
@@ -388,7 +389,7 @@
               Ricevi il premio in BTC simulati una sola volta per blocco. La corrente viene
               addebitata separatamente, ogni 24 ore di gioco. La chiamata successiva a
               <code>mine()</code>, oppure un nuovo avvio del programma, prepara il blocco seguente.
-              Rig e GPU rimangono gli stessi.
+              RIG e GPU rimangono gli stessi.
             </p>
           </aside>
           <h3
@@ -674,7 +675,7 @@ print("Progresso: " + progress());</pre>
             <a
               href="#gpu-rigs"
               (click)="goToGuideHeading($event, 'gpu-rigs')"
-              >Plot e rig</a
+              >Plot e RIG</a
             >
             <a
               href="#gpu-example"
@@ -690,8 +691,8 @@ print("Progresso: " + progress());</pre>
           </h3>
           <p>
             La farm è divisa in <strong>{{ plotCapacity }} plot</strong>, cioè aree. Ogni area
-            contiene <strong>{{ rigsPerPlot }} rig</strong>, le strutture che ospitano le schede.
-            Ogni rig ha <strong>{{ gpusPerRig }} slot GPU</strong>, per un totale di
+            contiene <strong>{{ rigsPerPlot }} RIG</strong>, le strutture che ospitano le schede.
+            Ogni RIG ha <strong>{{ gpusPerRig }} slot GPU</strong>, per un totale di
             {{ gpuCapacity }} posti.
           </p>
           <pre class="guide-code">let gpu = plots[0].rigs[0].gpus[0];</pre>
@@ -701,11 +702,11 @@ print("Progresso: " + progress());</pre>
               {{ plotCapacity - 1 }}.
             </li>
             <li>
-              <code>rigs[0]</code> sceglie il primo rig di quell'area. Indici validi: da 0 a
+              <code>rigs[0]</code> sceglie il primo RIG di quell'area. Indici validi: da 0 a
               {{ rigsPerPlot - 1 }}.
             </li>
             <li>
-              <code>gpus[0]</code> sceglie il primo slot di quel rig. Indici validi: da 0 a
+              <code>gpus[0]</code> sceglie il primo slot di quel RIG. Indici validi: da 0 a
               {{ gpusPerRig - 1 }}.
             </li>
           </ol>
@@ -722,9 +723,9 @@ print("Progresso: " + progress());</pre>
               <span>GPU disponibili all'inizio: {{ balance.world.startingGpuCount }}</span>
             </h3>
             <p>
-              Sono sbloccati {{ balance.world.startingRigCount }} rig e
+              Sono sbloccati {{ balance.world.startingRigCount }} RIG e
               {{ balance.world.startingGpuCount }} GPU. Puoi leggere anche gli slot bloccati, ma non
-              usarli per minare. Lo sblocco di altri rig e GPU non è ancora disponibile.
+              usarli per minare. Lo sblocco di altri RIG e GPU non è ancora disponibile.
             </p>
           </aside>
           <h3
@@ -751,7 +752,7 @@ print("Progresso: " + progress());</pre>
             <code>mine()</code> per completare un blocco. Ogni chiamata dura
             {{ balance.mining.actionDurationMs }} ms, oppure
             {{ balance.mining.actionDurationMs / 2 }} ms a velocità 2×. Contano GPU sbloccate,
-            operative e montate nei rig; le schede in stop vengono saltate. Usa
+            operative e montate nei RIG; le schede in stop vengono saltate. Usa
             <code>progress()</code> per fermare il ciclo.
           </p>
           <h3
@@ -765,14 +766,14 @@ print("Progresso: " + progress());</pre>
               <h4>Identificare la scheda</h4>
               <p>
                 <code>gpu.id</code>, <code>gpu.rigId</code> e <code>gpu.plotId</code> identificano
-                scheda, rig e plot.
+                scheda, RIG e plot.
               </p>
               <p><code>gpu.type</code> restituisce <code>GPU</code>.</p>
             </article>
             <article class="guide-entry">
               <h4>Sapere se può minare</h4>
               <p>
-                <code>gpu.unlocked</code> indica che GPU e rig sono sbloccati.
+                <code>gpu.unlocked</code> indica che GPU e RIG sono sbloccati.
                 <code>gpu.working</code> e <code>gpu.isWorking()</code> richiedono anche assenza di
                 stop e usura inferiore al 100%.
               </p>
@@ -1026,7 +1027,7 @@ print("Progresso: " + progress());</pre>
                 accumula con il mining e accelera il riscaldamento. Oltre il
                 {{ balance.gpu.dustDamage.wearThresholdPercent }}% aumenta anche l'usura. Il
                 pannello a destra del banco permette di pulire la scheda, sostituire pasta e pad,
-                scegliere il kit ventole e regolarne la velocità. Rimonta la GPU nel rig prima di
+                scegliere il kit ventole e regolarne la velocità. Rimonta la GPU nel RIG prima di
                 minare: l'attesa sul banco non riduce il tempo richiesto tra i cambi di pasta.
               </p>
             </article>
@@ -1051,7 +1052,7 @@ print("Progresso: " + progress());</pre>
                 Stop e riabilitazione della GPU si comandano solo dal codice, con
                 <code>gpu.stop()</code> e <code>gpu.clearStop()</code>. Gli script sono sequenziali:
                 una chiamata a <code>mine()</code> termina prima di eseguire la riga successiva. Il
-                pannello Corrente e GPU mostra le specifiche della scheda selezionata nel rig. Il
+                pannello GPU mostra le specifiche della scheda selezionata nel RIG. Il
                 pulsante Stop dell'editor interrompe il programma senza impostare lo stop della GPU:
                 l'azione interrotta conserva energia e usura parziali, senza progresso o premio.
               </p>
@@ -1061,10 +1062,10 @@ print("Progresso: " + progress());</pre>
             id="gpu-rigs"
             tabindex="-1"
           >
-            Consultare plot e rig
+            Consultare plot e RIG
           </h3>
           <p>
-            <code>gpuCount</code> conta le GPU utilizzabili, con scheda e rig sbloccati.
+            <code>gpuCount</code> conta le GPU utilizzabili, con scheda e RIG sbloccati.
             <code>gpuCapacity</code> conta tutti gli slot, anche quelli bloccati. Le raccolte
             <code>plots</code>, <code>rigs</code> e <code>gpus</code> sono di sola lettura.
           </p>
@@ -1072,7 +1073,7 @@ print("Progresso: " + progress());</pre>
             class="guide-details"
             open
           >
-            <summary>Attributi di plot e rig</summary>
+            <summary>Attributi di plot e RIG</summary>
             <dl class="guide-definition-list">
               <div>
                 <dt>Plot: <code>id</code>, <code>type</code></dt>
@@ -1080,35 +1081,35 @@ print("Progresso: " + progress());</pre>
               </div>
               <div>
                 <dt>Plot: <code>rigs</code></dt>
-                <dd>Vettore dei rig; scegli un elemento con <code>rigs[indice]</code>.</dd>
+                <dd>Vettore dei RIG; scegli un elemento con <code>rigs[indice]</code>.</dd>
               </div>
               <div>
                 <dt>
                   Plot: <code>rigCount</code>, <code>gpuCount</code>, <code>gpuCapacity</code>
                 </dt>
                 <dd>
-                  Numero totale di rig ({{ rigsPerPlot }}), GPU utilizzabili e slot totali ({{
+                  Numero totale di RIG ({{ rigsPerPlot }}), GPU utilizzabili e slot totali ({{
                     gpusPerPlot
                   }}).
                 </dd>
               </div>
               <div>
-                <dt>Rig: <code>id</code>, <code>plotId</code>, <code>type</code></dt>
+                <dt>RIG: <code>id</code>, <code>plotId</code>, <code>type</code></dt>
                 <dd>
-                  Identificativi del rig e dell'area a cui appartiene. Il tipo vale
+                  Identificativi del RIG e dell'area a cui appartiene. Il tipo vale
                   <code>rig</code>.
                 </dd>
               </div>
               <div>
-                <dt>Rig: <code>unlocked</code></dt>
-                <dd><code>true</code> se il rig è sbloccato, <code>false</code> altrimenti.</dd>
+                <dt>RIG: <code>unlocked</code></dt>
+                <dd><code>true</code> se il RIG è sbloccato, <code>false</code> altrimenti.</dd>
               </div>
               <div>
-                <dt>Rig: <code>gpus</code></dt>
+                <dt>RIG: <code>gpus</code></dt>
                 <dd>Vettore degli slot GPU; scegli una scheda con <code>gpus[indice]</code>.</dd>
               </div>
               <div>
-                <dt>Rig: <code>gpuCount</code>, <code>gpuCapacity</code></dt>
+                <dt>RIG: <code>gpuCount</code>, <code>gpuCapacity</code></dt>
                 <dd>Numero di GPU utilizzabili e slot totali ({{ gpusPerRig }}).</dd>
               </div>
             </dl>
@@ -1395,7 +1396,7 @@ obiettivo = obiettivo - <span class="token-number">20</span>;
                   <li><strong>Valore assente:</strong> <code>null</code>.</li>
                   <li><strong>Raccolte:</strong> vettori, pile e code, descritte in Funzioni.</li>
                   <li>
-                    <strong>Oggetti della farm:</strong> plot, rig e schede, descritti in GPU.
+                    <strong>Oggetti della farm:</strong> plot, RIG e schede, descritti in GPU.
                   </li>
                 </ul>
                 <p>

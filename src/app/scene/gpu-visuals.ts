@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { GPU_MODEL_PATH } from '../assets/models/gpu/gpu-model-path';
 import { GAME_BALANCE } from '../config/game-balance';
-import { GPU_COUNT, getGpu, isGpuUnlocked, type MiningWorld } from '../game/mining-world';
+import { GPU_COUNT, getGpu, getRig, isGpuUnlocked, type MiningWorld } from '../game/mining-world';
 import {
   gpuFanSpeedRatio,
   gpuMaxFanSpeedRpm,
@@ -11,6 +11,7 @@ import {
   type GpuOperatingState,
 } from '../game/gpu-operation';
 import type { GpuTelemetry } from '../game/gpu-telemetry';
+import type { RigSetup } from '../config/rig-config';
 import { GpuConditionEffects } from './gpu-condition-effects';
 import { easeTransition, transitionProgress } from './animation/scene-transition';
 import { fitGpuModel, styleGpuModel } from './models/gpu-model';
@@ -35,6 +36,7 @@ interface GpuVisual {
   fans: THREE.Object3D[];
   operational: boolean;
   state: GpuOperatingState;
+  rigSetup: RigSetup;
   effects?: GpuConditionEffects;
   mixer?: THREE.AnimationMixer;
   transfer?: GpuTransfer;
@@ -63,12 +65,51 @@ export class GpuVisuals {
     return Array.from(this.gpus.values(), (gpu) => gpu.root);
   }
 
+  createWorkbenchPreview(gpuId: number): THREE.Group {
+    const preview = this.template.clone(true);
+    preview.name = `gpu-workbench-preview-${gpuId}`;
+    const materials = new Map<THREE.Material, THREE.Material>();
+    const cloneMaterial = (material: THREE.Material): THREE.Material => {
+      let clone = materials.get(material);
+      if (!clone) {
+        clone = material.clone();
+        const mappedMaterial = clone as THREE.Material & { map?: THREE.Texture };
+        if (mappedMaterial.map) {
+          mappedMaterial.map = mappedMaterial.map.clone();
+          mappedMaterial.map.needsUpdate = true;
+        }
+        materials.set(material, clone);
+      }
+      return clone;
+    };
+    preview.traverse((object) => {
+      if (!(object instanceof THREE.Mesh || object instanceof THREE.LineSegments)) {
+        return;
+      }
+      object.geometry = object.geometry.clone();
+      object.material = Array.isArray(object.material)
+        ? object.material.map(cloneMaterial)
+        : cloneMaterial(object.material);
+      object.castShadow = object instanceof THREE.Mesh;
+      object.receiveShadow = object instanceof THREE.Mesh;
+    });
+    return preview;
+  }
+
   sync(world: MiningWorld, inspectedGpuId: number | null): void {
     for (const [id, gpu] of this.gpus) {
-      gpu.state = getGpu(world, id);
+      const state = getGpu(world, id);
+      gpu.state = state;
+      gpu.rigSetup = getRig(world, state.rigId).setup;
       gpu.operational = isGpuOperational(gpu.state);
       if (!isGpuUnlocked(world, id)) {
         this.removeGpu(id, gpu);
+        continue;
+      }
+      if (id !== this.inspectedGpuId && !gpu.transfer) {
+        const pose = this.homePose(id);
+        gpu.root.position.copy(pose.position);
+        gpu.root.quaternion.copy(pose.rotation);
       }
     }
 
@@ -83,7 +124,14 @@ export class GpuVisuals {
       root.position.copy(pose.position);
       root.quaternion.copy(pose.rotation);
       const state = getGpu(world, id);
-      const gpu: GpuVisual = { root, fans: [], state, operational: isGpuOperational(state) };
+      const rigSetup = getRig(world, state.rigId).setup;
+      const gpu: GpuVisual = {
+        root,
+        fans: [],
+        state,
+        rigSetup,
+        operational: isGpuOperational(state),
+      };
       this.attachModel(gpu);
       this.gpus.set(id, gpu);
       this.scene.add(root);
@@ -109,7 +157,7 @@ export class GpuVisuals {
       gpu.effects?.update(
         telemetry ?? {
           dustPercent: gpu.state.dustPercent,
-          temperatureCelsius: gpuTemperature(gpu.state, Date.now()),
+          temperatureCelsius: gpuTemperature(gpu.state, Date.now(), gpu.rigSetup),
           fanKit: gpu.state.fanKit,
         },
         delta,

@@ -38,7 +38,11 @@ export class SceneControlsComponent {
   readonly rigCapacity = RIG_COUNT;
   readonly toolStations = TOOL_STATIONS;
   readonly focusedToolStationId = computed(() =>
-    this.game.inspectedGpuId() !== null ? 'workbench' : this.selectedToolStationId(),
+    this.game.inspectedRigId() !== null
+      ? 'rigWorkbench'
+      : this.game.inspectedGpuId() !== null
+        ? 'workbench'
+        : this.selectedToolStationId(),
   );
   readonly plotIds = computed(() =>
     Array.from({ length: this.game.plotCount() }, (_, index) => index + 1),
@@ -75,10 +79,26 @@ export class SceneControlsComponent {
     return String(id).padStart(3, '0');
   }
 
+  rigTitle(id: number): string {
+    if (!this.isRigUnlocked(id)) {
+      return `Slot RIG bloccato ${id}`;
+    }
+    return this.game.inspectedRigId() !== null
+      ? 'Clic: cambia RIG sul banco'
+      : 'Clic: seleziona · Doppio clic: banco RIG';
+  }
+
   handleGpuKey(event: KeyboardEvent, id: number): void {
     if (event.altKey && event.key === 'Enter') {
       event.preventDefault();
-      this.game.inspectGpu(id);
+      this.inspectGpu(id);
+    }
+  }
+
+  handleRigKey(event: KeyboardEvent, id: number): void {
+    if (event.altKey && event.key === 'Enter') {
+      event.preventDefault();
+      this.openRigWorkbench(id);
     }
   }
 
@@ -100,8 +120,35 @@ export class SceneControlsComponent {
   }
 
   selectRig(id: number): void {
-    this.selectedToolStationIdChange.emit(null);
+    if (this.game.inspectedRigId() !== null) {
+      this.game.inspectRig(id);
+      return;
+    }
+    if (this.focusedToolStationId() !== 'rigWorkbench') {
+      this.selectedToolStationIdChange.emit(null);
+    }
     this.game.viewRig(id);
+  }
+
+  selectGpu(id: number): void {
+    if (this.game.inspectedGpuId() !== null) {
+      this.inspectGpu(id);
+      return;
+    }
+    this.game.select(id);
+  }
+
+  openRigWorkbench(id: number): void {
+    if (this.game.running() || !this.isRigUnlocked(id)) {
+      return;
+    }
+    this.selectedToolStationIdChange.emit('rigWorkbench');
+    this.game.inspectRig(id);
+  }
+
+  inspectGpu(id: number): void {
+    this.selectedToolStationIdChange.emit(null);
+    this.game.inspectGpu(id);
   }
 
   returnToRig(): void {

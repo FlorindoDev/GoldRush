@@ -1,10 +1,10 @@
-<details class="power-panel">
+<details class="power-panel electricity-panel">
   <summary>
     <app-icon
       class="power-bolt"
       name="bolt"
     />
-    <span class="power-title">Corrente e GPU</span>
+    <span class="power-title">Corrente</span>
     <app-icon
       class="power-chevron"
       name="down"
@@ -18,32 +18,52 @@
         <span class="reading-label">Da addebitare</span>
         <strong>{{ readings().pendingCostEur.toFixed(2) }} <small>€</small></strong>
       </span>
+      <span class="power-reading">
+        <span class="reading-label">Tariffa</span>
+        <strong>{{ readings().pricePerKwh.toFixed(2) }} <small>€/kWh</small></strong>
+      </span>
+      <span class="power-reading">
+        <span class="reading-label">Energia totale</span>
+        <strong>{{ readings().energyKwh.toFixed(3) }} <small>kWh</small></strong>
+      </span>
     </span>
   </summary>
   <div class="power-content">
-    <div class="meter-row">
-      <span>Tariffa</span><strong>{{ readings().pricePerKwh.toFixed(2) }} €/kWh</strong>
-    </div>
-    <div class="meter-row">
-      <span>Energia totale</span><strong>{{ readings().energyKwh.toFixed(3) }} kWh</strong>
-    </div>
     <p class="power-note">Bolletta ogni 24 ore di gioco. Consumo conteggiato durante il mining.</p>
+  </div>
+</details>
+
+<details class="power-panel gpu-panel">
+  <summary>
+    <app-icon
+      class="power-bolt"
+      name="gpu"
+    />
+    <span class="power-title">GPU</span>
+    <app-icon
+      class="power-chevron"
+      name="down"
+    />
+    @if (gpu(); as selectedGpu) {
+      <span class="device-heading">
+        <strong>GPU {{ selectedGpu.id }}</strong>
+        <span [class.stopped]="selectedGpu.stopped">{{
+          selectedGpu.stopped
+            ? 'FERMA'
+            : !game.running()
+              ? 'SPENTA'
+              : game.activeGpuIds().includes(selectedGpu.id)
+                ? 'MINING'
+                : 'PRONTA'
+        }}</span>
+      </span>
+    }
+  </summary>
+  <div class="power-content">
     @if (gpu(); as selectedGpu) {
       @if (telemetry(); as stats) {
         <section aria-label="Specifiche GPU selezionata">
-          <div class="gpu-heading">
-            <strong>GPU {{ selectedGpu.id }}</strong>
-            <span [class.stopped]="selectedGpu.stopped">{{
-              selectedGpu.stopped
-                ? 'FERMA'
-                : !game.running()
-                  ? 'SPENTA'
-                  : game.activeGpuIds().includes(selectedGpu.id)
-                    ? 'MINING'
-                    : 'PRONTA'
-            }}</span>
-          </div>
-          <p class="gpu-model">{{ stats.model }}</p>
+          <p class="panel-subtitle">{{ stats.model }}</p>
           <div class="meter-row">
             <span>Frequenza attuale</span><strong>{{ stats.frequencyGhz.toFixed(2) }} GHz</strong>
           </div>
@@ -56,6 +76,10 @@
           </div>
           <div class="meter-row">
             <span>Temperatura</span><strong>{{ stats.temperatureCelsius.toFixed(1) }} °C</strong>
+          </div>
+          <div class="meter-row cooling-gain">
+            <span>Riduzione RIG (CFM)</span
+            ><strong>−{{ gpuRigFanCoolingCelsius().toFixed(1) }} °C</strong>
           </div>
           <meter
             aria-label="Temperatura GPU"
@@ -109,7 +133,73 @@
         </section>
       }
     } @else {
-      <p class="gpu-empty">Seleziona una GPU nel rig per vedere le sue specifiche.</p>
+      <p class="panel-empty">Seleziona una GPU nel RIG per vedere le sue specifiche.</p>
+    }
+  </div>
+</details>
+
+<details class="power-panel rig-panel">
+  <summary>
+    <app-icon
+      class="power-bolt"
+      name="rack"
+    />
+    <span class="power-title">RIG</span>
+    <app-icon
+      class="power-chevron"
+      name="down"
+    />
+    @if (rig(); as selectedRig) {
+      <span class="device-heading">
+        <strong>RIG {{ selectedRig.id }}</strong>
+        <span>{{ game.running() ? 'ACCESO' : 'SPENTO' }}</span>
+      </span>
+    }
+  </summary>
+  <div class="power-content">
+    @if (rig(); as selectedRig) {
+      @if (rigDetails(); as specs) {
+        <section aria-label="Specifiche RIG selezionato">
+          <p class="panel-subtitle">Plot {{ selectedRig.plotId }}</p>
+          <div class="meter-row">
+            <span>Ventole</span
+            ><strong>{{ selectedRig.setup.fanCount }} × {{ specs.fan.name }}</strong>
+          </div>
+          <div class="meter-row">
+            <span>Flusso ventole</span><strong>{{ specs.fanAirflowCfm }} CFM</strong>
+          </div>
+          <div class="meter-row cooling-gain">
+            <span>Riduzione ventole (CFM)</span
+            ><strong>−{{ specs.fanCoolingCelsius.toFixed(1) }} °C/GPU</strong>
+          </div>
+          <p class="rig-cooling-note">Riduzione a regime per ogni GPU quando il RIG è acceso.</p>
+          <div class="meter-row">
+            <span>Filtro</span><strong>{{ specs.filter.name }}</strong>
+          </div>
+          <div class="meter-row">
+            <span>Efficienza filtro</span
+            ><strong>{{ specs.filter.filterEfficiencyPercent }}%</strong>
+          </div>
+          <div class="meter-row">
+            <span>Dissipazione</span><strong>{{ specs.cooling.name }}</strong>
+          </div>
+          <div class="meter-row">
+            <span>Flusso totale</span><strong>{{ specs.totalAirflowCfm }} CFM</strong>
+          </div>
+          <div class="meter-row">
+            <span>Riduzione modulo</span
+            ><strong
+              >{{ specs.cooling.coolingCelsius > 0 ? '−' : ''
+              }}{{ specs.cooling.coolingCelsius }} °C</strong
+            >
+          </div>
+          <div class="meter-row">
+            <span>Consumo moduli</span><strong>{{ specs.modulePowerWatts.toFixed(1) }} W</strong>
+          </div>
+        </section>
+      }
+    } @else {
+      <p class="panel-empty">Seleziona un RIG sbloccato per vedere le sue specifiche.</p>
     }
   </div>
 </details>

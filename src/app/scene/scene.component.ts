@@ -42,6 +42,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
       const mining = this.game.mining();
       const activeGpuIds = this.game.activeGpuIds();
       const inspectedGpuId = this.game.inspectedGpuId();
+      const inspectedRigId = this.game.inspectedRigId();
       const selectedGpuId = this.game.selectedGpuId();
       const viewedPlotId = this.game.viewedPlotId();
       const viewedRigId = this.game.viewedRigId();
@@ -51,6 +52,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
         world,
         mining,
         inspectedGpuId,
+        inspectedRigId,
         viewedPlotId,
         viewedRigId,
         cameraPreset,
@@ -69,11 +71,28 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
         assets.dispose();
         return;
       }
+      await assets.loadRigAssets();
+      if (this.destroyed) {
+        assets.dispose();
+        return;
+      }
       this.scene = new MiningScene(
         this.canvas().nativeElement,
         {
           select: (id) => this.game.select(id),
-          inspect: (id) => this.game.inspectGpu(id),
+          inspect: (id) => {
+            this.game.inspectGpu(id);
+            if (this.game.inspectedGpuId() === id) {
+              this.selectedToolStationId.set(null);
+            }
+          },
+          viewRig: (id) => this.game.viewRig(id),
+          inspectRig: (id) => {
+            this.game.inspectRig(id);
+            if (this.game.inspectedRigId() === id) {
+              this.selectedToolStationId.set('rigWorkbench');
+            }
+          },
           telemetry: (id) => this.game.gpuTelemetry(id),
           hover: (gpuId, x, y) => this.gpuHover.emit(gpuId === null ? null : { gpuId, x, y }),
         },
@@ -83,6 +102,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
         this.game.world(),
         this.game.mining(),
         this.game.inspectedGpuId(),
+        this.game.inspectedRigId(),
         this.game.viewedPlotId(),
         this.game.viewedRigId(),
         this.cameraPreset(),
@@ -90,7 +110,8 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
         this.game.activeGpuIds(),
         this.game.selectedGpuId(),
       );
-    } catch {
+    } catch (error) {
+      console.error('Impossibile inizializzare la scena 3D.', error);
       assets?.dispose();
       if (!this.destroyed) {
         this.unavailable.set(true);

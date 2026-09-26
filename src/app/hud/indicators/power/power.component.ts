@@ -6,8 +6,12 @@ import {
   OnDestroy,
   signal,
 } from '@angular/core';
+import { RIG_COOLING_METHODS } from '../../../config/cooling-config';
+import { RIG_DUST_SYSTEMS } from '../../../config/dust-filter-config';
+import { FAN_MODELS_BY_ID } from '../../../config/fan-config';
 import { GameService } from '../../../game/game.service';
-import { getGpu, isGpuUnlocked } from '../../../game/mining-world';
+import { rigFanCoolingCelsius } from '../../../game/gpu-operation';
+import { getGpu, getRig, isGpuUnlocked, isRigUnlocked } from '../../../game/mining-world';
 import { IconComponent } from '../../icons/icon.component';
 
 @Component({
@@ -34,6 +38,34 @@ export class PowerComponent implements OnDestroy {
     this.tick();
     const gpu = this.gpu();
     return gpu ? this.game.gpuTelemetry(gpu.id) : null;
+  });
+  readonly gpuRigFanCoolingCelsius = computed(() => {
+    const gpu = this.gpu();
+    return gpu ? rigFanCoolingCelsius(getRig(this.game.world(), gpu.rigId).setup) : 0;
+  });
+  readonly rig = computed(() => {
+    const id = this.game.viewedRigId();
+    const world = this.game.world();
+    return isRigUnlocked(world, id) ? getRig(world, id) : null;
+  });
+  readonly rigDetails = computed(() => {
+    const rig = this.rig();
+    if (!rig) {
+      return null;
+    }
+    const fan = FAN_MODELS_BY_ID[rig.setup.fanId];
+    const cooling = RIG_COOLING_METHODS[rig.setup.coolingMethodId];
+    const filter = RIG_DUST_SYSTEMS[rig.setup.dustSystemId];
+    const fanAirflowCfm = fan.airflowCfm * rig.setup.fanCount;
+    return {
+      fan,
+      cooling,
+      filter,
+      fanAirflowCfm,
+      totalAirflowCfm: fanAirflowCfm + cooling.airflowCfm,
+      fanCoolingCelsius: rigFanCoolingCelsius(rig.setup),
+      modulePowerWatts: fan.powerWatts * rig.setup.fanCount + cooling.extraPowerWatts,
+    };
   });
 
   ngOnDestroy(): void {

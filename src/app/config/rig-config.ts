@@ -2,18 +2,22 @@ import type { FanModelId } from './fan-config';
 import type { RigCoolingMethodId } from './cooling-config';
 import type { RigDustSystemId } from './dust-filter-config';
 
+export interface RigSetup {
+  readonly dustSystemId: RigDustSystemId;
+  readonly coolingMethodId: RigCoolingMethodId;
+  readonly fanId: FanModelId;
+  readonly fanCount: number;
+}
+
+export const MAX_RIG_FANS = 5;
+
 /** Configura ventole, filtro e raffreddamento del rig iniziale. */
 export const GAMEPLAY_RIG_SETUP = {
   dustSystemId: 'none',
   coolingMethodId: 'none',
   fanId: 'fan-airflow-120',
-  fanCount: 5,
-} as const satisfies {
-  dustSystemId: RigDustSystemId;
-  coolingMethodId: RigCoolingMethodId;
-  fanId: FanModelId;
-  fanCount: number;
-};
+  fanCount: MAX_RIG_FANS,
+} as const satisfies RigSetup;
 
 export const RIG_FAN_TUNING = {
   coolingCelsiusPerCfm: 0.01,

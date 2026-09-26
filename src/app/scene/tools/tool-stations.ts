@@ -16,8 +16,13 @@ interface ToolStationDefinition {
 const TOOL_STATION_DEFINITIONS = {
   workbench: {
     id: 'workbench',
-    label: 'Workbench',
+    label: 'Banco GPU',
     ...GAME_BALANCE.toolStations.workbench,
+  },
+  rigWorkbench: {
+    id: 'rigWorkbench',
+    label: 'Banco RIG',
+    ...GAME_BALANCE.toolStations.rigWorkbench,
   },
 } as const satisfies Record<string, ToolStationDefinition>;
 

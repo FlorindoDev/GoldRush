@@ -1,0 +1,246 @@
+@if (rig(); as card) {
+  @if (setup(); as current) {
+    <aside
+      class="rig-bench-panel"
+      aria-labelledby="rig-bench-title"
+    >
+      <header class="bench-heading">
+        <span>Officina</span>
+        <button
+          type="button"
+          class="close-button"
+          aria-label="Chiudi banco RIG e torna alla farm"
+          (click)="close()"
+        >
+          <app-icon name="close" />
+        </button>
+      </header>
+
+      <div class="bench-body">
+        <div class="card-identity">
+          <h2 id="rig-bench-title">
+            RIG <span>{{ card.id.toString().padStart(3, '0') }}</span>
+          </h2>
+          <p>Plot {{ card.plotId }} · configurazione indipendente</p>
+        </div>
+
+        <dl
+          class="diagnostics"
+          aria-label="Specifiche RIG"
+        >
+          <div class="reading">
+            <dt>Flusso</dt>
+            <dd>{{ current.airflowCfm }}<small>CFM</small></dd>
+            <meter
+              min="0"
+              [max]="maxAirflowCfm"
+              [value]="current.airflowCfm"
+              aria-label="Flusso RIG"
+            ></meter>
+          </div>
+          <div class="reading">
+            <dt>Filtro</dt>
+            <dd>{{ current.filter.filterEfficiencyPercent }}<small>%</small></dd>
+            <meter
+              min="0"
+              max="100"
+              [value]="current.filter.filterEfficiencyPercent"
+              aria-label="Efficienza filtro"
+            ></meter>
+          </div>
+          <div class="reading">
+            <dt>Potenza</dt>
+            <dd>{{ current.powerWatts.toFixed(0) }}<small>W</small></dd>
+            <meter
+              min="0"
+              [max]="maxPowerWatts"
+              [value]="current.powerWatts"
+              aria-label="Potenza moduli RIG"
+            ></meter>
+          </div>
+        </dl>
+
+        <div
+          class="interventions"
+          role="group"
+          aria-label="Componenti RIG"
+        >
+          <button
+            type="button"
+            class="intervention"
+            [class.active]="selected() === 'fan'"
+            [attr.aria-pressed]="selected() === 'fan'"
+            aria-controls="rig-component-details"
+            (click)="select('fan')"
+          >
+            Ventole
+          </button>
+          <button
+            type="button"
+            class="intervention"
+            [class.active]="selected() === 'filter'"
+            [attr.aria-pressed]="selected() === 'filter'"
+            aria-controls="rig-component-details"
+            (click)="select('filter')"
+          >
+            Filtro
+          </button>
+          <button
+            type="button"
+            class="intervention"
+            [class.active]="selected() === 'cooling'"
+            [attr.aria-pressed]="selected() === 'cooling'"
+            aria-controls="rig-component-details"
+            (click)="select('cooling')"
+          >
+            Dissipazione
+          </button>
+        </div>
+
+        <section
+          id="rig-component-details"
+          class="intervention-details"
+          aria-label="Configurazione componente RIG"
+        >
+          @switch (selected()) {
+            @case ('fan') {
+              <h3>Ventole del RIG</h3>
+              <p>Scegli modello e quantità. Flusso e consumo cambiano subito.</p>
+              <div class="quantity-heading">
+                <span>Ventole installate</span>
+                <strong>{{ current.fanCount }}/{{ fanCounts.length }}</strong>
+              </div>
+              <div
+                class="fan-counts"
+                role="group"
+                aria-label="Numero ventole RIG"
+              >
+                @for (count of fanCounts; track count) {
+                  <button
+                    type="button"
+                    class="count-choice"
+                    [attr.aria-pressed]="current.fanCount === count"
+                    [disabled]="game.running()"
+                    (click)="changeFanCount(count)"
+                  >
+                    {{ count }}
+                  </button>
+                }
+              </div>
+              <div
+                class="component-options"
+                role="group"
+                aria-label="Modello ventole RIG"
+              >
+                @for (fan of fanModels; track fan.id) {
+                  <button
+                    type="button"
+                    class="component-choice"
+                    [attr.aria-pressed]="current.fanId === fan.id"
+                    [disabled]="game.running()"
+                    (click)="changeFan(fan.id)"
+                  >
+                    <span class="choice-copy">
+                      <strong>{{ fan.name }}</strong>
+                      <span class="choice-specs"
+                        >{{ fan.diameterMm }} mm · {{ fan.rpm }} rpm · {{ fan.airflowCfm }} CFM ·
+                        {{ fan.powerWatts }} W</span
+                      >
+                    </span>
+                    @if (current.fanId === fan.id) {
+                      <app-icon name="check" />
+                    }
+                  </button>
+                }
+              </div>
+            }
+            @case ('filter') {
+              <h3>Filtro antipolvere</h3>
+              <p>Riduce polvere sulle GPU. Filtri più fitti aumentano resistenza al flusso.</p>
+              <div
+                class="component-options"
+                role="group"
+                aria-label="Tipo filtro RIG"
+              >
+                @for (option of filterOptions; track option[0]) {
+                  <button
+                    type="button"
+                    class="component-choice"
+                    [attr.aria-pressed]="current.dustSystemId === option[0]"
+                    [disabled]="game.running()"
+                    (click)="changeFilter(option[0])"
+                  >
+                    <span class="choice-copy">
+                      <strong>{{ option[1].name }}</strong>
+                      <span class="choice-specs"
+                        >{{ option[1].filterEfficiencyPercent }}% polvere · +{{
+                          option[1].airflowResistanceCelsius
+                        }}
+                        °C resistenza</span
+                      >
+                    </span>
+                    @if (current.dustSystemId === option[0]) {
+                      <app-icon name="check" />
+                    }
+                  </button>
+                }
+              </div>
+            }
+            @case ('cooling') {
+              <h3>Dissipazione esterna</h3>
+              <p>Moduli aggiuntivi per ridurre temperatura e aumentare flusso.</p>
+              <div
+                class="component-options"
+                role="group"
+                aria-label="Tipo dissipazione RIG"
+              >
+                @for (option of coolingOptions; track option[0]) {
+                  <button
+                    type="button"
+                    class="component-choice"
+                    [attr.aria-pressed]="current.coolingMethodId === option[0]"
+                    [disabled]="game.running()"
+                    (click)="changeCooling(option[0])"
+                  >
+                    <span class="choice-copy">
+                      <strong>{{ option[1].name }}</strong>
+                      <span class="choice-specs"
+                        >−{{ option[1].coolingCelsius }} °C · +{{ option[1].airflowCfm }} CFM · +{{
+                          option[1].extraPowerWatts
+                        }}
+                        W</span
+                      >
+                    </span>
+                    @if (current.coolingMethodId === option[0]) {
+                      <app-icon name="check" />
+                    }
+                  </button>
+                }
+              </div>
+            }
+          }
+          @if (game.running()) {
+            <p class="locked-note">Ferma il programma per modificare il RIG.</p>
+          }
+        </section>
+        <p
+          class="feedback"
+          [class.error]="feedbackError()"
+          role="status"
+        >
+          {{ feedback() }}
+        </p>
+      </div>
+
+      <footer>
+        <button
+          type="button"
+          class="return-button"
+          (click)="close()"
+        >
+          <app-icon name="arrow" /><span>Torna alla farm</span>
+        </button>
+      </footer>
+    </aside>
+  }
+}

@@ -14,9 +14,10 @@ export interface GpuMiningRig {
   readonly root: THREE.Group;
   readonly slots: readonly RigSlot[];
   readonly fans: readonly THREE.Object3D[];
+  readonly setupKey: string;
 }
 
-export function createGpuMiningRig(id: number, model: THREE.Group): GpuMiningRig {
+export function createGpuMiningRig(id: number, model: THREE.Group, setupKey = ''): GpuMiningRig {
   fitRigInSlot(model);
   const root = new THREE.Group();
   root.name = 'gpu-mining-rig';
@@ -51,7 +52,7 @@ export function createGpuMiningRig(id: number, model: THREE.Group): GpuMiningRig
     root.add(outline);
     return { position, orientation, outline, indicator, cable };
   });
-  return { root, slots, fans };
+  return { root, slots, fans, setupKey };
 }
 
 export function createRigPlot(id: number, model: THREE.Group): THREE.Group {

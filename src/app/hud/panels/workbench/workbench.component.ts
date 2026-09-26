@@ -77,7 +77,7 @@ export class WorkbenchComponent implements OnDestroy {
     if (gpu) {
       this.perform(
         () => this.game.clearGpuStop(gpu.id),
-        'Arresto rimosso. Scheda pronta per il rig.',
+        'Arresto rimosso. Scheda pronta per il RIG.',
       );
     }
   }

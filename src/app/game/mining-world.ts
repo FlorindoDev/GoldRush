@@ -1,4 +1,8 @@
 import { GAME_BALANCE } from '../config/game-balance';
+import { GAMEPLAY_RIG_SETUP, MAX_RIG_FANS, type RigSetup } from '../config/rig-config';
+import { FAN_MODELS_BY_ID } from '../config/fan-config';
+import { RIG_COOLING_METHODS } from '../config/cooling-config';
+import { RIG_DUST_SYSTEMS } from '../config/dust-filter-config';
 import { maintainGpu, type GpuMaintenanceAction } from './gpu-maintenance';
 import {
   applyGpuWork,
@@ -36,6 +40,7 @@ export interface MiningRig {
   readonly id: number;
   readonly plotId: number;
   readonly unlocked: boolean;
+  readonly setup: RigSetup;
   readonly gpus: readonly MiningGpu[];
 }
 
@@ -94,7 +99,13 @@ export function createPlots(): MiningPlot[] {
         plotId,
         unlocked: (rigId - 1) * GPUS_PER_RIG + gpuIndex + 1 <= STARTING_GPU_COUNT,
       }));
-      return { id: rigId, plotId, unlocked: rigId <= STARTING_RIG_COUNT, gpus };
+      return {
+        id: rigId,
+        plotId,
+        unlocked: rigId <= STARTING_RIG_COUNT,
+        setup: { ...GAMEPLAY_RIG_SETUP },
+        gpus,
+      };
     });
     return { id: plotId, rigs };
   });
@@ -197,13 +208,21 @@ export function getGpu(world: MiningWorld, gpuId: number): MiningGpu {
   ];
 }
 
+export function getRig(world: MiningWorld, rigId: number): MiningRig {
+  if (!Number.isInteger(rigId) || rigId < 1 || rigId > RIG_COUNT) {
+    throw new Error('RIG inesistente.');
+  }
+  const plot = world.plots[plotIdForRig(rigId) - 1];
+  return plot.rigs[(rigId - 1) % RIGS_PER_PLOT];
+}
+
 export function requireOperationalGpu(world: MiningWorld, gpuId: number): MiningGpu {
   if (!isGpuUnlocked(world, gpuId)) {
     throw new Error('Serve una GPU sbloccata per minare.');
   }
   const gpu = getGpu(world, gpuId);
   if (gpu.onWorkbench) {
-    throw new Error(`GPU ${gpuId} sul banco. Rimontala nel rig prima di mine().`);
+    throw new Error(`GPU ${gpuId} sul banco. Rimontala nel RIG prima di mine().`);
   }
   if (!isGpuOperational(gpu)) {
     throw new Error(
@@ -219,7 +238,7 @@ function updateGpu(
   update: (gpu: MiningGpu) => GpuOperatingState,
 ): MiningWorld {
   if (!isGpuUnlocked(world, gpuId)) {
-    throw new Error('GPU o rig bloccato.');
+    throw new Error('GPU o RIG bloccato.');
   }
   return {
     ...world,
@@ -255,12 +274,47 @@ export function setGpuWorkbenchState(
   onWorkbench: boolean,
   now = Date.now(),
 ): MiningWorld {
-  return updateGpu(world, gpuId, (gpu) => ({
-    ...gpu,
-    temperatureCelsius: gpuTemperature(gpu, now),
-    onWorkbench,
-    lastUpdatedAt: now,
-  }));
+  return updateGpu(world, gpuId, (gpu) => {
+    const rigSetup = getRig(world, gpu.rigId).setup;
+    return {
+      ...gpu,
+      temperatureCelsius: gpuTemperature(gpu, now, rigSetup),
+      onWorkbench,
+      lastUpdatedAt: now,
+    };
+  });
+}
+
+export function configureRig(
+  world: MiningWorld,
+  rigId: number,
+  update: Partial<RigSetup>,
+): MiningWorld {
+  if (!isRigUnlocked(world, rigId)) {
+    throw new Error('RIG bloccato o inesistente.');
+  }
+  const rig = getRig(world, rigId);
+  const setup = { ...rig.setup, ...update };
+  if (!Object.hasOwn(FAN_MODELS_BY_ID, setup.fanId)) {
+    throw new Error('Modello ventola non disponibile.');
+  }
+  if (!Object.hasOwn(RIG_DUST_SYSTEMS, setup.dustSystemId)) {
+    throw new Error('Filtro antipolvere non disponibile.');
+  }
+  if (!Object.hasOwn(RIG_COOLING_METHODS, setup.coolingMethodId)) {
+    throw new Error('Dissipazione non disponibile.');
+  }
+  if (!Number.isInteger(setup.fanCount) || setup.fanCount < 1 || setup.fanCount > MAX_RIG_FANS) {
+    throw new Error(`Il numero di ventole deve essere tra 1 e ${MAX_RIG_FANS}.`);
+  }
+
+  return {
+    ...world,
+    plots: world.plots.map((plot) => ({
+      ...plot,
+      rigs: plot.rigs.map((item) => (item.id === rigId ? { ...item, setup } : item)),
+    })),
+  };
 }
 
 export function setGpuFanSpeed(
@@ -280,7 +334,9 @@ export function stopGpu(world: MiningWorld, gpuId: number): MiningWorld {
 }
 
 export function resumeGpu(world: MiningWorld, gpuId: number, now = Date.now()): MiningWorld {
-  return updateGpu(world, gpuId, (gpu) => clearGpuStop(gpu, now));
+  return updateGpu(world, gpuId, (gpu) =>
+    clearGpuStop(gpu, now, getRig(world, gpu.rigId).setup),
+  );
 }
 
 export function recordGpuWork(
@@ -299,7 +355,10 @@ export function recordGpuWork(
     (farmPowerWatts(world, activeGpus) / activeGpus.length / 1000) *
     GAME_BALANCE.economy.simulatedHoursPerAction *
     fraction;
-  const updated = updateGpu(world, gpuId, (gpu) => applyGpuWork(gpu, fraction, startedAt, endedAt));
+  const rigSetup = getRig(world, rigIdForGpu(gpuId)).setup;
+  const updated = updateGpu(world, gpuId, (gpu) =>
+    applyGpuWork(gpu, fraction, startedAt, endedAt, rigSetup),
+  );
   return {
     ...updated,
     electricity: {
@@ -329,7 +388,9 @@ export function farmPowerWatts(
           gpu.unlocked &&
           (activeIds.has(gpu.id) || (!gpu.onWorkbench && isGpuOperational(gpu)))
         ) {
-          watts += activeIds.has(gpu.id) ? gpuMiningPowerWatts(gpu) : gpuIdlePowerWatts();
+          watts += activeIds.has(gpu.id)
+            ? gpuMiningPowerWatts(gpu, rig.setup)
+            : gpuIdlePowerWatts(rig.setup);
         }
       }
     }

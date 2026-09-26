@@ -27,6 +27,7 @@ import { PowerComponent } from './indicators/power/power.component';
 import { GpuTooltipComponent, type GpuHover } from './indicators/gpu-tooltip/gpu-tooltip.component';
 import { IconComponent } from './icons/icon.component';
 import { WorkbenchComponent } from './panels/workbench/workbench.component';
+import { RigWorkbenchComponent } from './panels/rig-workbench/rig-workbench.component';
 
 type WindowName = 'editor' | 'console';
 type GuideSection = 'examples' | 'functions' | 'gpu' | 'energy' | 'constructs' | 'shortcuts';
@@ -81,6 +82,7 @@ const SHORTCUT_GROUPS = [
     GpuTooltipComponent,
     IconComponent,
     WorkbenchComponent,
+    RigWorkbenchComponent,
   ],
   templateUrl: './hud.component.html',
   styleUrl: './hud.component.css',

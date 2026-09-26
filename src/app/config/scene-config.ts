@@ -110,4 +110,9 @@ export const TOOL_STATIONS_CONFIG = {
     focusTargetOffset: [-0.2, 1.65, 0] as const,
     cameraOffset: [5.5, 5, 10] as const,
   },
+  rigWorkbench: {
+    slotIndex: 1,
+    focusTargetOffset: [0, 1.38, 0] as const,
+    cameraOffset: [7.5, 6, 10] as const,
+  },
 } as const;

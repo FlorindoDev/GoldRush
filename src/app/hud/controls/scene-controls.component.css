@@ -4,13 +4,18 @@
 
 .scene-hud {
   position: absolute;
+  z-index: 26;
   left: 24px;
-  bottom: 24px;
+  bottom: var(--hud-controls-bottom);
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   width: 252px;
   max-width: calc(100% - 48px);
-  max-height: calc(100dvh - 128px);
+  max-height: calc(
+    100dvh - var(--hud-status-top) - var(--hud-status-area-height) - var(--hud-overlay-gap) -
+      var(--hud-controls-bottom)
+  );
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 16px;
@@ -296,20 +301,11 @@
   white-space: nowrap;
 }
 
-@media (max-width: 900px) {
-  .scene-hud {
-    bottom: 216px;
-    max-height: calc(100dvh - 320px);
-  }
-}
-
 @media (max-width: 600px) {
   .scene-hud {
     left: 12px;
-    bottom: calc(min(170px, 23dvh) + 24px);
     width: 212px;
     max-width: calc(100% - 24px);
-    max-height: 150px;
     padding: 12px;
   }
 }

@@ -1,4 +1,8 @@
 :host {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
   position: relative;
   z-index: 24;
   width: 100%;
@@ -6,9 +10,10 @@
 }
 .bitcoin-counter {
   display: flex;
-  gap: 12px;
+  flex: 1;
+  gap: 10px;
   align-items: center;
-  padding: 13px 16px;
+  padding: 8px 14px;
   border: 1px solid #b8f57538;
   border-radius: 12px;
   background: #131b16ed;
@@ -24,7 +29,7 @@
 }
 .wallet-amount {
   display: grid;
-  gap: 4px;
+  gap: 2px;
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
 }
@@ -51,8 +56,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 2px;
-  padding: 5px 8px;
+  margin-top: 0;
+  padding: 4px 8px;
   border: 1px solid #344134;
   border-radius: 4px;
   background: #0d130f;
