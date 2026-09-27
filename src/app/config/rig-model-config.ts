@@ -7,9 +7,6 @@ export interface RigModel {
   readonly filter: 'none' | 'mesh';
   readonly cooling: 'none' | 'air' | 'liquid' | 'bracket';
   readonly priceEur: number;
-  readonly researchCostEur: number;
-  readonly parentId: string;
-  readonly requiredNodeIds: readonly string[];
   readonly description: string;
 }
 
@@ -44,25 +41,6 @@ export const RIG_MODELS: readonly RigModel[] = ([4, 8] as const)
       filter: variant.filter,
       cooling: variant.cooling,
       priceEur: basePrice + variant.extra,
-      researchCostEur:
-        variant.suffix === 'none'
-          ? slots === 4
-            ? 0
-            : 350
-          : (slots === 4 ? 60 : 180) + variant.extra,
-      parentId:
-        variant.suffix === 'none'
-          ? slots === 4
-            ? 'rig'
-            : 'rig-gameplay'
-          : variant.suffix.startsWith('filtered-')
-            ? `rig-${slots}-frame-${variant.cooling}`
-            : baseId,
-      requiredNodeIds: [
-        ...(variant.filter === 'mesh' ? ['filter-mesh'] : []),
-        ...(variant.cooling === 'air' ? ['fan-pressure-140'] : []),
-        ...(variant.cooling === 'liquid' ? [`rig-${slots}-frame-air`] : []),
-      ],
       description: `Telaio da ${slots} GPU. ${variant.filter === 'mesh' ? 'Filtro a rete incluso.' : 'Senza filtro.'} ${variant.cooling === 'none' ? 'Senza supporto esterno.' : variant.cooling === 'air' ? 'Modulo esterno a ventole incluso.' : 'Pompa e radiatore esterni inclusi.'} GPU e ventole del telaio acquistabili separatamente.`,
     }));
   })
@@ -74,9 +52,6 @@ export const RIG_MODELS: readonly RigModel[] = ([4, 8] as const)
       filter: 'none',
       cooling: 'bracket',
       priceEur: 235,
-      researchCostEur: 200,
-      parentId: 'rig-8-frame-none',
-      requiredNodeIds: [],
       description:
         'Telaio da otto GPU con supporto esterno vuoto. Senza filtro, pompa o radiatore.',
     },

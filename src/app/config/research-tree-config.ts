@@ -1,4 +1,3 @@
-import { RIG_MODELS } from './rig-model-config';
 import { CRYPTO_CONFIG } from './crypto-config';
 
 /** Albero della ricerca. `children` crea i collegamenti; `requirements` aggiunge vincoli extra. */
@@ -22,26 +21,6 @@ export interface ResearchNode {
 }
 
 const model = (folder: string, id: string) => `assets/models/${folder}/${id}.glb`;
-
-function rigResearchBranch(id: string): ResearchNode {
-  const rig = RIG_MODELS.find((entry) => entry.id === id)!;
-  return {
-    id: rig.id,
-    name: rig.name,
-    category: 'rig',
-    model: model('rigs', rig.id),
-    description: rig.description,
-    costEur: rig.researchCostEur,
-    initiallyUnlocked: id === 'rig-gameplay',
-    requirements: [
-      ...rig.requiredNodeIds.map((id): ResearchRequirement => ({ kind: 'node', id })),
-      ...(id === 'rig-8-frame-none' ? [{ kind: 'rigs' as const, count: 2 }] : []),
-    ],
-    children: RIG_MODELS.filter((entry) => entry.parentId === id).map((entry) =>
-      rigResearchBranch(entry.id),
-    ),
-  };
-}
 
 /** Ogni valuta richiede la precedente; configurazione economica unica in crypto-config. */
 function cryptoResearchBranch(index: number): ResearchNode {
@@ -70,6 +49,7 @@ export const RESEARCH_TREE: ResearchNode = {
   costEur: 0,
   initiallyUnlocked: true,
   children: [
+    // ─────────────────── GPU ───────────────────
     {
       id: 'gpu',
       name: 'Schede video',
@@ -187,6 +167,7 @@ export const RESEARCH_TREE: ResearchNode = {
         },
       ],
     },
+    // ───────────────── Ventole ─────────────────
     {
       id: 'fan',
       name: 'Ventole',
@@ -342,6 +323,7 @@ export const RESEARCH_TREE: ResearchNode = {
         },
       ],
     },
+    // ─────────────────── RIG ───────────────────
     {
       id: 'rig',
       name: 'RIG',
@@ -350,8 +332,81 @@ export const RESEARCH_TREE: ResearchNode = {
       description: 'Telai aperti, supporti esterni e varianti filtrate.',
       costEur: 0,
       initiallyUnlocked: true,
-      children: [rigResearchBranch('rig-gameplay')],
+      children: [
+        {
+          id: 'rig-gameplay',
+          name: 'RIG 4 · Telaio base',
+          category: 'rig',
+          model: model('rigs', 'rig-gameplay'),
+          description: 'Telaio aperto da quattro GPU, disponibile all’inizio della partita.',
+          costEur: 0,
+          initiallyUnlocked: true,
+          children: [
+            {
+              id: 'rig-4-frame-filtered',
+              name: 'RIG 4 · Solo filtro',
+              category: 'rig',
+              model: model('rigs', 'rig-4-frame-filtered'),
+              description: 'Telaio da quattro GPU con filtro a rete incluso e senza raffreddamento esterno.',
+              costEur: 80,
+              requirements: [{ kind: 'node', id: 'filter-mesh' }],
+            },
+            {
+              id: 'rig-4-frame-liquid',
+              name: 'RIG 4 · Liquido esterno',
+              category: 'rig',
+              model: model('rigs', 'rig-4-frame-liquid'),
+              description: 'Telaio da otto GPU con pompa e radiatore esterni.',
+              costEur: 250,
+              requirements: [{ kind: 'node', id: 'rig-4-frame-air' }],
+              children: [],
+            },
+            {
+              id: 'rig-4-frame-air',
+              name: 'RIG 4 · Aria esterna',
+              category: 'rig',
+              model: model('rigs', 'rig-4-frame-air'),
+              description: 'Telaio da quattro GPU con modulo di raffreddamento ad aria esterno.',
+              costEur: 170,
+              requirements: [{ kind: 'node', id: 'fan-pressure-140' }],
+              children: [],
+            },
+            {
+              id: 'rig-8-frame-none',
+              name: 'RIG 8 · Telaio base',
+              category: 'rig',
+              model: model('rigs', 'rig-8-frame-none'),
+              description: 'Telaio aperto da otto GPU.',
+              costEur: 350,
+              requirements: [{ kind: 'rigs', count: 2 }],
+              children: [
+                {
+                  id: 'rig-8-frame-air',
+                  name: 'RIG 8 · Aria esterna',
+                  category: 'rig',
+                  model: model('rigs', 'rig-8-frame-air'),
+                  description: 'Telaio da otto GPU con modulo di raffreddamento ad aria esterno.',
+                  costEur: 290,
+                  requirements: [{ kind: 'node', id: 'fan-pressure-140' }],
+                  children: [],
+                },
+                {
+                  id: 'rig-8-frame-liquid',
+                  name: 'RIG 8 · Liquido esterno',
+                  category: 'rig',
+                  model: model('rigs', 'rig-8-frame-liquid'),
+                  description: 'Telaio da otto GPU con pompa e radiatore esterni.',
+                  costEur: 400,
+                  requirements: [{ kind: 'node', id: 'rig-8-frame-air' }],
+                  children: [],
+                }
+              ],
+            },
+          ],
+        },
+      ],
     },
+    // ────────────────── Filtri ──────────────────
     {
       id: 'filter',
       name: 'Filtri',
@@ -394,6 +449,7 @@ export const RESEARCH_TREE: ResearchNode = {
         },
       ],
     },
+    // ─────────────── Criptovalute ───────────────
     {
       id: 'crypto',
       name: 'Criptovalute',
