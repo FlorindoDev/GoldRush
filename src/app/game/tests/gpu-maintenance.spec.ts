@@ -97,7 +97,7 @@ describe('GPU maintenance', () => {
     expect(automatic.temperatureCelsius).toBeLessThan(nominal.temperatureCelsius);
   });
 
-  it('computes wear from configured frequency, heat, dust and modest fan protection', () => {
+  it('computes wear from configured frequency, heat, dust and fan wear increase', () => {
     const model = GPU_MODELS_BY_ID['gpu-compact'];
     const gpu = {
       ...createGpuOperatingState(model.id),
@@ -121,10 +121,10 @@ describe('GPU maintenance', () => {
         (worked.temperatureCelsius / model.specifications.mining.temperatureCelsius) **
           formula.heatStressExponent *
         dustWearMultiplier(dustLoad * 100, model.specifications.dustDamage) *
-        (1 - formula.fanWearProtectionAtFullSpeed);
+        (1 + formula.fanWearIncreaseAtFullSpeed);
 
     expect(worked.wearPercent).toBeCloseTo(expectedWear);
-    expect(formula.fanWearProtectionAtFullSpeed).toBeLessThan(0.1);
+    expect(formula.fanWearIncreaseAtFullSpeed).toBeGreaterThan(0);
   });
 
   it('cleans only dust without repairing wear, cancelling faults or resetting service hours', () => {

@@ -347,10 +347,16 @@ export const GPU_RUNTIME_CONFIG = {
   automaticFanCurve: {
     fullSpeedMarginCelsius: 5,
   },
+  thermalThrottle: {
+    startTemperatureCelsius: 82,
+  },
+  heatingResponse: {
+    frequencyExponent: 1,
+  },
   wearFormula: {
     frequencyExponent: 2,
     heatStressExponent: 2,
-    fanWearProtectionAtFullSpeed: 0.08,
+    fanWearIncreaseAtFullSpeed: 0.08,
   },
   maintenance: {
     thermalServiceIntervalHours: 24,

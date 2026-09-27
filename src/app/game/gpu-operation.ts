@@ -90,10 +90,12 @@ export function rigFanCoolingCelsius(rigSetup: RigSetup): number {
 export function gpuMiningPowerWatts(
   gpu: GpuOperatingState,
   rigSetup: RigSetup = GAMEPLAY_RIG_SETUP,
+  temperatureCelsius = gpu.temperatureCelsius,
 ): number {
   const { mining } = GPU_MODELS_BY_ID[gpu.modelId].specifications;
+  const frequencyGhz = gpuEffectiveFrequencyGhz(gpu, temperatureCelsius);
   return (
-    mining.powerWatts * (gpu.targetFrequencyGhz / mining.frequencyGhz) ** 2 +
+    mining.powerWatts * (frequencyGhz / mining.frequencyGhz) ** 2 +
     config.fanKits[gpu.fanKit].extraPowerWatts +
     rigAuxiliaryPowerWattsPerGpu(rigSetup)
   );
@@ -156,6 +158,23 @@ export function gpuCurrentFanSpeedPercent(
 ): number {
   if (gpuMaxFanSpeedRpm(gpu.fanKit, gpu.modelId) === 0) return 0;
   return gpu.targetFanSpeedPercent ?? gpuAutomaticFanSpeedPercent(gpu, temperatureCelsius);
+}
+
+export function gpuEffectiveFrequencyGhz(
+  gpu: GpuOperatingState,
+  temperatureCelsius = gpu.temperatureCelsius,
+): number {
+  const { limits } = GPU_MODELS_BY_ID[gpu.modelId].specifications;
+  const throttleStart = config.thermalThrottle.startTemperatureCelsius;
+  if (temperatureCelsius <= throttleStart) return gpu.targetFrequencyGhz;
+
+  const throttleRange = limits.temperatureCelsius - throttleStart;
+  if (throttleRange <= 0) return limits.minFrequencyGhz;
+
+  const throttleProgress = Math.min(1, (temperatureCelsius - throttleStart) / throttleRange);
+  return (
+    gpu.targetFrequencyGhz + (limits.minFrequencyGhz - gpu.targetFrequencyGhz) * throttleProgress
+  );
 }
 
 /** Se profilo nominale è 0%, usa 100% come riferimento ed evita divisione per zero. */
@@ -232,7 +251,9 @@ export function applyGpuWork(
   rigSetup: RigSetup = GAMEPLAY_RIG_SETUP,
 ): GpuOperatingState {
   const specifications = GPU_MODELS_BY_ID[gpu.modelId].specifications;
-  const ratio = gpu.targetFrequencyGhz / specifications.mining.frequencyGhz;
+  const initialTemperature = gpuTemperature(gpu, startedAt, rigSetup);
+  const frequencyGhz = gpuEffectiveFrequencyGhz(gpu, initialTemperature);
+  const ratio = frequencyGhz / specifications.mining.frequencyGhz;
   const workedHours = economy.simulatedHoursPerAction * fraction;
   const dustPercent = Math.min(
     100,
@@ -243,7 +264,6 @@ export function applyGpuWork(
         workedHours,
   );
   const dustLoad = (gpu.dustPercent + dustPercent) / 200;
-  const initialTemperature = gpuTemperature(gpu, startedAt, rigSetup);
   const nominalFanSpeed = GPU_MODELS_BY_ID[gpu.modelId].specifications.mining.fanSpeedPercent;
   const fanSpeedPercent = gpuCurrentFanSpeedPercent(gpu, initialTemperature);
   const fanCooling = (nominalFanSpeed - fanSpeedPercent) * config.fanCoolingCelsiusPerPercent;
@@ -260,14 +280,15 @@ export function applyGpuWork(
     config.fanKits[gpu.fanKit].coolingCelsius * fanSpeedRatio -
     rigCoolingMethod.coolingCelsius -
     rigFanCoolingCelsius(rigSetup);
+  const heatingSpeedMultiplier =
+    ratio ** config.heatingResponse.frequencyExponent *
+    (1 + dustLoad * specifications.dustDamage.maxHeatingResponseBonus);
   const response =
-    1 -
-    (1 - specifications.thermalResponsePerAction) **
-      (fraction * (1 + dustLoad * specifications.dustDamage.maxHeatingResponseBonus));
+    1 - (1 - specifications.thermalResponsePerAction) ** (fraction * heatingSpeedMultiplier);
   const temperatureCelsius = initialTemperature + (equilibrium - initialTemperature) * response;
   const heatStress = Math.max(1, temperatureCelsius / specifications.mining.temperatureCelsius);
   const wearFormula = config.wearFormula;
-  const fanWearProtection = (fanSpeedPercent / 100) * wearFormula.fanWearProtectionAtFullSpeed;
+  const fanWearIncrease = (fanSpeedPercent / 100) * wearFormula.fanWearIncreaseAtFullSpeed;
   const wearPercent = Math.min(
     100,
     gpu.wearPercent +
@@ -276,7 +297,7 @@ export function applyGpuWork(
         ratio ** wearFormula.frequencyExponent *
         heatStress ** wearFormula.heatStressExponent *
         dustWearMultiplier(dustLoad * 100, specifications.dustDamage) *
-        (1 - fanWearProtection),
+        (1 + fanWearIncrease),
   );
   const fault =
     wearPercent >= 100

@@ -6,6 +6,7 @@ import {
   gpuMiningPowerWatts,
   gpuIdlePowerWatts,
   gpuCurrentFanSpeedPercent,
+  gpuEffectiveFrequencyGhz,
   gpuMaxFanSpeedRpm,
   rigAuxiliaryPowerWattsPerGpu,
   gpuTemperature,
@@ -47,8 +48,6 @@ export function getGpuTelemetry(
   const powered = rigRunning;
   const load = powered && operational ? Math.min(1, Math.max(0, workload)) : 0;
   const targetFrequencyGhz = gpu?.targetFrequencyGhz ?? mining.frequencyGhz;
-  const frequencyGhz =
-    powered && operational ? interpolate(idle.frequencyGhz, targetFrequencyGhz, load) : 0;
   const temperatureCelsius = gpu
     ? rigRunning
       ? gpuTemperature(gpu, now, rigSetup)
@@ -56,6 +55,11 @@ export function getGpuTelemetry(
     : rigRunning
       ? interpolate(idle.temperatureCelsius, mining.temperatureCelsius, load)
       : 0;
+  const effectiveFrequencyGhz = gpu
+    ? gpuEffectiveFrequencyGhz(gpu, temperatureCelsius)
+    : targetFrequencyGhz;
+  const frequencyGhz =
+    powered && operational ? interpolate(idle.frequencyGhz, effectiveFrequencyGhz, load) : 0;
   const fanKit = gpu?.fanKit ?? 'stock';
   const maxFanSpeedRpm = gpuMaxFanSpeedRpm(fanKit, gpu?.modelId);
   const modelIdleFanSpeed = gpu
@@ -80,7 +84,7 @@ export function getGpuTelemetry(
             interpolate(
               gpuIdlePowerWatts(rigSetup, gpu?.modelId),
               gpu
-                ? gpuMiningPowerWatts(gpu, rigSetup)
+                ? gpuMiningPowerWatts(gpu, rigSetup, temperatureCelsius)
                 : mining.powerWatts + rigAuxiliaryPowerWattsPerGpu(rigSetup),
               load,
             ),

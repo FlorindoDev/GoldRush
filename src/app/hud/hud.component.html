@@ -782,13 +782,17 @@
             blocco attivo della propria cripto alla frequenza di base ({{
               balance.gpu.mining.frequencyGhz
             }}
-            GHz). Ogni cripto conserva progressi, numerazione e difficoltà separati. Per esempio,
-            Bitcoin parte da {{ balance.world.cryptoBlockDifficulty.bitcoin.startingMultiplier }},
-            aumenta di {{ balance.world.cryptoBlockDifficulty.bitcoin.increasePerMinedBlock }} per
-            blocco e arriva al massimo di
-            {{ balance.world.cryptoBlockDifficulty.bitcoin.maxMultiplier }}. Le difficoltà di
-            ciascuna cripto sono in <code>config/world-config.ts</code>; prezzo in euro e quantità
-            per blocco sono in <code>config/crypto-config.ts</code>.
+            GHz). Potenza base GPU scala con <code>basePowerPerGpu</code> ({{
+              balance.mining.basePowerPerGpu
+            }}x); la frequenza effettiva amplifica output con esponente
+            <code>frequencyPowerExponent</code> ({{ balance.mining.frequencyPowerExponent }}).
+            Entrambi modificabili in <code>config/world-config.ts</code>. Ogni cripto conserva
+            progressi, numerazione e difficoltà separati. Per esempio, Bitcoin parte da
+            {{ balance.world.cryptoBlockDifficulty.bitcoin.startingMultiplier }}, aumenta di
+            {{ balance.world.cryptoBlockDifficulty.bitcoin.increasePerMinedBlock }} per blocco e
+            arriva al massimo di {{ balance.world.cryptoBlockDifficulty.bitcoin.maxMultiplier }}. Le
+            difficoltà di ciascuna cripto sono in <code>config/world-config.ts</code>; prezzo in
+            euro e quantità per blocco sono in <code>config/crypto-config.ts</code>.
           </p>
           <app-guide-code [source]="guideCode.gpuMining" />
           <p>
@@ -1041,7 +1045,10 @@
               <p>
                 Frequenza impostata, conservata anche a riposo o in stop. Attributo:
                 <code>targetFrequencyGhz</code>. <code>getFrequencyGhz()</code> indica invece quella
-                attuale: {{ balance.gpu.idle.frequencyGhz }} GHz a riposo, zero in stop.
+                attuale: {{ balance.gpu.idle.frequencyGhz }} GHz a riposo, zero in stop. Da 82 °C il
+                thermal throttling riduce gradualmente la frequenza effettiva fino al minimo al
+                limite termico. Frequenza e sporco accelerano la salita termica; regola
+                <code>heatingResponse.frequencyExponent</code> in <code>config/gpu-config.ts</code>.
               </p>
             </article>
           </div>

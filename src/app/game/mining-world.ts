@@ -16,6 +16,7 @@ import {
   applyGpuWork,
   clearGpuStop,
   createGpuOperatingState,
+  gpuEffectiveFrequencyGhz,
   gpuIdlePowerWatts,
   gpuMiningPowerWatts,
   gpuTemperature,
@@ -210,6 +211,13 @@ export function mineGpu(
   activeGpuIds: readonly number[] = [gpuId],
 ): MiningWorld {
   const gpu = requireOperationalGpu(world, gpuId);
+  const rigSetup = getRig(world, gpu.rigId).setup;
+  const frequencyGhz = gpuEffectiveFrequencyGhz(gpu, gpuTemperature(gpu, startedAt, rigSetup));
+  const frequencyMultiplier =
+    (frequencyGhz / GAME_BALANCE.gpu.mining.frequencyGhz) **
+    GAME_BALANCE.mining.frequencyPowerExponent;
+  const miningPower =
+    MINE_PROGRESS_PER_GPU * GAME_BALANCE.mining.basePowerPerGpu * frequencyMultiplier;
   const chain = getCryptoChain(world, gpu.cryptoId);
   const block = chain.blocks.find((item) => item.id === chain.selectedId)!;
   if (block.progress >= 100 && activeGpuIds.length < 2) {
@@ -221,12 +229,7 @@ export function mineGpu(
   }
   const blocksAlreadyMined = chain.blocks.filter((item) => item.progress === 100).length;
   const difficulty = getBlockDifficulty(blocksAlreadyMined, gpu.cryptoId);
-  const progress = Math.min(
-    100,
-    block.progress +
-      (MINE_PROGRESS_PER_GPU * gpu.targetFrequencyGhz) /
-        (GAME_BALANCE.gpu.mining.frequencyGhz * difficulty),
-  );
+  const progress = Math.min(100, block.progress + miningPower / difficulty);
   const result = withCryptoChain(worked, gpu.cryptoId, {
     ...chain,
     blocks: chain.blocks.map((item) => (item.id === block.id ? { ...item, progress } : item)),

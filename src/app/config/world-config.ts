@@ -21,4 +21,6 @@ export const WORLD_CONFIG = {
 
 export const MINING_CONFIG = {
   actionDurationMs: 850,
+  basePowerPerGpu: 1,
+  frequencyPowerExponent: 1,
 } as const;
