@@ -73,7 +73,10 @@
       </div>
       <div class="receipt-row electricity">
         <span
-          >Consumo <small>{{ bill.energyKwh.toFixed(2) }} kWh</small></span
+          >Consumo
+          <small
+            >{{ bill.energyKwh.toFixed(2) }} kWh · {{ bill.priceEurPerKwh.toFixed(2) }} €/kWh</small
+          ></span
         >
         <strong>−{{ formatEuros(toEuros(bill.electricitySatoshis)) }}</strong>
       </div>

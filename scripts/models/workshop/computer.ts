@@ -84,7 +84,7 @@ export function createComputer(): THREE.Group {
     }
     ctx.fillStyle = '#a5ad9e';
     ctx.font = '12px Segoe UI, sans-serif';
-    ctx.fillText('BLOCKCRAFT', 36, 331);
+    ctx.fillText('GoldRush', 36, 331);
   });
   const screen = new THREE.Mesh(
     new THREE.PlaneGeometry(1.78, 1.001),

@@ -1,6 +1,6 @@
 import { SHOP_MAX_QUANTITY, SHOP_PRODUCTS_BY_ID, type ShopProduct } from '../../config/shop-config';
 import type { GpuModelId } from '../../config/gpu-config';
-import { GAMEPLAY_RIG_SETUP } from '../../config/rig-config';
+import { PURCHASED_RIG_SETUP } from '../../config/rig-config';
 import { createGpuOperatingState } from '../gpu-operation';
 import { GPUS_PER_RIG, type MiningWorld } from '../mining-world';
 import { isResearchUnlocked } from '../research';
@@ -48,7 +48,7 @@ export function purchaseCart(world: MiningWorld, cart: readonly CartLine[]): Min
 
 function createEmptyStockRig(): StockRig {
   return {
-    setup: { ...GAMEPLAY_RIG_SETUP },
+    setup: { ...PURCHASED_RIG_SETUP },
     gpus: Array.from({ length: GPUS_PER_RIG }, () => null),
     isNew: true,
   };

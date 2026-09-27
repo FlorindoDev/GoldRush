@@ -33,6 +33,7 @@ export class WorkbenchComponent implements OnDestroy {
   readonly game = inject(GameService);
   readonly closeBench = output<void>();
   readonly selected = signal<Intervention>('clean');
+  readonly pendingFrequencyGhz = signal<number | null>(null);
   readonly feedback = signal('');
   readonly feedbackError = signal(false);
   readonly config = GAME_BALANCE.gpu.maintenance;
@@ -125,6 +126,35 @@ export class WorkbenchComponent implements OnDestroy {
     }
   }
 
+  chooseFrequency(event: Event): void {
+    const telemetry = this.telemetry();
+    const value = (event.target as HTMLInputElement).valueAsNumber;
+    if (!telemetry || !Number.isFinite(value)) {
+      return;
+    }
+    const bounded = Math.max(
+      telemetry.minFrequencyGhz,
+      Math.min(telemetry.absoluteMaxFrequencyGhz, value),
+    );
+    this.pendingFrequencyGhz.set(Number(bounded.toFixed(2)));
+  }
+
+  applyFrequency(): void {
+    const gpu = this.gpu();
+    const frequencyGhz = this.pendingFrequencyGhz();
+    if (!gpu || frequencyGhz === null) {
+      return;
+    }
+    if (
+      this.perform(
+        () => this.game.setGpuFrequencyGhz(gpu.id, frequencyGhz),
+        `Frequenza impostata a ${frequencyGhz.toFixed(2)} GHz.`,
+      )
+    ) {
+      this.pendingFrequencyGhz.set(null);
+    }
+  }
+
   close(): void {
     this.game.returnInspectedGpuToRig();
     this.closeBench.emit();
@@ -134,14 +164,16 @@ export class WorkbenchComponent implements OnDestroy {
     clearInterval(this.timer);
   }
 
-  private perform(action: () => void, message: string): void {
+  private perform(action: () => void, message: string): boolean {
     try {
       action();
       this.feedbackError.set(false);
       this.feedback.set(message);
+      return true;
     } catch (error) {
       this.feedbackError.set(true);
       this.feedback.set(error instanceof Error ? error.message : 'Intervento non disponibile.');
+      return false;
     }
   }
 }

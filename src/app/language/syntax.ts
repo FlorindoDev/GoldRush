@@ -38,6 +38,9 @@ export type Expression =
 export type Statement =
   | { kind: 'expression'; expression: Expression; line: number }
   | { kind: 'assign'; name: string; value: Expression; declare: boolean; line: number }
+  | { kind: 'def'; name: string; parameters: string[]; body: Statement[]; line: number }
+  | { kind: 'return'; value: Expression | null; line: number }
+  | { kind: 'import'; fileName: string; line: number }
   | { kind: 'repeat'; count: Expression; body: Statement[]; line: number }
   | { kind: 'parallel'; body: Statement[]; line: number }
   | { kind: 'while'; condition: Expression; body: Statement[]; line: number }
@@ -55,6 +58,7 @@ export class ScriptError extends Error {
   constructor(
     message: string,
     readonly line: number,
+    public sourceName?: string,
   ) {
     super(`Riga ${line}: ${message}`);
   }

@@ -1,0 +1,160 @@
+<button
+  type="button"
+  class="file-manager-toggle"
+  aria-label="Archivio script"
+  title="Archivio script"
+  [attr.aria-expanded]="opened()"
+  (click)="open()"
+>
+  <app-icon name="code" />
+</button>
+
+<dialog
+  #dialog
+  class="file-manager-dialog"
+  aria-labelledby="file-manager-title"
+  (click)="onBackdrop($event)"
+  (close)="opened.set(false)"
+>
+  <div class="file-manager-panel">
+    <header>
+      <div>
+        <span class="eyebrow">MineScript</span>
+        <h2 id="file-manager-title">Archivio script</h2>
+      </div>
+      <button
+        type="button"
+        class="icon-action"
+        aria-label="Chiudi archivio script"
+        (click)="close()"
+      >
+        <app-icon name="close" />
+      </button>
+    </header>
+
+    <div class="create-row">
+      <label for="new-script-name">Nuovo file</label>
+      <div>
+        <input
+          id="new-script-name"
+          type="text"
+          maxlength="64"
+          placeholder="nome.mine"
+          [value]="newName()"
+          [disabled]="game.running()"
+          (input)="newName.set($any($event.target).value)"
+          (keydown.enter)="create()"
+        />
+        <button
+          type="button"
+          [disabled]="game.running()"
+          (click)="create()"
+        >
+          <app-icon name="plus" /> Crea
+        </button>
+      </div>
+    </div>
+
+    <div class="search-row">
+      <label for="script-search">Cerca file</label>
+      <input
+        id="script-search"
+        type="search"
+        placeholder="Cerca per nome…"
+        [value]="search()"
+        (input)="search.set($any($event.target).value)"
+      />
+    </div>
+
+    <ul
+      class="file-list"
+      aria-label="File salvati"
+    >
+      @for (file of filteredFiles(); track file.id) {
+        <li>
+          @if (renamingId() === file.id) {
+            <input
+              type="text"
+              maxlength="64"
+              [attr.aria-label]="'Nuovo nome per ' + file.name"
+              [value]="renameValue()"
+              (input)="renameValue.set($any($event.target).value)"
+              (keydown.enter)="rename(file.id)"
+            />
+            <button
+              type="button"
+              class="icon-action"
+              aria-label="Salva nome"
+              (click)="rename(file.id)"
+            >
+              <app-icon name="check" />
+            </button>
+            <button
+              type="button"
+              class="icon-action"
+              aria-label="Annulla rinomina"
+              (click)="renamingId.set(null)"
+            >
+              <app-icon name="close" />
+            </button>
+          } @else if (deletingId() === file.id) {
+            <span class="file-name">Eliminare {{ file.name }}?</span>
+            <button
+              type="button"
+              class="danger-action"
+              (click)="deleteFile(file.id)"
+            >
+              Elimina
+            </button>
+            <button
+              type="button"
+              class="icon-action"
+              aria-label="Annulla eliminazione"
+              (click)="deletingId.set(null)"
+            >
+              <app-icon name="close" />
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="open-file"
+              (click)="openFile(file.id)"
+            >
+              <app-icon name="code" />
+              <span>{{ file.name }}</span>
+            </button>
+            <button
+              type="button"
+              class="icon-action"
+              [attr.aria-label]="'Rinomina ' + file.name"
+              [disabled]="game.running()"
+              (click)="startRename(file.id, file.name)"
+            >
+              <app-icon name="edit" />
+            </button>
+            <button
+              type="button"
+              class="icon-action"
+              [attr.aria-label]="'Elimina ' + file.name"
+              [disabled]="game.running() || game.files().length === 1"
+              (click)="deletingId.set(file.id); renamingId.set(null)"
+            >
+              <app-icon name="trash" />
+            </button>
+          }
+        </li>
+      } @empty {
+        <li class="empty-result">Nessun file trovato.</li>
+      }
+    </ul>
+    <p class="file-note">
+      Apri un file per modificarlo nell'editor. Gli import usano il nome del file.
+    </p>
+    <p
+      class="feedback"
+      role="status"
+    >
+      {{ feedback() }}
+    </p>
+  </div>
+</dialog>

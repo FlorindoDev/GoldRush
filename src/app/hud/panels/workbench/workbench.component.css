@@ -123,6 +123,51 @@ h2 {
 .reading.warning dd {
   color: #f0b08d;
 }
+.frequency-control {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 24px;
+  padding: 16px;
+  border: 1px solid var(--bench-line);
+  background: #ffffff04;
+}
+.frequency-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.frequency-heading h3 {
+  margin-bottom: 4px;
+  font-size: 18px;
+}
+.frequency-heading p,
+.frequency-limits,
+.frequency-control label {
+  color: var(--bench-muted);
+  font-size: 14px;
+}
+.frequency-heading output {
+  color: var(--bench-accent);
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.frequency-control input[type='range'] {
+  width: 100%;
+  margin: 2px 0;
+  accent-color: var(--bench-accent);
+}
+.frequency-control input[type='range']:disabled {
+  cursor: default;
+}
+.frequency-limits {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
 meter,
 progress {
   display: block;

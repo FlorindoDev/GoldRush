@@ -5,7 +5,7 @@
   <div class="panel-heading">
     <div class="heading-label">
       <app-icon name="code" />
-      <span>Editor del codice</span>
+      <span>{{ file()?.name ?? 'Editor del codice' }}</span>
     </div>
     <div class="editor-actions">
       <button
@@ -20,25 +20,25 @@
       <button
         class="editor-action step-button"
         aria-label="Esegui una riga"
-        [attr.aria-pressed]="game.stepMode()"
-        [title]="game.running() ? 'Esegui la riga successiva' : 'Esegui una riga'"
-        [disabled]="!game.started() || (game.running() && !game.stepMode())"
-        (click)="game.step()"
+        [attr.aria-pressed]="isExecuting() && game.stepMode()"
+        [title]="isExecuting() ? 'Esegui la riga successiva' : 'Esegui una riga'"
+        [disabled]="!game.started() || (game.running() && (!isExecuting() || !game.stepMode()))"
+        (click)="game.stepFile(fileId())"
       >
         <app-icon name="step" />
       </button>
-      @if (!game.running() || game.stepMode()) {
+      @if (!game.running() || (isExecuting() && game.stepMode())) {
         <button
           class="editor-action run-button"
           [attr.aria-label]="game.stepMode() ? 'Continua esecuzione' : 'Avvia codice'"
           [title]="game.stepMode() ? 'Continua esecuzione' : 'Avvia tutto (Ctrl + Invio)'"
-          [disabled]="!game.started()"
-          (click)="game.run()"
+          [disabled]="!game.started() || (game.running() && !isExecuting())"
+          (click)="game.runFile(fileId())"
         >
           <app-icon name="start" />
         </button>
       }
-      @if (game.running()) {
+      @if (isExecuting()) {
         <button
           class="editor-action stop-button"
           aria-label="Interrompi esecuzione"
@@ -48,6 +48,15 @@
           <app-icon name="stop" />
         </button>
       }
+      <button
+        class="editor-action close-button"
+        type="button"
+        aria-label="Chiudi editor"
+        title="Chiudi editor"
+        (click)="closeWindow.emit()"
+      >
+        <app-icon name="close" />
+      </button>
     </div>
   </div>
   <div class="editor-tabs">
@@ -56,41 +65,46 @@
       role="group"
       aria-label="File MineScript"
     >
-      @for (file of game.files(); track file.id) {
-        <div class="file-tab-group">
+      @for (tab of tabs(); track tab.id) {
+        <div
+          class="file-tab-group"
+          [class.active]="tab.id === fileId()"
+        >
           <button
+            type="button"
             class="file-tab"
-            [class.active]="game.activeFileId() === file.id"
-            [attr.aria-pressed]="game.activeFileId() === file.id"
-            [disabled]="game.running()"
-            (click)="selectFile(file.id)"
+            [class.active]="tab.id === fileId()"
+            [attr.aria-current]="tab.id === fileId() ? 'page' : null"
+            [attr.aria-label]="'Apri ' + tab.name + '. Trascina per spostare in un altro editor'"
+            [title]="tab.name + ' — trascina in un altro editor per unire le finestre'"
+            draggable="true"
+            (click)="tabSelected.emit(tab.id)"
+            (dragstart)="tabDragStarted.emit({ event: $event, fileId: tab.id })"
+            (dragend)="tabDragEnded.emit()"
           >
-            <app-icon name="code" />
-            {{ file.name }}
+            <app-icon name="code" />{{ tab.name }}
           </button>
-          @if (game.files().length > 1) {
-            <button
-              class="close-file"
-              [attr.aria-label]="'Chiudi ' + file.name"
-              [title]="'Chiudi ' + file.name"
-              [disabled]="game.running()"
-              (click)="closeFile(file.id)"
-            >
-              <app-icon name="close" />
-            </button>
-          }
+          <button
+            type="button"
+            class="file-tab-close"
+            [attr.aria-label]="'Chiudi scheda ' + tab.name"
+            [title]="'Chiudi scheda ' + tab.name"
+            (click)="tabClosed.emit(tab.id)"
+          >
+            <app-icon name="close" />
+          </button>
         </div>
       }
-      <button
-        class="icon-button add-file"
-        aria-label="Nuovo file"
-        title="Nuovo file"
-        [disabled]="game.running()"
-        (click)="addFile()"
-      >
-        <app-icon name="plus" />
-      </button>
     </div>
+    <button
+      class="icon-button add-file"
+      aria-label="Nuovo file"
+      title="Nuovo file"
+      [disabled]="game.running()"
+      (click)="newFile.emit()"
+    >
+      <app-icon name="plus" />
+    </button>
   </div>
   <div
     class="code-area"
@@ -112,7 +126,7 @@
         autocomplete="off"
         autocorrect="off"
         wrap="soft"
-        [value]="game.code()"
+        [value]="code()"
         [readOnly]="game.running()"
         (input)="onInput($event)"
         (scroll)="syncScroll()"
@@ -127,18 +141,20 @@
     <span> Ln {{ cursor().line }}, Col {{ cursor().column }} </span>
     <span>UTF-8</span>
     <span class="status-language">MineScript</span>
-    @if (game.errorLine() || game.running()) {
+    @if (
+      (game.errorFileId() === fileId() && game.errorLine()) || isExecuting() || hasRunningLine()
+    ) {
       <span>
         <i
           class="status-dot"
-          [class.error-dot]="game.errorLine()"
+          [class.error-dot]="game.errorFileId() === fileId() && game.errorLine()"
         ></i>
         {{
-          game.errorLine()
+          game.errorFileId() === fileId() && game.errorLine()
             ? 'Errore alla riga ' + game.errorLine()
-            : game.waitingForStep()
+            : game.waitingForStep() && game.lineFileId() === fileId()
               ? 'In pausa dopo riga ' + game.activeLine()
-              : game.activeLine()
+              : game.activeLine() && game.lineFileId() === fileId()
                 ? 'Riga ' + game.activeLine() + ' in esecuzione'
                 : 'In esecuzione'
         }}

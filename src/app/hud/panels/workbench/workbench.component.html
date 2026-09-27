@@ -65,6 +65,51 @@
           </div>
         </dl>
 
+        <section
+          class="frequency-control"
+          aria-label="Frequenza GPU"
+        >
+          <div class="frequency-heading">
+            <div>
+              <h3>Frequenza della scheda</h3>
+              <p>Regola il clock fino al limite assoluto del modello.</p>
+            </div>
+            <output for="gpu-frequency">
+              {{ (pendingFrequencyGhz() ?? stats.targetFrequencyGhz).toFixed(2) }} GHz
+            </output>
+          </div>
+          <label for="gpu-frequency">Frequenza impostata</label>
+          <input
+            id="gpu-frequency"
+            type="range"
+            [min]="stats.minFrequencyGhz"
+            [max]="stats.absoluteMaxFrequencyGhz"
+            step="0.05"
+            [value]="pendingFrequencyGhz() ?? stats.targetFrequencyGhz"
+            [attr.aria-valuetext]="
+              (pendingFrequencyGhz() ?? stats.targetFrequencyGhz).toFixed(2) + ' GHz'
+            "
+            [disabled]="game.running()"
+            (input)="chooseFrequency($event)"
+          />
+          <div class="frequency-limits">
+            <span>Minimo {{ stats.minFrequencyGhz }} GHz</span>
+            <span>Massimo assoluto {{ stats.absoluteMaxFrequencyGhz }} GHz</span>
+          </div>
+          <button
+            type="button"
+            class="service-button"
+            [disabled]="
+              game.running() ||
+              pendingFrequencyGhz() === null ||
+              pendingFrequencyGhz() === stats.targetFrequencyGhz
+            "
+            (click)="applyFrequency()"
+          >
+            <span>Applica frequenza</span><app-icon name="arrow" />
+          </button>
+        </section>
+
         @if (card.stopped) {
           <div class="fault">
             <span>{{ card.stopReason }}</span

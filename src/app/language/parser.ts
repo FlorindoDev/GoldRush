@@ -15,6 +15,9 @@ const RESERVED_WORDS = [
   'while',
   'repeat',
   'parallel',
+  'def',
+  'return',
+  'import',
 ];
 
 const PRECEDENCE: Record<string, number> = {
@@ -87,6 +90,35 @@ class Parser {
   private parseStatement(): Statement {
     return this.withNestingLimit(() => {
       const { text, line } = this.current;
+      if (this.match('def')) {
+        const name = this.readName('funzione');
+        this.expect('(');
+        const parameters: string[] = [];
+        if (!this.match(')')) {
+          do {
+            const parameter = this.readName('parametro');
+            if (parameters.includes(parameter)) {
+              throw new ScriptError(`parametro "${parameter}" duplicato.`, line);
+            }
+            parameters.push(parameter);
+          } while (this.match(','));
+          this.expect(')');
+        }
+        return { kind: 'def', name, parameters, body: this.parseBlock(), line };
+      }
+      if (this.match('import')) {
+        const file = this.parseExpression();
+        if (file.kind !== 'literal' || typeof file.value !== 'string') {
+          throw new ScriptError('import richiede il nome del file tra virgolette.', line);
+        }
+        this.expect(';');
+        return { kind: 'import', fileName: file.value, line };
+      }
+      if (this.match('return')) {
+        const value = this.current.text === ';' ? null : this.parseExpression();
+        this.expect(';');
+        return { kind: 'return', value, line };
+      }
       if (this.match('parallel')) {
         const body = this.parseBlock();
         if (body.some((statement) => statement.kind !== 'expression')) {
@@ -132,6 +164,14 @@ class Parser {
     const body = this.parseBlock();
 
     return { kind: 'for', initializer, condition, increment, body, line };
+  }
+
+  private readName(kind: string): string {
+    const token = this.advance();
+    if (token.kind !== 'word' || RESERVED_WORDS.includes(token.text)) {
+      throw new ScriptError(`nome di ${kind} non valido.`, token.line);
+    }
+    return token.text;
   }
 
   private parseSimpleStatement(): Statement {

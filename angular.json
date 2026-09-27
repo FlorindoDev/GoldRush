@@ -3,7 +3,7 @@
   "version": 1,
   "cli": { "analytics": false },
   "projects": {
-    "blockcraft": {
+    "goldrush": {
       "projectType": "application",
       "root": "",
       "sourceRoot": "src",
@@ -11,7 +11,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/blockcraft",
+            "outputPath": "dist/goldrush",
             "browser": "src/main.ts",
             "index": "src/index.html",
             "tsConfig": "tsconfig.app.json",
@@ -30,8 +30,8 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "configurations": {
-            "production": { "buildTarget": "blockcraft:build:production" },
-            "development": { "buildTarget": "blockcraft:build:development" }
+            "production": { "buildTarget": "goldrush:build:production" },
+            "development": { "buildTarget": "goldrush:build:development" }
           },
           "defaultConfiguration": "development"
         }

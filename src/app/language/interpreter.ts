@@ -1,5 +1,5 @@
 import { GAME_BALANCE } from '../config/game-balance';
-import { parse } from './parser';
+import { resolveProgram, type FunctionDefinition } from './program';
 import { Expression, ScriptError, type ScriptObject, Statement, Value } from './syntax';
 import { VectorQueueValue } from './collections/vector-queue';
 import { VectorStackValue } from './collections/vector-stack';
@@ -24,6 +24,8 @@ let nextParallelGroupId = 0;
 
 export interface ScriptHost {
   globals?: Readonly<Record<string, Value>>;
+  modules?: Readonly<Record<string, string>>;
+  entryFileName?: string;
   print(message: string): void;
   mine?(
     gpus: Value | null,
@@ -55,38 +57,64 @@ export async function execute(
   source: string,
   host: ScriptHost,
   signal: AbortSignal,
-  onLine: (line: number) => void | Promise<void> = () => {},
+  onLine: (line: number, sourceName?: string) => void | Promise<void> = () => {},
 ): Promise<void> {
-  const program = parse(source);
-  await new Interpreter(host, signal, onLine).run(program);
+  const program = resolveProgram(
+    source,
+    host.modules,
+    host.entryFileName,
+    new Set(Object.keys(BUILTIN_ARGUMENT_COUNTS)),
+  );
+  await new Interpreter(host, signal, onLine, program.functions).run(program.statements);
+}
+
+class ReturnSignal {
+  constructor(readonly value: Value) {}
+}
+
+interface InterpreterContext {
+  scopes: Map<string, Value>[];
+  globalNames: ReadonlySet<string>;
+  steps: { count: number };
+  sourceName?: string;
+  callDepth: number;
+  parallelGroupId?: number;
 }
 
 class Interpreter {
-  private readonly variables: Map<string, Value>;
+  private readonly scopes: Map<string, Value>[];
   private readonly globalNames: ReadonlySet<string>;
-  private steps = 0;
+  private readonly steps: { count: number };
   private parallelGroupId?: number;
+  private callDepth = 0;
+  private sourceName?: string;
 
   constructor(
     private readonly host: ScriptHost,
     private readonly signal: AbortSignal,
-    private readonly onLine: (line: number) => void | Promise<void>,
+    private readonly onLine: (line: number, sourceName?: string) => void | Promise<void>,
+    private readonly functions: ReadonlyMap<string, FunctionDefinition>,
+    context?: InterpreterContext,
   ) {
     const globals = host.globals ?? {};
-    this.variables = new Map(Object.entries(globals));
-    this.globalNames = new Set(Object.keys(globals));
+    this.scopes = context?.scopes ?? [new Map(Object.entries(globals))];
+    this.globalNames = context?.globalNames ?? new Set(Object.keys(globals));
+    this.steps = context?.steps ?? { count: 0 };
+    this.sourceName = context?.sourceName ?? host.entryFileName;
+    this.callDepth = context?.callDepth ?? 0;
+    this.parallelGroupId = context?.parallelGroupId;
   }
 
   private async checkExecutionLimit(line: number): Promise<void> {
     this.signal.throwIfAborted();
-    if (++this.steps > MAX_EXECUTION_STEPS) {
+    if (++this.steps.count > MAX_EXECUTION_STEPS) {
       throw new ScriptError(
         `limite di ${MAX_EXECUTION_STEPS.toLocaleString('it-IT')} operazioni raggiunto. Controlla i cicli.`,
         line,
       );
     }
     // Cede periodicamente il controllo al browser: Stop resta utilizzabile anche nei cicli vuoti.
-    if (this.steps % YIELD_INTERVAL === 0) {
+    if (this.steps.count % YIELD_INTERVAL === 0) {
       await delay(0, this.signal);
     }
   }
@@ -99,7 +127,7 @@ class Interpreter {
 
   private async executeStatement(statement: Statement): Promise<void> {
     await this.checkExecutionLimit(statement.line);
-    await this.onLine(statement.line);
+    await this.onLine(statement.line, this.sourceName);
     switch (statement.kind) {
       case 'expression':
         await this.evaluateExpression(statement.expression);
@@ -111,15 +139,30 @@ class Interpreter {
             statement.line,
           );
         }
-        if (!statement.declare && !this.variables.has(statement.name)) {
+        const scope = statement.declare ? this.scopes.at(-1)! : this.variableScope(statement.name);
+        if (!scope) {
           throw new ScriptError(
             `variabile "${statement.name}" non definita. Usa let.`,
             statement.line,
           );
         }
-        this.variables.set(statement.name, await this.evaluateExpression(statement.value));
+        scope.set(statement.name, await this.evaluateExpression(statement.value));
         break;
       }
+      case 'return':
+        if (this.callDepth === 0) {
+          throw new ScriptError('return fuori da una funzione.', statement.line, this.sourceName);
+        }
+        throw new ReturnSignal(
+          statement.value === null ? null : await this.evaluateExpression(statement.value),
+        );
+      case 'def':
+      case 'import':
+        throw new ScriptError(
+          'def e import sono permessi solo al livello principale.',
+          statement.line,
+          this.sourceName,
+        );
       case 'repeat': {
         const count = this.requireNumber(
           await this.evaluateExpression(statement.count),
@@ -165,24 +208,35 @@ class Interpreter {
   }
 
   private async executeParallel(statements: Statement[]): Promise<void> {
-    this.parallelGroupId = ++nextParallelGroupId;
-    try {
-      const results = await Promise.allSettled(
-        statements.map(async (statement) => {
-          await this.checkExecutionLimit(statement.line);
-          if (statement.kind !== 'expression') {
-            throw new ScriptError('parallel accetta solo comandi semplici.', statement.line);
-          }
-          await this.evaluateExpression(statement.expression);
-        }),
-      );
-      const failure = results.find((result) => result.status === 'rejected');
-      if (failure?.status === 'rejected') {
-        throw failure.reason;
-      }
-    } finally {
-      this.parallelGroupId = undefined;
+    const parallelGroupId = ++nextParallelGroupId;
+    const results = await Promise.allSettled(
+      statements.map(async (statement) => {
+        await this.checkExecutionLimit(statement.line);
+        if (statement.kind !== 'expression') {
+          throw new ScriptError('parallel accetta solo comandi semplici.', statement.line);
+        }
+        const branch = new Interpreter(this.host, this.signal, this.onLine, this.functions, {
+          scopes: [...this.scopes],
+          globalNames: this.globalNames,
+          steps: this.steps,
+          sourceName: this.sourceName,
+          callDepth: this.callDepth,
+          parallelGroupId,
+        });
+        await branch.evaluateExpression(statement.expression);
+      }),
+    );
+    const failure = results.find((result) => result.status === 'rejected');
+    if (failure?.status === 'rejected') {
+      throw failure.reason;
     }
+  }
+
+  private variableScope(name: string): Map<string, Value> | undefined {
+    const local = this.scopes.at(-1)!;
+    if (local.has(name)) return local;
+    const global = this.scopes[0];
+    return global.has(name) ? global : undefined;
   }
 
   private async evaluateExpression(expression: Expression): Promise<Value> {
@@ -191,7 +245,7 @@ class Interpreter {
       case 'literal':
         return expression.value;
       case 'variable': {
-        const value = this.variables.get(expression.name);
+        const value = this.variableScope(expression.name)?.get(expression.name);
         if (value === undefined) {
           throw new ScriptError(`variabile "${expression.name}" non definita.`, expression.line);
         }
@@ -223,7 +277,10 @@ class Interpreter {
         for (const arg of expression.args) {
           args.push(await this.evaluateExpression(arg));
         }
-        return this.callBuiltin(expression.name, args, expression.line);
+        const definition = this.functions.get(expression.name);
+        return definition
+          ? this.callUserFunction(definition, args, expression.line)
+          : this.callBuiltin(expression.name, args, expression.line);
       }
       case 'member': {
         const object = this.requireScriptObject(
@@ -262,6 +319,40 @@ class Interpreter {
           this.parallelGroupId,
         );
       }
+    }
+  }
+
+  private async callUserFunction(
+    definition: FunctionDefinition,
+    args: Value[],
+    line: number,
+  ): Promise<Value> {
+    const { statement, sourceName } = definition;
+    if (args.length !== statement.parameters.length) {
+      throw new ScriptError(
+        `${statement.name} richiede ${statement.parameters.length} argomenti.`,
+        line,
+        this.sourceName,
+      );
+    }
+    if (this.callDepth >= GAME_BALANCE.scripting.maxNestingDepth) {
+      throw new ScriptError('troppe chiamate di funzione annidate.', line, this.sourceName);
+    }
+    const previousSourceName = this.sourceName;
+    this.sourceName = sourceName;
+    this.callDepth++;
+    this.scopes.push(new Map(statement.parameters.map((name, index) => [name, args[index]])));
+    try {
+      await this.run(statement.body);
+      return null;
+    } catch (error) {
+      if (error instanceof ReturnSignal) return error.value;
+      if (error instanceof ScriptError) error.sourceName ??= sourceName;
+      throw error;
+    } finally {
+      this.scopes.pop();
+      this.callDepth--;
+      this.sourceName = previousSourceName;
     }
   }
 
@@ -399,7 +490,10 @@ class Interpreter {
           }
         } else if (args.length === 2 || args.length === 3) {
           if (args[0] === null || typeof args[0] !== 'object') {
-            throw new ScriptError('il primo argomento di mine deve essere un vettore di GPU.', line);
+            throw new ScriptError(
+              'il primo argomento di mine deve essere un vettore di GPU.',
+              line,
+            );
           }
           gpus = args[0];
           if (typeof args[1] === 'number' && args.length === 2) {

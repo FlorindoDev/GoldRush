@@ -29,6 +29,7 @@ import {
   type ElectricityBill,
   createElectricityMeter,
   electricityCostSatoshis,
+  nextElectricityPriceEurPerKwh,
   type ElectricityMeter,
   type MiningSettlement,
   satoshisToEuros,
@@ -292,22 +293,30 @@ export function settleCompletedBlocks(world: MiningWorld): MiningWorld {
   );
 }
 
-export function billElectricityForDay(world: MiningWorld, gameDay: number): MiningWorld {
+export function billElectricityForDay(
+  world: MiningWorld,
+  gameDay: number,
+  random: () => number = Math.random,
+): MiningWorld {
   if (
     !Number.isInteger(gameDay) ||
     gameDay < 1 ||
-    gameDay <= (world.lastElectricityBill?.gameDay ?? 0) ||
-    world.electricity.pendingKwh <= 0
+    gameDay <=
+      Math.max(world.electricity.lastPriceChangeDay ?? 0, world.lastElectricityBill?.gameDay ?? 0)
   ) {
     return world;
   }
 
-  const energyKwh = world.electricity.pendingKwh;
-  const electricitySatoshis = electricityCostSatoshis(energyKwh);
+  const energyKwh = Math.max(0, world.electricity.pendingKwh);
+  const priceEurPerKwh =
+    world.electricity.priceEurPerKwh ?? GAME_BALANCE.economy.electricityPriceEurPerKwh;
+  const electricitySatoshis = electricityCostSatoshis(energyKwh, priceEurPerKwh);
   const balanceAfterSatoshis = world.satoshis - electricitySatoshis;
   const balanceBeforeEur = world.cashEur + cryptoValueEur(world.holdings);
   const cashEur = world.cashEur - satoshisToEuros(electricitySatoshis);
   const balanceAfterEur = cashEur + cryptoValueEur(world.holdings);
+  // Prima si paga alla tariffa corrente; solo dopo si sceglie quella del giorno seguente.
+  const nextPriceEurPerKwh = nextElectricityPriceEurPerKwh(energyKwh, priceEurPerKwh, random);
   return {
     ...world,
     satoshis: balanceAfterSatoshis,
@@ -316,16 +325,22 @@ export function billElectricityForDay(world: MiningWorld, gameDay: number): Mini
       ...world.electricity,
       pendingKwh: 0,
       paidSatoshis: world.electricity.paidSatoshis + electricitySatoshis,
+      priceEurPerKwh: nextPriceEurPerKwh,
+      lastPriceChangeDay: gameDay,
     },
-    lastElectricityBill: {
-      gameDay,
-      energyKwh,
-      electricitySatoshis,
-      balanceBeforeSatoshis: world.satoshis,
-      balanceAfterSatoshis,
-      balanceBeforeEur,
-      balanceAfterEur,
-    },
+    lastElectricityBill:
+      energyKwh > 0
+        ? {
+            gameDay,
+            energyKwh,
+            priceEurPerKwh,
+            electricitySatoshis,
+            balanceBeforeSatoshis: world.satoshis,
+            balanceAfterSatoshis,
+            balanceBeforeEur,
+            balanceAfterEur,
+          }
+        : world.lastElectricityBill,
   };
 }
 
@@ -470,8 +485,8 @@ export function configureRig(
   if (!Object.hasOwn(RIG_COOLING_METHODS, setup.coolingMethodId)) {
     throw new Error('Dissipazione non disponibile.');
   }
-  if (!Number.isInteger(setup.fanCount) || setup.fanCount < 1 || setup.fanCount > MAX_RIG_FANS) {
-    throw new Error(`Il numero di ventole deve essere tra 1 e ${MAX_RIG_FANS}.`);
+  if (!Number.isInteger(setup.fanCount) || setup.fanCount < 0 || setup.fanCount > MAX_RIG_FANS) {
+    throw new Error(`Il numero di ventole deve essere tra 0 e ${MAX_RIG_FANS}.`);
   }
 
   return {

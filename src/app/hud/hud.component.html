@@ -1,4 +1,8 @@
-<main class="game-shell">
+<main
+  class="game-shell"
+  (dragover)="dragOverWorkspace($event)"
+  (drop)="dropTabOutside($event)"
+>
   <app-computer />
   <app-scene
     #scene
@@ -40,6 +44,11 @@
     role="group"
     aria-label="Strumenti"
   >
+    <app-file-manager
+      (fileOpened)="openFile($event)"
+      (fileCreated)="openFile($event)"
+      (fileDeleted)="fileDeleted($event)"
+    />
     <button
       class="icon-button utility-button research-action"
       aria-label="Albero della ricerca"
@@ -66,46 +75,62 @@
     </button>
   </div>
 
-  <div
-    class="floating-window editor-window"
-    [hidden]="game.inspectedGpuId() !== null || game.inspectedRigId() !== null"
-    [style.left.px]="windowLayout.editorPosition()?.x ?? null"
-    [style.top.px]="windowLayout.editorPosition()?.y ?? null"
-    [style.zIndex]="windowLayout.activeWindow() === 'editor' ? 32 : 31"
-    (pointerdown)="windowLayout.startWindowDrag($event, 'editor')"
-    (pointermove)="windowLayout.moveWindow($event)"
-    (pointerup)="windowLayout.stopWindowInteraction($event)"
-    (pointercancel)="windowLayout.stopWindowInteraction($event)"
-    (lostpointercapture)="windowLayout.stopWindowInteraction($event)"
-  >
-    <app-editor (openGuide)="openGuide()" />
-    @if (windowLayout.consoleDocked()) {
-      <div class="docked-console-window">
-        <app-console
-          [docked]="true"
-          (toggleDock)="windowLayout.toggleConsoleDock()"
-        />
-        <button
-          class="console-border-resize"
-          type="button"
-          aria-label="Ridimensiona console agganciata"
-          title="Ridimensiona console trascinando il bordo o usando le frecce su e giù"
-          (pointerdown)="windowLayout.startWindowResize($event, 'docked-console')"
-          (keydown)="windowLayout.resizeWindowWithKeyboard($event, 'docked-console')"
-        ></button>
-      </div>
-    }
-    <button
-      class="window-resize-handle"
-      type="button"
-      aria-label="Ridimensiona editor"
-      title="Ridimensiona editor: trascina o usa le frecce"
-      (pointerdown)="windowLayout.startWindowResize($event, 'editor')"
-      (keydown)="windowLayout.resizeWindowWithKeyboard($event, 'editor')"
+  @for (editorWindow of editorWindows(); track editorWindow.id) {
+    <div
+      class="floating-window editor-window"
+      [attr.data-editor-window-id]="editorWindow.id"
+      [hidden]="game.inspectedGpuId() !== null || game.inspectedRigId() !== null"
+      [class.file-drop-target]="draggedTab() && draggedTab()?.sourceWindowId !== editorWindow.id"
+      [style.left.px]="windowLayout.editorPositionFor(editorWindow.id)?.x ?? null"
+      [style.top.px]="windowLayout.editorPositionFor(editorWindow.id)?.y ?? null"
+      [style.zIndex]="windowLayout.activeWindow() === editorWindow.id ? 32 : 31"
+      (pointerdown)="onEditorPointerDown($event, editorWindow.id, editorWindow.activeFileId)"
+      (pointermove)="windowLayout.moveWindow($event)"
+      (pointerup)="finishEditorPointer($event, editorWindow.id)"
+      (pointercancel)="windowLayout.stopWindowInteraction($event)"
+      (lostpointercapture)="windowLayout.stopWindowInteraction($event)"
+      (dragover)="dragOverEditor($event, editorWindow.id)"
+      (drop)="dropTab($event, editorWindow.id)"
     >
-      <app-icon name="resize" />
-    </button>
-  </div>
+      <app-editor
+        [fileIds]="editorWindow.fileIds"
+        [activeFileId]="editorWindow.activeFileId"
+        (openGuide)="openGuide()"
+        (newFile)="createEditorFile(editorWindow.id)"
+        (tabClosed)="closeEditorTab(editorWindow.id, $event)"
+        (tabSelected)="selectEditorTab(editorWindow.id, $event)"
+        (tabDragStarted)="startTabDrag($event.event, editorWindow.id, $event.fileId)"
+        (tabDragEnded)="draggedTab.set(null)"
+        (closeWindow)="closeEditor(editorWindow.id)"
+      />
+      @if (editorWindow.id === dockEditorId() && windowLayout.consoleDocked()) {
+        <div class="docked-console-window">
+          <app-console
+            [docked]="true"
+            (toggleDock)="toggleConsoleDock()"
+          />
+          <button
+            class="console-border-resize"
+            type="button"
+            aria-label="Ridimensiona console agganciata"
+            title="Ridimensiona console trascinando il bordo o usando le frecce su e giù"
+            (pointerdown)="windowLayout.startWindowResize($event, 'docked-console')"
+            (keydown)="windowLayout.resizeWindowWithKeyboard($event, 'docked-console')"
+          ></button>
+        </div>
+      }
+      <button
+        class="window-resize-handle"
+        type="button"
+        aria-label="Ridimensiona editor"
+        title="Ridimensiona editor: trascina o usa le frecce"
+        (pointerdown)="windowLayout.startWindowResize($event, editorWindow.id)"
+        (keydown)="windowLayout.resizeWindowWithKeyboard($event, editorWindow.id)"
+      >
+        <app-icon name="resize" />
+      </button>
+    </div>
+  }
 
   @if (!windowLayout.consoleDocked()) {
     <div
@@ -120,7 +145,7 @@
       (pointercancel)="windowLayout.stopWindowInteraction($event)"
       (lostpointercapture)="windowLayout.stopWindowInteraction($event)"
     >
-      <app-console (toggleDock)="windowLayout.toggleConsoleDock()" />
+      <app-console (toggleDock)="toggleConsoleDock()" />
       <button
         class="window-resize-handle"
         type="button"
@@ -1221,8 +1246,10 @@
               Economia simulata
             </h3>
             <p>
-              Le ricompense e i prezzi sono configurati per ogni cripto. Tariffa elettrica:
-              {{ balance.economy.electricityPriceEurPerKwh }} €/kWh. Ogni
+              Le ricompense e i prezzi sono configurati per ogni cripto. Tariffa elettrica iniziale:
+              {{ balance.economy.electricityPriceEurPerKwh }} €/kWh. Dopo la bolletta, la tariffa
+              successiva viene estratta dall'intervallo associato ai kWh consumati nel giorno appena
+              concluso. Soglie e intervalli sono in <code>config/economy-config.ts</code>. Ogni
               <code>mine()</code> completo simula {{ balance.economy.simulatedHoursPerAction }} ora
               di lavoro, anche a velocità 2×. Il clock avanza di
               {{ 1000 / balance.clock.millisecondsPerGameMinute }} minuti di gioco al secondo e la
@@ -1244,7 +1271,7 @@
           <p>
             L'oggetto globale <code>electricity</code> è sempre disponibile. Tutti i metodi sotto
             richiedono zero argomenti e restituiscono numeri. Gli attributi equivalenti sono di sola
-            lettura; la tariffa è fissa.
+            lettura; la tariffa cambia dopo l'addebito giornaliero.
           </p>
           <div
             class="guide-table-wrapper"
@@ -1290,8 +1317,8 @@
                 <tr>
                   <td><code>electricity.getPricePerKwh()</code><small>pricePerKwh</small></td>
                   <td>
-                    <strong>Tariffa · €/kWh</strong><br />Prezzo fisso dell'energia nella
-                    simulazione.
+                    <strong>Tariffa · €/kWh</strong><br />Prezzo attuale, valido fino alla prossima
+                    bolletta.
                   </td>
                 </tr>
               </tbody>
@@ -1331,7 +1358,7 @@
           <p>
             Al 100% il gioco accredita il premio del blocco una sola volta. Ogni 24 ore di gioco
             addebita la corrente accumulata al saldo euro, senza vendere le cripto possedute. Il
-            portafoglio mostra i movimenti; la console riporta la bolletta del giorno.
+            portafoglio mostra i movimenti; la console riporta la bolletta e poi la nuova tariffa.
           </p>
           <p>
             Fermare il codice o lasciare un blocco incompleto conserva la bolletta. In caso di
@@ -1349,17 +1376,22 @@
           role="tabpanel"
           aria-labelledby="guide-tab-constructs"
         >
-          <h2 id="guide-title">Variabili, cicli e condizioni</h2>
+          <h2 id="guide-title">Variabili, cicli, condizioni e funzioni</h2>
           <p class="dialog-intro">
-            Salva valori nelle variabili, ripeti comandi con i cicli e scegli cosa eseguire con
-            <code>if</code> e <code>else</code>. <code>parallel</code> avvia più impostazioni
-            insieme.
+            Salva valori nelle variabili, ripeti comandi con i cicli, scegli cosa eseguire con
+            <code>if</code> e <code>else</code>, e riusa il codice con <code>def</code>.
+            <code>parallel</code> avvia più impostazioni insieme.
           </p>
           <nav
             class="guide-toc"
             aria-label="In questa pagina"
           >
             <span>In questa pagina</span>
+            <a
+              href="#constructs-functions"
+              (click)="goToGuideHeading($event, 'constructs-functions')"
+              >Funzioni e import</a
+            >
             <a
               href="#constructs-variables"
               (click)="goToGuideHeading($event, 'constructs-variables')"
@@ -1435,6 +1467,40 @@
             </ul>
           </aside>
           <div class="guide-sections">
+            <article>
+              <h3
+                id="constructs-functions"
+                tabindex="-1"
+              >
+                Funzioni e file
+              </h3>
+              <p>
+                Definisci una funzione con <code>def nome(parametri) &lbrace; ... &rbrace;</code> e
+                richiamala con <code>nome(valori)</code>. I parametri sono locali alla chiamata;
+                <code>return</code> restituisce un valore. Senza <code>return</code> il risultato è
+                <code>null</code>. Scrivi <code>def</code> al livello principale del file.
+              </p>
+              <p><strong>Esempio in un file: stampa 6.</strong></p>
+              <app-guide-code [source]="guideCode.functionDefinition" />
+              <p>
+                Il pulsante <code>&lt;/&gt;</code> in alto a destra gestisce i file. Il
+                <code>+</code> aggiunge una scheda all'editor. Trascina la scheda su un altro editor
+                per spostarla, oppure fuori dagli editor per aprire una finestra. Trascina l'intera
+                finestra su un altro editor per unirne tutte le schede. La X della scheda la chiude
+                senza eliminare il file. Puoi avviare un solo file alla volta. Nel file avviato,
+                <code>import "nome.mine";</code> rende disponibili le funzioni dell'altro file. Un
+                file importato può contenere solo <code>def</code> e <code>import</code>: il corpo
+                di una funzione importata viene eseguito quando la richiami.
+              </p>
+              <p><strong>1. Crea utilita.mine con questa funzione:</strong></p>
+              <app-guide-code [source]="guideCode.fileLibrary" />
+              <p>
+                <strong
+                  >2. Nel file principale, importa la funzione e avvia solo questo file:</strong
+                >
+              </p>
+              <app-guide-code [source]="guideCode.fileImport" />
+            </article>
             <article>
               <h3
                 id="constructs-variables"

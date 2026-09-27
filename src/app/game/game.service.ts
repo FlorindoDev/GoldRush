@@ -140,6 +140,9 @@ export class GameService {
     () => this.files().find((file) => file.id === this.activeFileId()) ?? this.files()[0]!,
   );
   readonly code = computed(() => this.activeFile().code);
+  readonly executingFileId = signal<string | null>(null);
+  readonly lineFileId = signal<string | null>(null);
+  readonly errorFileId = signal<string | null>(null);
   readonly logs = signal<LogEntry[]>([]);
   readonly selected = computed(() => {
     const world = this.world();
@@ -265,6 +268,7 @@ export class GameService {
     const completedDays = Math.floor(elapsedMinutes / GAME_BALANCE.clock.minutesPerDay);
     this.billedGameDay = Math.max(
       this.billedGameDay,
+      this.world().electricity.lastPriceChangeDay ?? 0,
       this.world().lastElectricityBill?.gameDay ?? 0,
     );
     while (this.billedGameDay < completedDays) {
@@ -277,16 +281,24 @@ export class GameService {
           'warning',
         );
       }
+      const newPriceEurPerKwh = this.world().electricity.priceEurPerKwh;
+      if (newPriceEurPerKwh !== undefined) {
+        this.log(`Nuova tariffa: ${newPriceEurPerKwh.toFixed(2)} €/kWh.`);
+      }
     }
   }
 
   updateCode(code: string): void {
-    this.clearLineEffects();
-    const activeFileId = this.activeFileId();
-    this.files.update((files) =>
-      files.map((file) => (file.id === activeFileId ? { ...file, code } : file)),
-    );
-    this.errorLine.set(0);
+    this.updateFileCode(this.activeFileId(), code);
+  }
+
+  updateFileCode(id: string, code: string): void {
+    if (this.lineFileId() === id) this.clearLineEffects();
+    this.files.update((files) => files.map((file) => (file.id === id ? { ...file, code } : file)));
+    if (this.errorFileId() === id) {
+      this.errorLine.set(0);
+      this.errorFileId.set(null);
+    }
     this.persistFiles();
   }
 
@@ -297,37 +309,58 @@ export class GameService {
     this.activeFileId.set(id);
     this.clearLineEffects();
     this.errorLine.set(0);
+    this.errorFileId.set(null);
     this.activeLine.set(0);
     this.persistFiles();
   }
 
-  addFile(): void {
-    if (this.running()) {
-      return;
-    }
+  addFile(): ScriptFile {
+    return this.createFile();
+  }
+
+  createFile(proposedName?: string): ScriptFile {
+    if (this.running()) throw new Error('Ferma il programma prima di creare un file.');
     let number = 2;
-    while (this.files().some((file) => file.name === `script-${number}.mine`)) {
+    while (
+      this.files().some(
+        (file) => file.id === `script-${number}` || file.name === `script-${number}.mine`,
+      )
+    ) {
       number++;
+    }
+    const name = this.validFileName(proposedName?.trim() || `script-${number}.mine`);
+    if (this.files().some((file) => file.name.toLowerCase() === name.toLowerCase())) {
+      throw new Error(`Esiste già un file chiamato "${name}".`);
     }
     const file: ScriptFile = {
       id: `script-${number}`,
-      name: `script-${number}.mine`,
+      name,
       code: '',
     };
     this.files.update((files) => [...files, file]);
-    this.activeFileId.set(file.id);
-    this.clearLineEffects();
-    this.errorLine.set(0);
-    this.activeLine.set(0);
+    this.selectFile(file.id);
+    return file;
+  }
+
+  renameFile(id: string, proposedName: string): void {
+    if (this.running()) throw new Error('Ferma il programma prima di rinominare un file.');
+    const name = this.validFileName(proposedName.trim());
+    if (
+      this.files().some((file) => file.id !== id && file.name.toLowerCase() === name.toLowerCase())
+    ) {
+      throw new Error(`Esiste già un file chiamato "${name}".`);
+    }
+    if (!this.files().some((file) => file.id === id)) throw new Error('File non trovato.');
+    this.files.update((files) => files.map((file) => (file.id === id ? { ...file, name } : file)));
     this.persistFiles();
   }
 
-  closeFile(id: string): void {
+  deleteFile(id: string): void {
     const files = this.files();
     const index = files.findIndex((file) => file.id === id);
-    if (this.running() || index < 0 || files.length === 1) {
-      return;
-    }
+    if (this.running()) throw new Error('Ferma il programma prima di eliminare un file.');
+    if (index < 0) throw new Error('File non trovato.');
+    if (files.length === 1) throw new Error('Deve restare almeno un file.');
 
     const remaining = files.filter((file) => file.id !== id);
     if (this.activeFileId() === id) {
@@ -336,8 +369,37 @@ export class GameService {
     this.files.set(remaining);
     this.clearLineEffects();
     this.errorLine.set(0);
+    this.errorFileId.set(null);
     this.activeLine.set(0);
     this.persistFiles();
+  }
+
+  private validFileName(value: string): string {
+    const name = value.endsWith('.mine') ? value : `${value}.mine`;
+    if (name.length > 64 || !/^[a-zA-Z0-9][a-zA-Z0-9 _.-]*\.mine$/.test(name)) {
+      throw new Error('Usa un nome di massimo 64 caratteri, senza cartelle o simboli speciali.');
+    }
+    return name;
+  }
+
+  async runFile(id: string): Promise<void> {
+    if (this.running()) {
+      if (this.executingFileId() === id) await this.run();
+      return;
+    }
+    if (!this.files().some((file) => file.id === id)) return;
+    this.selectFile(id);
+    await this.run();
+  }
+
+  async stepFile(id: string): Promise<void> {
+    if (this.running()) {
+      if (this.executingFileId() === id) await this.step();
+      return;
+    }
+    if (!this.files().some((file) => file.id === id)) return;
+    this.selectFile(id);
+    await this.step();
   }
 
   async run(): Promise<void> {
@@ -351,16 +413,23 @@ export class GameService {
     this.prepareNextBlock();
     this.powerOnGpus(Date.now());
     const controller = new AbortController();
+    const entryFile = this.activeFile();
+    const moduleFiles = this.files();
     this.clearLineEffects();
     this.controller = controller;
     this.stepMode.set(this.executionMode === 'step');
     this.running.set(true);
     this.errorLine.set(0);
-    this.log(`Esecuzione di ${this.activeFile().name}…`);
+    this.errorFileId.set(null);
+    this.executingFileId.set(entryFile.id);
+    this.lineFileId.set(entryFile.id);
+    this.log(`Esecuzione di ${entryFile.name}…`);
     try {
       await execute(
-        this.code(),
+        entryFile.code,
         {
+          entryFileName: entryFile.name,
+          modules: Object.fromEntries(moduleFiles.map((file) => [file.name, file.code])),
           globals: createWorldBindings(
             this.world(),
             {
@@ -396,8 +465,12 @@ export class GameService {
           },
         },
         controller.signal,
-        async (line) => {
+        async (line, sourceName) => {
           await this.waitForStepPermit(controller.signal);
+          const sourceFileId =
+            moduleFiles.find((file) => file.name === sourceName)?.id ?? entryFile.id;
+          if (this.lineFileId() !== sourceFileId) this.clearLineEffects();
+          this.lineFileId.set(sourceFileId);
           this.activeLine.set(line);
           this.markLineExecuted(line);
         },
@@ -648,6 +721,9 @@ export class GameService {
     this.started.set(false);
     this.logs.set([]);
     this.errorLine.set(0);
+    this.errorFileId.set(null);
+    this.lineFileId.set(null);
+    this.executingFileId.set(null);
   }
 
   clearLogs(): void {
@@ -958,7 +1034,8 @@ export class GameService {
           fraction
       );
     }, 0);
-    const pricePerKwh = GAME_BALANCE.economy.electricityPriceEurPerKwh;
+    const pricePerKwh =
+      world.electricity.priceEurPerKwh ?? GAME_BALANCE.economy.electricityPriceEurPerKwh;
     const pendingCostEur = (world.electricity.pendingKwh + liveKwh) * pricePerKwh;
     return {
       powerWatts,
@@ -976,9 +1053,13 @@ export class GameService {
     }
 
     const line = error instanceof ScriptError ? error.line : 0;
+    const sourceName = error instanceof ScriptError ? error.sourceName : undefined;
     const message = error instanceof Error ? error.message : 'Errore durante l’esecuzione.';
+    this.errorFileId.set(
+      this.files().find((file) => file.name === sourceName)?.id ?? this.executingFileId(),
+    );
     this.errorLine.set(line);
-    this.log(message, 'error');
+    this.log(sourceName ? `${sourceName}: ${message}` : message, 'error');
   }
 
   private log(message: string, kind: LogEntry['kind'] = 'info'): void {

@@ -4,6 +4,7 @@ import {
   computed,
   ElementRef,
   inject,
+  input,
   output,
   signal,
   viewChild,
@@ -35,17 +36,41 @@ interface TextEdit {
 })
 export class EditorComponent {
   readonly game = inject(GameService);
+  readonly fileIds = input.required<readonly string[]>();
+  readonly activeFileId = input.required<string>();
+  readonly fileId = computed(() => this.activeFileId());
   readonly openGuide = output<void>();
+  readonly newFile = output<void>();
+  readonly closeWindow = output<void>();
+  readonly tabClosed = output<string>();
+  readonly tabSelected = output<string>();
+  readonly tabDragStarted = output<{ event: DragEvent; fileId: string }>();
+  readonly tabDragEnded = output<void>();
+  readonly tabs = computed(() =>
+    this.fileIds().flatMap((id) => {
+      const file = this.game.files().find((entry) => entry.id === id);
+      return file ? [file] : [];
+    }),
+  );
+  readonly file = computed(() => this.game.files().find((file) => file.id === this.fileId()));
+  readonly code = computed(() => this.file()?.code ?? '');
+  readonly isExecuting = computed(
+    () => this.game.running() && this.game.executingFileId() === this.fileId(),
+  );
+  readonly hasRunningLine = computed(
+    () => this.game.running() && this.game.lineFileId() === this.fileId(),
+  );
   readonly gutterWidth = computed(() => {
-    const lineCount = this.game.code().split('\n').length;
+    const lineCount = this.code().split('\n').length;
     return Math.max(44, String(lineCount).length * 8 + 16);
   });
   readonly highlighted = computed(() =>
-    highlight(this.game.code(), {
-      executedLines: this.game.executedLineEffects(),
+    highlight(this.code(), {
+      executedLines:
+        this.game.lineFileId() === this.fileId() ? this.game.executedLineEffects() : undefined,
       effectsEnabled: this.game.lineEffectsEnabled(),
-      activeLine: this.game.activeLine(),
-      errorLine: this.game.errorLine(),
+      activeLine: this.game.lineFileId() === this.fileId() ? this.game.activeLine() : 0,
+      errorLine: this.game.errorFileId() === this.fileId() ? this.game.errorLine() : 0,
       cursorLine: this.cursor().line,
     }),
   );
@@ -55,7 +80,7 @@ export class EditorComponent {
   private capturesTabKey = true;
 
   onInput(event: Event): void {
-    this.game.updateCode((event.target as HTMLTextAreaElement).value);
+    this.game.updateFileCode(this.fileId(), (event.target as HTMLTextAreaElement).value);
     this.updateCursor();
   }
 
@@ -93,7 +118,7 @@ export class EditorComponent {
     }
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
       event.preventDefault();
-      void this.game.run();
+      void this.game.runFile(this.fileId());
       return;
     }
     if (event.key === 'Escape') {
@@ -220,7 +245,7 @@ export class EditorComponent {
   ): void {
     const textarea = this.editor().nativeElement;
     const value = textarea.value.slice(0, start) + replacement + textarea.value.slice(end);
-    this.game.updateCode(value);
+    this.game.updateFileCode(this.fileId(), value);
     textarea.value = value;
     textarea.focus();
     textarea.setSelectionRange(selectionStart, selectionEnd);
@@ -241,36 +266,11 @@ export class EditorComponent {
 
     const selectionStart = remapPosition(source, formatted, textarea.selectionStart);
     const selectionEnd = remapPosition(source, formatted, textarea.selectionEnd);
-    this.game.updateCode(formatted);
+    this.game.updateFileCode(this.fileId(), formatted);
     textarea.value = formatted;
     textarea.focus();
     textarea.setSelectionRange(selectionStart, selectionEnd);
     this.updateCursor();
-  }
-
-  selectFile(id: string): void {
-    this.game.selectFile(id);
-    this.resetEditorView();
-  }
-
-  addFile(): void {
-    this.game.addFile();
-    this.resetEditorView();
-  }
-
-  closeFile(id: string): void {
-    this.game.closeFile(id);
-    this.resetEditorView();
-  }
-
-  private resetEditorView(): void {
-    const textarea = this.editor().nativeElement;
-    textarea.value = this.game.code();
-    textarea.scrollTop = 0;
-    textarea.focus();
-    textarea.setSelectionRange(0, 0);
-    this.syncScroll();
-    this.cursor.set({ line: 1, column: 1 });
   }
 
   private insertIndentedNewline(): void {

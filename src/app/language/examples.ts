@@ -1,4 +1,5 @@
 import { MINE_PROGRESS_PER_GPU, STARTING_GPU_COUNT } from '../game/mining-world';
+import { GUIDE_CODE } from './guide-code';
 
 const MINES_PER_BLOCK = Math.ceil(100 / (MINE_PROGRESS_PER_GPU * Math.max(1, STARTING_GPU_COUNT)));
 
@@ -11,6 +12,10 @@ while (progress() < 100) {
 }
 
 print("Blocco completato!");`,
+  },
+  {
+    name: 'Funzione con parametro e return',
+    code: GUIDE_CODE.functionDefinition,
   },
   {
     name: 'Mining multi-cripto',

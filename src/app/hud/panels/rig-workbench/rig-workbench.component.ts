@@ -26,7 +26,8 @@ export class RigWorkbenchComponent {
   readonly closeBench = output<void>();
   readonly selected = signal<'fan' | 'filter' | 'cooling'>('fan');
   readonly fanModels = FAN_MODELS;
-  readonly fanCounts = Array.from({ length: MAX_RIG_FANS }, (_, index) => index + 1);
+  readonly fanCounts = Array.from({ length: MAX_RIG_FANS + 1 }, (_, index) => index);
+  readonly maxRigFans = MAX_RIG_FANS;
   readonly filterOptions = Object.entries(RIG_DUST_SYSTEMS) as [
     RigDustSystemId,
     (typeof RIG_DUST_SYSTEMS)[RigDustSystemId],

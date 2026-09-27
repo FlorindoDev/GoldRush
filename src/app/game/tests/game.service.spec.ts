@@ -60,4 +60,35 @@ describe('GameService script controls', () => {
     expect(game.running()).toBe(false);
     expect(game.waitingForStep()).toBe(false);
   });
+
+  it('runs a function imported from a second file', async () => {
+    const game = createGame('import "utilita.mine"; print(doppio(3));');
+    const entryId = game.activeFileId();
+    const library = game.createFile('utilita.mine');
+    game.updateFileCode(library.id, 'def doppio(numero) { return numero * 2; }');
+
+    await game.runFile(entryId);
+
+    expect(output(game)).toEqual(['6']);
+    expect(game.running()).toBe(false);
+  });
+
+  it('keeps one file running when another file requests execution', async () => {
+    const game = createGame('print("first");\nprint("second");');
+    const entryId = game.activeFileId();
+    const other = game.createFile('other.mine');
+    game.updateFileCode(other.id, 'print("other");');
+
+    const execution = game.stepFile(entryId);
+    await waitForPause(game);
+    await game.runFile(other.id);
+
+    expect(game.executingFileId()).toBe(entryId);
+    expect(game.activeFileId()).toBe(entryId);
+    expect(output(game)).toEqual(['first']);
+
+    await game.runFile(entryId);
+    await execution;
+    expect(output(game)).toEqual(['first', 'second']);
+  });
 });

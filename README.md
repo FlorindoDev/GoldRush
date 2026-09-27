@@ -1,4 +1,4 @@
-# Blockcraft
+# GoldRush
 
 Prototipo di gioco Angular + Three.js: scrivi MineScript per gestire una farm GPU su una mappa 3D low poly. Mining e BTC sono simulati.
 
@@ -16,7 +16,7 @@ In Windows PowerShell, se l'esecuzione di `npm.ps1` è bloccata, usa `npm.cmd st
 Apri **http://localhost:4200**. Le configurazioni della farm sono in `src/app/config`; `game-balance.ts` le compone. Le GPU sbloccate e le ventole girano durante il mining. Un clic sulla GPU o sul pulsante numerato la seleziona; un doppio clic la trasferisce alla workbench. La freccia la rimette sul quadrato mantenendo la selezione. Completare un blocco non sblocca rig o GPU.
 
 ```sh
-npm run build       # Produzione in dist/blockcraft/browser
+npm run build       # Produzione in dist/goldrush/browser
 npm test           # Interprete, regole di gioco, escaping dell'editor
 npm run test:e2e    # Browser Microsoft Edge; avvia automaticamente il server
 ```
@@ -218,7 +218,7 @@ MineScript è sequenziale: `mine()` attende il completamento di tutte le GPU avv
 
 ### Corrente e portafoglio
 
-Il cambio iniziale è **1 BTC = 60.000 €**, statico e configurabile. Il portafoglio mostra il saldo netto a otto decimali BTC e in euro. La tariffa iniziale è **0,30 €/kWh**. Un `mine()` completo rappresenta **un'ora simulata**, indipendentemente dalla velocità 1×/2×; un'interruzione ne conta la frazione trascorsa. Il tempo economico avanza durante le azioni di mining: pause, attese e inattività non aggiungono consumi.
+Il cambio iniziale è **1 BTC = 60.000 €**, statico e configurabile. Il portafoglio mostra il saldo netto a otto decimali BTC e in euro. La tariffa iniziale è **0,30 €/kWh**. Alla fine di ogni giorno di gioco, il consumo accumulato viene pagato alla tariffa corrente; solo dopo viene estratta la tariffa del giorno seguente. Consumi giornalieri maggiori selezionano intervalli di prezzo più alti. La tariffa iniziale, le soglie in kWh e gli intervalli inclusivi in €/kWh sono configurabili in `src/app/config/economy-config.ts`. Anche un giorno senza consumi usa la prima fascia. Un `mine()` completo rappresenta **un'ora simulata**, indipendentemente dalla velocità 1×/2×; un'interruzione ne conta la frazione trascorsa. Il tempo di gioco continua ad avanzare, mentre pause, attese e inattività non aggiungono consumi.
 
 Il consumo include le GPU attive e lo standby delle altre GPU sbloccate e operative. Le schede ferme non consumano. L'oggetto globale `electricity` espone questi getter senza argomenti (risultato numerico) e gli attributi equivalenti di sola lettura:
 
@@ -226,13 +226,13 @@ Il consumo include le GPU attive e lo standby delle altre GPU sbloccate e operat
 | --------------------------------- | ---------------- | --------------------------------------------------------------------- |
 | `electricity.getPowerWatts()`     | `powerWatts`     | W istantanei dell'intera farm, incluso standby                        |
 | `electricity.getEnergyKwh()`      | `energyKwh`      | kWh complessivi della partita, incluso lavoro già pagato o interrotto |
-| `electricity.getPendingCostEur()` | `pendingCostEur` | Euro da pagare al completamento del blocco                            |
+| `electricity.getPendingCostEur()` | `pendingCostEur` | Euro stimati per la prossima bolletta                                  |
 | `electricity.getTotalCostEur()`   | `totalCostEur`   | Euro pagati più costo pendente                                        |
-| `electricity.getPricePerKwh()`    | `pricePerKwh`    | Tariffa fissa in €/kWh                                                |
+| `electricity.getPricePerKwh()`    | `pricePerKwh`    | Tariffa corrente in €/kWh                                              |
 
-`kWh = W / 1000 × ore simulate`. Una GPU alla frequenza base consuma 0,205 kWh per azione (0,0615 €); `mine()` somma i consumi delle schede attive. I consumi restano pendenti anche tra script diversi o dopo un errore. A blocco completato il premio lordo viene accreditato e la bolletta viene convertita in BTC al cambio fisso, arrotondata una sola volta al satoshi più vicino e sottratta al saldo. Il saldo può diventare negativo se la bolletta supera saldo e premio: il debito resta visibile. Un blocco viene pagato una sola volta e azzera solo il consumo pendente.
+`kWh = W / 1000 × ore simulate`. Una GPU alla frequenza base consuma 0,205 kWh per azione (0,0615 € alla tariffa iniziale); `mine()` somma i consumi delle schede attive. I consumi restano pendenti anche tra script diversi o dopo un errore. A blocco completato il premio lordo viene accreditato. Ogni 24 ore di gioco la bolletta viene convertita in BTC al cambio fisso, arrotondata una sola volta al satoshi più vicino e sottratta al saldo. Il saldo può diventare negativo se la bolletta supera il saldo disponibile: il debito resta visibile. Un blocco viene pagato una sola volta; il consumo pendente si azzera dopo l'addebito giornaliero.
 
-Il riepilogo anima prima il premio, poi l'addebito della corrente e il netto. L'animazione osserva il saldo già aggiornato: annullarla o iniziare un nuovo blocco non modifica i conti. Rispetta `prefers-reduced-motion`. Riferimento per il feedback visivo di acquisti e ricompense: [Game UI design](https://www.gamedeveloper.com/design/game-ui-design).
+Il riepilogo mostra premi e bollette, con il prezzo applicato al consumo del giorno. L'animazione osserva il saldo già aggiornato: annullarla o iniziare un nuovo blocco non modifica i conti. Rispetta `prefers-reduced-motion`. Riferimento per il feedback visivo di acquisti e ricompense: [Game UI design](https://www.gamedeveloper.com/design/game-ui-design).
 
 ```js
 print(electricity.getPricePerKwh());

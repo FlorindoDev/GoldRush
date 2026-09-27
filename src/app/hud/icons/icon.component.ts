@@ -10,6 +10,7 @@ const PATHS: Record<string, string | readonly string[]> = {
   cooling: 'M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M8 4l4 4 4-4M8 20l4-4 4 4',
   cube: 'm12 3 9 5v8l-9 5-9-5V8l9-5Zm0 0v9m9-4-9 4-9-4m9 4v9',
   code: 'm8 7-5 5 5 5m8-10 5 5-5 5M14 4l-4 16',
+  edit: 'M12 20h9M4 16.5V20h3.5L19 8.5 15.5 5 4 16.5ZM14 6.5l3.5 3.5',
   terminal: 'm4 6 6 6-6 6m9 0h7',
   clock: 'M12 8v4l3 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
   play: 'm8 4 12 8-12 8V4Z',

@@ -1,1 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#141b18"/><path d="m24 8 15 9v15l-15 9-15-9V17Zm0 0v17m15-8-15 8-15-8m15 8v16" fill="none" stroke="#b8f575" stroke-width="3" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>GoldRush</title>
+  <rect width="64" height="64" rx="14" fill="#141b18"/>
+  <path d="m10 33 8-12 12-4 8-7 11 6 7 12-4 13-12 11-16 1-12-8-4-9Z" fill="#b96d10" stroke="#693b10" stroke-width="2" stroke-linejoin="round"/>
+  <path d="m18 21 12-4 8-7 6 12-12 5-11 3-11 3Z" fill="#ffe486"/>
+  <path d="m10 33 11-3 9 10-6 13-12-8-4-9Z" fill="#e4a52a"/>
+  <path d="m21 30 11-3 12-5 12 6-10 9-16 3Z" fill="#f5c348"/>
+  <path d="m30 40 16-3 6 4-12 11-16 1Z" fill="#d88e19"/>
+  <path d="m44 22 5-6 7 12-10 9-16 3 2-13Z" fill="#dc981e" opacity=".62"/>
+  <path d="m22 23 8-3 5-5-2 7-10 5Z" fill="#fff5b5"/>
+  <path d="m31 44 10-2 5-3-7 8-10 2Z" fill="#ffcc52"/>
+</svg>

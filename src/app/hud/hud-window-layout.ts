@@ -1,11 +1,14 @@
 import { signal } from '@angular/core';
 
-type WindowName = 'editor' | 'console';
+type WindowName = string;
 type ResizeTarget = WindowName | 'docked-console';
 type WindowPosition = { x: number; y: number };
 type WindowDrag = {
   name: WindowName;
   pointerId: number;
+  startX: number;
+  startY: number;
+  moved: boolean;
   offsetX: number;
   offsetY: number;
   element: HTMLElement;
@@ -27,12 +30,60 @@ export class HudWindowLayout {
   readonly consoleDocked = signal(false);
   readonly activeWindow = signal<WindowName>('editor');
   readonly editorPosition = signal<WindowPosition | null>(null);
+  readonly extraEditorPositions = signal<Record<string, WindowPosition>>({});
   readonly consolePosition = signal<WindowPosition | null>(null);
   private windowDrag?: WindowDrag;
   private windowResize?: WindowResize;
 
   toggleConsoleDock(): void {
     this.consoleDocked.update((docked) => !docked);
+  }
+
+  editorPositionFor(name: string): WindowPosition | null {
+    return name === 'editor' ? this.editorPosition() : (this.extraEditorPositions()[name] ?? null);
+  }
+
+  placeEditor(name: string, index: number): void {
+    const column = index % 3;
+    this.setWindowPosition(name, {
+      x: Math.max(8, window.innerWidth - 24 - (column + 1) * 430),
+      y: Math.max(8, Math.min(window.innerHeight - 320, 78 + Math.floor(index / 3) * 42)),
+    });
+    this.activeWindow.set(name);
+  }
+
+  placeEditorAt(name: string, clientX: number, clientY: number): void {
+    const mobile = window.innerWidth <= 600;
+    const width = mobile ? window.innerWidth - 24 : Math.min(410, window.innerWidth - 32);
+    const height = mobile
+      ? Math.max(
+          Math.min(260, window.innerHeight - 80),
+          Math.min(430, window.innerHeight - (window.innerWidth <= 440 ? 290 : 210)),
+        )
+      : Math.max(Math.min(310, window.innerHeight - 96), Math.min(650, window.innerHeight - 96));
+    this.setWindowPosition(name, {
+      x: Math.max(8, Math.min(clientX - 80, window.innerWidth - Math.max(1, width) - 8)),
+      y: Math.max(8, Math.min(clientY - 24, window.innerHeight - Math.max(1, height) - 8)),
+    });
+    this.activeWindow.set(name);
+  }
+
+  focusWindow(name: string): void {
+    this.activeWindow.set(name);
+  }
+
+  forgetEditor(name: string): void {
+    if (name === 'editor') {
+      this.editorPosition.set(null);
+      if (this.activeWindow() === name) this.activeWindow.set('console');
+      return;
+    }
+    this.extraEditorPositions.update((positions) => {
+      const remaining = { ...positions };
+      delete remaining[name];
+      return remaining;
+    });
+    if (this.activeWindow() === name) this.activeWindow.set('editor');
   }
 
   startWindowDrag(event: PointerEvent, name: WindowName): void {
@@ -51,6 +102,9 @@ export class HudWindowLayout {
     this.windowDrag = {
       name,
       pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
       offsetX: event.clientX - bounds.left,
       offsetY: event.clientY - bounds.top,
       element,
@@ -72,7 +126,7 @@ export class HudWindowLayout {
     }
 
     const bounds = element.getBoundingClientRect();
-    this.focusResizeTarget(target);
+    this.focusResizeTarget(target, element);
     this.anchorResizableWindow(target, element, bounds);
     this.windowResize = {
       target,
@@ -106,7 +160,7 @@ export class HudWindowLayout {
     }
 
     const bounds = element.getBoundingClientRect();
-    this.focusResizeTarget(target);
+    this.focusResizeTarget(target, element);
     this.anchorResizableWindow(target, element, bounds);
     const step = event.shiftKey ? 48 : 16;
     const width =
@@ -119,6 +173,9 @@ export class HudWindowLayout {
   moveWindow(event: PointerEvent): void {
     const drag = this.windowDrag;
     if (drag && event.pointerId === drag.pointerId) {
+      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) >= 12) {
+        drag.moved = true;
+      }
       const maxX = Math.max(8, window.innerWidth - drag.element.offsetWidth - 8);
       const maxY = Math.max(8, window.innerHeight - drag.element.offsetHeight - 8);
       this.setWindowPosition(drag.name, {
@@ -143,17 +200,24 @@ export class HudWindowLayout {
     );
   }
 
-  stopWindowInteraction(event: PointerEvent): void {
+  stopWindowInteraction(event: PointerEvent): { name: WindowName; moved: boolean } | null {
+    let finishedDrag: { name: WindowName; moved: boolean } | null = null;
     if (this.windowDrag?.pointerId === event.pointerId) {
+      finishedDrag = { name: this.windowDrag.name, moved: this.windowDrag.moved };
       this.windowDrag = undefined;
     }
     if (this.windowResize?.pointerId === event.pointerId) {
       this.windowResize = undefined;
     }
+    return finishedDrag;
   }
 
-  private focusResizeTarget(target: ResizeTarget): void {
-    this.activeWindow.set(target === 'docked-console' ? 'editor' : target);
+  private focusResizeTarget(target: ResizeTarget, element: HTMLElement): void {
+    this.activeWindow.set(
+      target === 'docked-console'
+        ? (element.closest<HTMLElement>('.editor-window')?.dataset['editorWindowId'] ?? 'editor')
+        : target,
+    );
   }
 
   private anchorResizableWindow(target: ResizeTarget, element: HTMLElement, bounds: DOMRect): void {
@@ -182,8 +246,8 @@ export class HudWindowLayout {
 
     const maxWidth = Math.max(1, window.innerWidth - originX - 8);
     const maxHeight = Math.max(1, window.innerHeight - originY - 8);
-    const minWidth = Math.min(target === 'editor' ? 320 : 260, maxWidth);
-    const minHeight = Math.min(target === 'editor' ? 310 : 120, maxHeight);
+    const minWidth = Math.min(target === 'console' ? 260 : 320, maxWidth);
+    const minHeight = Math.min(target === 'console' ? 120 : 310, maxHeight);
     element.style.width = `${this.clamp(width, minWidth, maxWidth)}px`;
     element.style.height = `${this.clamp(height, minHeight, maxHeight)}px`;
   }
@@ -197,6 +261,10 @@ export class HudWindowLayout {
       this.editorPosition.set(position);
       return;
     }
-    this.consolePosition.set(position);
+    if (name === 'console') {
+      this.consolePosition.set(position);
+      return;
+    }
+    this.extraEditorPositions.update((positions) => ({ ...positions, [name]: position }));
   }
 }

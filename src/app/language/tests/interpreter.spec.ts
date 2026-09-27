@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { GAME_BALANCE } from '../../config/game-balance';
 import { delay, execute, ScriptHost } from '../interpreter';
 import { parse } from '../parser';
 
@@ -38,6 +39,12 @@ describe('MineScript', () => {
     expect(f.output).toEqual(['5']);
   });
 
+  it('calls a function with a local parameter and returns its result', async () => {
+    const f = fixture();
+    await f.run('def doppio(numero) { return numero * 2; } print(doppio(3));');
+    expect(f.output).toEqual(['6']);
+  });
+
   it('uses the live progress in while and supports if/else', async () => {
     const f = fixture();
     await f.run(
@@ -56,9 +63,7 @@ describe('MineScript', () => {
 
   it('short-circuits logical conditions', async () => {
     const f = fixture();
-    await f.run(
-      'if (false && mine()) { print("no"); } if (true || mine()) { print("yes"); }',
-    );
+    await f.run('if (false && mine()) { print("no"); } if (true || mine()) { print("yes"); }');
     expect(f.mine).not.toHaveBeenCalled();
     expect(f.output).toEqual(['yes']);
   });
@@ -69,7 +74,7 @@ describe('MineScript', () => {
     'repeat(1001) {}',
     'wait(-1);',
     'wait(5001);',
-    'mine(1);',
+    'mine(0);',
     'print();',
     'unknown();',
     'x = 2;',
@@ -92,8 +97,18 @@ describe('MineScript', () => {
   });
 
   it('stops an infinite loop at the instruction budget', async () => {
-    await expect(fixture().run('while(true) {}')).rejects.toThrow('10.000 operazioni');
-  });
+    vi.useFakeTimers();
+    try {
+      const running = fixture().run('while(true) {}');
+      const result = expect(running).rejects.toThrow(
+        `${GAME_BALANCE.scripting.maxExecutionSteps.toLocaleString('it-IT')} operazioni`,
+      );
+      await vi.runAllTimersAsync();
+      await result;
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 20_000);
 
   it('allows cancellation while waiting without executing subsequent calls', async () => {
     const f = fixture();

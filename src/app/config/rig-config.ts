@@ -10,13 +10,20 @@ export interface RigSetup {
 }
 
 export const MAX_RIG_FANS = 5;
+export const STARTING_RIG_FAN_COUNT = 1;
 
 /** Configura ventole, filtro e raffreddamento del rig iniziale. */
 export const GAMEPLAY_RIG_SETUP = {
   dustSystemId: 'none',
   coolingMethodId: 'none',
   fanId: 'fan-airflow-120',
-  fanCount: MAX_RIG_FANS,
+  fanCount: STARTING_RIG_FAN_COUNT,
+} as const satisfies RigSetup;
+
+/** I rig acquistati arrivano senza ventole: si installano dal banco. */
+export const PURCHASED_RIG_SETUP = {
+  ...GAMEPLAY_RIG_SETUP,
+  fanCount: 0,
 } as const satisfies RigSetup;
 
 export const RIG_FAN_TUNING = {

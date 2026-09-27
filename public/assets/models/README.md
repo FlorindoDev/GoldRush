@@ -1,4 +1,4 @@
-# Libreria GLB Blockcraft
+# Libreria GLB GoldRush
 
 65 modelli nel [catalogo JSON](catalog.json). Anteprima: `http://localhost:4200/?models=1`.
 Per aprire un modello direttamente: `?models=1&model=rig-8-mesh-liquid`.

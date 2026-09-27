@@ -4,7 +4,7 @@ const HIGHLIGHT_PATTERNS = [
   /\/\/[^\n]*/,
   /\/\*/,
   /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/,
-  /\b(?:parallel|repeat|for|while|if|else|let|true|false)\b/,
+  /\b(?:parallel|repeat|for|while|if|else|let|def|return|import|true|false)\b/,
   /\.[a-zA-Z_][a-zA-Z_0-9]*(?=\s*\()/,
   /\b[a-zA-Z_][a-zA-Z_0-9]*(?=\s*\()/,
   /\.[a-zA-Z_][a-zA-Z_0-9]*/,
@@ -125,8 +125,10 @@ function highlightLine(
     classes.push('executed-line');
     classes.push(`execution-${executionId}`);
   }
-  const guides = Array.from({ length: blockDepth }, (_, index) =>
-    `<i class="block-guide" style="left:calc(var(--editor-code-left) + ${(index + 1) * 2}ch)"></i>`,
+  const guides = Array.from(
+    { length: blockDepth },
+    (_, index) =>
+      `<i class="block-guide" style="left:calc(var(--editor-code-left) + ${(index + 1) * 2}ch)"></i>`,
   ).join('');
   const guideMarkup = guides
     ? `<span class="block-guides" aria-hidden="true">${guides}</span>`
@@ -155,7 +157,7 @@ function getTokenClass(token: string, followsCall: boolean): string {
   if (token.startsWith('.')) {
     return followsCall ? 'token-function' : 'token-member';
   }
-  if (/^(parallel|repeat|for|while|if|else|let|true|false)$/.test(token)) {
+  if (/^(parallel|repeat|for|while|if|else|let|def|return|import|true|false)$/.test(token)) {
     return 'token-keyword';
   }
   if (followsCall) {

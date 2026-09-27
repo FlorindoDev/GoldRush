@@ -1,0 +1,198 @@
+:host {
+  display: block;
+}
+.file-manager-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid #35402f;
+  border-radius: 5px;
+  background: #131b16e8;
+  color: #b1c19f;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+}
+.file-manager-toggle:hover,
+.file-manager-toggle:focus-visible {
+  background: #a0c27c12;
+}
+.file-manager-toggle app-icon {
+  width: 22px;
+  height: 22px;
+}
+.file-manager-dialog {
+  width: min(620px, calc(100vw - 24px));
+  max-height: min(760px, calc(100dvh - 24px));
+  padding: 0;
+  border: 1px solid #52704a;
+  border-radius: 12px;
+  background: #171f18;
+  color: #edf4e7;
+  box-shadow: 0 30px 90px #000a;
+}
+.file-manager-dialog::backdrop {
+  background: #050a07aa;
+  backdrop-filter: blur(5px);
+}
+.file-manager-panel {
+  padding: 24px;
+  font:
+    15px 'Segoe UI',
+    sans-serif;
+}
+header,
+.create-row > div,
+.file-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+header {
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+h2 {
+  margin: 2px 0 0;
+  font-size: 26px;
+}
+.eyebrow {
+  color: #a6ce91;
+  font: 12px var(--mono);
+  text-transform: uppercase;
+}
+button {
+  cursor: pointer;
+  font: inherit;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.icon-action {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 34px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #b5c7aa;
+}
+.icon-action:hover:not(:disabled) {
+  background: #334431;
+}
+app-icon {
+  width: 18px;
+  height: 18px;
+}
+.create-row label,
+.search-row label {
+  display: block;
+  margin-bottom: 8px;
+  color: #b5c7aa;
+}
+.create-row input,
+.search-row input,
+.file-list input {
+  min-width: 0;
+  flex: 1;
+  padding: 9px 10px;
+  border: 1px solid #53634b;
+  border-radius: 4px;
+  background: #101711;
+  color: #edf4e7;
+  font: 14px var(--mono);
+}
+.search-row {
+  margin-top: 20px;
+}
+.search-row input {
+  width: 100%;
+}
+.create-row button,
+.danger-action {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 12px;
+  border: 1px solid #80ac6a;
+  border-radius: 4px;
+  background: #345131;
+  color: #eef9e5;
+}
+.danger-action {
+  border-color: #a8625b;
+  background: #63332f;
+}
+.file-list {
+  display: grid;
+  gap: 6px;
+  max-height: 350px;
+  margin: 14px 0 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+.file-list li {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid #344334;
+  border-radius: 5px;
+  background: #1e2a1e;
+}
+.file-list .empty-result {
+  color: #a8b8a0;
+  justify-content: center;
+  padding: 18px;
+}
+.open-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+  padding: 6px;
+  border: 0;
+  background: transparent;
+  color: #edf4e7;
+  text-align: left;
+}
+.open-file:hover {
+  color: #b8f575;
+}
+.open-file span,
+.file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-name {
+  flex: 1;
+}
+.file-note {
+  margin: 16px 0 0;
+  color: #a8b8a0;
+  font-size: 13px;
+}
+.feedback {
+  min-height: 20px;
+  margin: 12px 0 0;
+  color: #ffb7a6;
+}
+@media (max-width: 600px) {
+  .file-manager-toggle {
+    width: 40px;
+    height: 40px;
+  }
+  .file-manager-toggle app-icon {
+    width: 20px;
+    height: 20px;
+  }
+  .file-manager-panel {
+    padding: 15px;
+  }
+}

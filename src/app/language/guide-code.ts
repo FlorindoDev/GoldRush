@@ -23,6 +23,15 @@ gpu.stop();`,
   variable: `let obiettivo = 100;
 obiettivo = obiettivo - 20;
 let i = 0; i++;`,
+  functionDefinition: `def doppio(numero) {
+  return numero * 2;
+}
+print(doppio(3));`,
+  fileImport: `import "utilita.mine";
+print("Risultato: " + doppio(3));`,
+  fileLibrary: `def doppio(numero) {
+  return numero * 2;
+}`,
   parallel: `let gpuUno = plots[0].rigs[0].gpus[0];
 let gpuDue = plots[0].rigs[0].gpus[1];
 
