@@ -305,6 +305,14 @@ footer {
   font-size: 15px;
   font-variant-numeric: tabular-nums;
 }
+.fan-kit-stock {
+  color: #c0d6a9;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.fan-kit-stock.unavailable {
+  color: #f0b08d;
+}
 .fan-kit-impact {
   color: var(--bench-accent);
   font-weight: 600;

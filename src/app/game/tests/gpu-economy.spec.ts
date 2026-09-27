@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { GAME_BALANCE } from '../config/game-balance';
-import { satoshisToEuros } from './electricity';
-import { gpuTemperature } from './gpu-operation';
-import { getGpuTelemetry } from './gpu-telemetry';
+import { GAME_BALANCE } from '../../config/game-balance';
+import { satoshisToEuros } from '../electricity';
+import { gpuTemperature } from '../gpu-operation';
+import { getGpuTelemetry } from '../gpu-telemetry';
 import {
   billElectricityForDay,
   BLOCK_REWARD,
@@ -16,7 +16,7 @@ import {
   resumeGpu,
   setGpuFrequency,
   stopGpu,
-} from './mining-world';
+} from '../mining-world';
 
 describe('GPU operation and electricity', () => {
   it('accumulates energy without charging before the game day ends', () => {

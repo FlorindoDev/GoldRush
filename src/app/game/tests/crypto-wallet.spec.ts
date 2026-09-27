@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CRYPTO_CONFIG, cryptoValueEur } from '../config/crypto-config';
-import { GameService } from './game.service';
+import { CRYPTO_CONFIG, cryptoValueEur } from '../../config/crypto-config';
+import { GameService } from '../game.service';
 import {
   assignGpusCrypto,
   billElectricityForDay,
@@ -10,7 +10,7 @@ import {
   mineGpu,
   settleCompletedCryptoBlock,
   STARTING_GPU_COUNT,
-} from './mining-world';
+} from '../mining-world';
 
 afterEach(() => {
   vi.clearAllTimers();

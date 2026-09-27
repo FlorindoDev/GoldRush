@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { describe, expect, it } from 'vitest';
-import type { ModelCatalog } from '../../assets/models/model-catalog';
-import { GAME_BALANCE } from '../../config/game-balance';
+import type { ModelCatalog } from '../../../assets/models/model-catalog';
+import { GAME_BALANCE } from '../../../config/game-balance';
 import {
   fitRigInSlot,
   rigPosition,
@@ -12,11 +12,11 @@ import {
   RIG_PLOT_DEPTH,
   RIG_SLOT_WIDTH,
   RIG_SLOT_DEPTH,
-} from './scene-layout';
-import { disposeObject } from '../resources/dispose-object';
-import { createGpuMiningRig } from '../models/gpu-mining-rig';
+} from '../scene-layout';
+import { disposeObject } from '../../resources/dispose-object';
+import { createGpuMiningRig } from '../../models/gpu-mining-rig';
 
-const publicRoot = new URL('../../../../public/', import.meta.url);
+const publicRoot = new URL('../../../../../public/', import.meta.url);
 const catalog: ModelCatalog = JSON.parse(
   readFileSync(new URL('assets/models/catalog.json', publicRoot), 'utf8'),
 );

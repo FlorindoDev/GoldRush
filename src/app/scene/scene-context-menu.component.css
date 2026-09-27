@@ -1,0 +1,133 @@
+:host {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.context-layer {
+  position: absolute;
+  z-index: 50;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.context-menu {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  width: min(272px, calc(100vw - 16px));
+  max-height: min(68dvh, 460px);
+  overflow: hidden;
+  border: 1px solid #68795a;
+  border-radius: 9px;
+  background: #151c17f7;
+  color: #f1f0e8;
+  box-shadow: 0 14px 36px #000b;
+  font:
+    13px/1.35 'Segoe UI',
+    system-ui,
+    sans-serif;
+}
+
+.context-menu header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 7px 9px 7px 12px;
+  border-bottom: 1px solid #424a3c;
+}
+
+.context-menu header > app-icon {
+  color: #a9c77e;
+}
+
+.context-menu header strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 0;
+  min-height: 40px;
+  padding: 8px 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.context-menu button:hover:not(:disabled) {
+  background: #303c26;
+}
+
+.context-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.context-menu button:focus-visible {
+  outline: 2px solid #a9c77e;
+  outline-offset: -3px;
+}
+
+.context-menu button app-icon {
+  color: #a9c77e;
+}
+
+.context-menu header button {
+  flex: 0 0 32px;
+  justify-content: center;
+  min-height: 32px;
+  padding: 4px;
+  border-radius: 5px;
+}
+
+.context-menu .context-action > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-menu .context-divider {
+  padding: 8px 12px 5px;
+  border-top: 1px solid #424a3c;
+  color: #a5ad9e;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.replacement-list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.context-menu .replacement-option small {
+  flex: 0 0 auto;
+  color: #a5ad9e;
+  font-size: 10px;
+}
+
+.context-menu .context-empty,
+.context-menu .context-feedback {
+  margin: 0;
+  padding: 10px 12px 12px;
+  color: #bdc4b7;
+  font-size: 12px;
+}
+
+.context-menu .context-feedback {
+  color: #e6ca87;
+}

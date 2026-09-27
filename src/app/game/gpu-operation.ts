@@ -121,6 +121,43 @@ export function gpuMaxFanSpeedRpm(
   return Math.max(0, configuredMaxRpm);
 }
 
+export function gpuAutomaticFanSpeedPercent(
+  gpu: GpuOperatingState,
+  temperatureCelsius: number,
+): number {
+  const model = GPU_MODELS_BY_ID[gpu.modelId];
+  if (gpuMaxFanSpeedRpm(gpu.fanKit, gpu.modelId) === 0) return 0;
+
+  const { idle, mining, limits } = model.specifications;
+  const fullSpeedTemperature = Math.max(
+    mining.temperatureCelsius,
+    limits.temperatureCelsius - config.automaticFanCurve.fullSpeedMarginCelsius,
+  );
+  if (temperatureCelsius <= idle.temperatureCelsius) return idle.fanSpeedPercent;
+  if (temperatureCelsius <= mining.temperatureCelsius) {
+    const progress =
+      (temperatureCelsius - idle.temperatureCelsius) /
+      (mining.temperatureCelsius - idle.temperatureCelsius);
+    return Math.round(
+      idle.fanSpeedPercent + (mining.fanSpeedPercent - idle.fanSpeedPercent) * progress,
+    );
+  }
+  if (temperatureCelsius >= fullSpeedTemperature) return 100;
+
+  const progress =
+    (temperatureCelsius - mining.temperatureCelsius) /
+    (fullSpeedTemperature - mining.temperatureCelsius);
+  return Math.round(mining.fanSpeedPercent + (100 - mining.fanSpeedPercent) * progress);
+}
+
+export function gpuCurrentFanSpeedPercent(
+  gpu: GpuOperatingState,
+  temperatureCelsius: number,
+): number {
+  if (gpuMaxFanSpeedRpm(gpu.fanKit, gpu.modelId) === 0) return 0;
+  return gpu.targetFanSpeedPercent ?? gpuAutomaticFanSpeedPercent(gpu, temperatureCelsius);
+}
+
 /** Se profilo nominale è 0%, usa 100% come riferimento ed evita divisione per zero. */
 export function gpuFanSpeedRatio(
   fanSpeedPercent: number,
@@ -208,10 +245,7 @@ export function applyGpuWork(
   const dustLoad = (gpu.dustPercent + dustPercent) / 200;
   const initialTemperature = gpuTemperature(gpu, startedAt, rigSetup);
   const nominalFanSpeed = GPU_MODELS_BY_ID[gpu.modelId].specifications.mining.fanSpeedPercent;
-  const fanSpeedPercent =
-    gpuMaxFanSpeedRpm(gpu.fanKit, gpu.modelId) > 0
-      ? (gpu.targetFanSpeedPercent ?? nominalFanSpeed)
-      : 0;
+  const fanSpeedPercent = gpuCurrentFanSpeedPercent(gpu, initialTemperature);
   const fanCooling = (nominalFanSpeed - fanSpeedPercent) * config.fanCoolingCelsiusPerPercent;
   const fanSpeedRatio = gpuFanSpeedRatio(fanSpeedPercent, gpu.fanKit, gpu.modelId);
   const rigDustSystem = RIG_DUST_SYSTEMS[rigSetup.dustSystemId];
@@ -232,14 +266,17 @@ export function applyGpuWork(
       (fraction * (1 + dustLoad * specifications.dustDamage.maxHeatingResponseBonus));
   const temperatureCelsius = initialTemperature + (equilibrium - initialTemperature) * response;
   const heatStress = Math.max(1, temperatureCelsius / specifications.mining.temperatureCelsius);
+  const wearFormula = config.wearFormula;
+  const fanWearProtection = (fanSpeedPercent / 100) * wearFormula.fanWearProtectionAtFullSpeed;
   const wearPercent = Math.min(
     100,
     gpu.wearPercent +
       specifications.wearPercentPerHour *
         workedHours *
-        ratio ** 2 *
-        heatStress ** 2 *
-        dustWearMultiplier(dustLoad * 100, specifications.dustDamage),
+        ratio ** wearFormula.frequencyExponent *
+        heatStress ** wearFormula.heatStressExponent *
+        dustWearMultiplier(dustLoad * 100, specifications.dustDamage) *
+        (1 - fanWearProtection),
   );
   const fault =
     wearPercent >= 100

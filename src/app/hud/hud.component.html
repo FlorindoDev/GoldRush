@@ -69,29 +69,29 @@
   <div
     class="floating-window editor-window"
     [hidden]="game.inspectedGpuId() !== null || game.inspectedRigId() !== null"
-    [style.left.px]="editorPosition()?.x ?? null"
-    [style.top.px]="editorPosition()?.y ?? null"
-    [style.zIndex]="activeWindow() === 'editor' ? 32 : 31"
-    (pointerdown)="startWindowDrag($event, 'editor')"
-    (pointermove)="moveWindow($event)"
-    (pointerup)="stopWindowInteraction($event)"
-    (pointercancel)="stopWindowInteraction($event)"
-    (lostpointercapture)="stopWindowInteraction($event)"
+    [style.left.px]="windowLayout.editorPosition()?.x ?? null"
+    [style.top.px]="windowLayout.editorPosition()?.y ?? null"
+    [style.zIndex]="windowLayout.activeWindow() === 'editor' ? 32 : 31"
+    (pointerdown)="windowLayout.startWindowDrag($event, 'editor')"
+    (pointermove)="windowLayout.moveWindow($event)"
+    (pointerup)="windowLayout.stopWindowInteraction($event)"
+    (pointercancel)="windowLayout.stopWindowInteraction($event)"
+    (lostpointercapture)="windowLayout.stopWindowInteraction($event)"
   >
     <app-editor (openGuide)="openGuide()" />
-    @if (consoleDocked()) {
+    @if (windowLayout.consoleDocked()) {
       <div class="docked-console-window">
         <app-console
           [docked]="true"
-          (toggleDock)="toggleConsoleDock()"
+          (toggleDock)="windowLayout.toggleConsoleDock()"
         />
         <button
           class="console-border-resize"
           type="button"
           aria-label="Ridimensiona console agganciata"
           title="Ridimensiona console trascinando il bordo o usando le frecce su e giù"
-          (pointerdown)="startWindowResize($event, 'docked-console')"
-          (keydown)="resizeWindowWithKeyboard($event, 'docked-console')"
+          (pointerdown)="windowLayout.startWindowResize($event, 'docked-console')"
+          (keydown)="windowLayout.resizeWindowWithKeyboard($event, 'docked-console')"
         ></button>
       </div>
     }
@@ -100,34 +100,34 @@
       type="button"
       aria-label="Ridimensiona editor"
       title="Ridimensiona editor: trascina o usa le frecce"
-      (pointerdown)="startWindowResize($event, 'editor')"
-      (keydown)="resizeWindowWithKeyboard($event, 'editor')"
+      (pointerdown)="windowLayout.startWindowResize($event, 'editor')"
+      (keydown)="windowLayout.resizeWindowWithKeyboard($event, 'editor')"
     >
       <app-icon name="resize" />
     </button>
   </div>
 
-  @if (!consoleDocked()) {
+  @if (!windowLayout.consoleDocked()) {
     <div
       class="floating-window console-window"
       [hidden]="game.inspectedGpuId() !== null || game.inspectedRigId() !== null"
-      [style.left.px]="consolePosition()?.x ?? null"
-      [style.top.px]="consolePosition()?.y ?? null"
-      [style.zIndex]="activeWindow() === 'console' ? 32 : 31"
-      (pointerdown)="startWindowDrag($event, 'console')"
-      (pointermove)="moveWindow($event)"
-      (pointerup)="stopWindowInteraction($event)"
-      (pointercancel)="stopWindowInteraction($event)"
-      (lostpointercapture)="stopWindowInteraction($event)"
+      [style.left.px]="windowLayout.consolePosition()?.x ?? null"
+      [style.top.px]="windowLayout.consolePosition()?.y ?? null"
+      [style.zIndex]="windowLayout.activeWindow() === 'console' ? 32 : 31"
+      (pointerdown)="windowLayout.startWindowDrag($event, 'console')"
+      (pointermove)="windowLayout.moveWindow($event)"
+      (pointerup)="windowLayout.stopWindowInteraction($event)"
+      (pointercancel)="windowLayout.stopWindowInteraction($event)"
+      (lostpointercapture)="windowLayout.stopWindowInteraction($event)"
     >
-      <app-console (toggleDock)="toggleConsoleDock()" />
+      <app-console (toggleDock)="windowLayout.toggleConsoleDock()" />
       <button
         class="window-resize-handle"
         type="button"
         aria-label="Ridimensiona console"
         title="Ridimensiona console: trascina o usa le frecce"
-        (pointerdown)="startWindowResize($event, 'console')"
-        (keydown)="resizeWindowWithKeyboard($event, 'console')"
+        (pointerdown)="windowLayout.startWindowResize($event, 'console')"
+        (keydown)="windowLayout.resizeWindowWithKeyboard($event, 'console')"
       >
         <app-icon name="resize" />
       </button>

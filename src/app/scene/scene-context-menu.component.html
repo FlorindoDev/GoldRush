@@ -1,0 +1,64 @@
+@if (context(); as menu) {
+  <div
+    class="context-layer"
+    (pointerdown)="close.emit(false)"
+  >
+    @if (menu.kind === 'gpu' && contextGpu(); as selectedGpu) {
+      <section
+        class="context-menu"
+        [style.left.px]="menu.x"
+        [style.top.px]="menu.y"
+        [style.width.px]="menu.width"
+        [style.max-height.px]="menu.maxHeight"
+        role="group"
+        [attr.aria-label]="'Azioni GPU ' + menu.id"
+        (pointerdown)="$event.stopPropagation()"
+      >
+        <header>
+          <app-icon name="gpu" />
+          <strong>GPU #{{ selectedGpu.id }}</strong>
+          <button
+            #contextMenuClose
+            aria-label="Chiudi azioni GPU"
+            (click)="close.emit(true)"
+          >
+            <app-icon name="close" />
+          </button>
+        </header>
+        <button
+          class="context-action"
+          [disabled]="disabled()"
+          (click)="requestRemoval()"
+        >
+          <app-icon name="archive" /><span>Sposta in magazzino</span>
+        </button>
+        <div class="context-divider">Sostituisci con</div>
+        @if (replacementGpus().length) {
+          <div class="replacement-list">
+            @for (item of replacementGpus(); track item.id) {
+              <button
+                class="context-action replacement-option"
+                [disabled]="disabled()"
+                (click)="requestReplacement(item.id)"
+              >
+                <app-icon name="replace" />
+                <span>{{ stockProducts.get(item.productId)?.name ?? item.productId }}</span>
+                <small>#{{ item.id }}</small>
+              </button>
+            }
+          </div>
+        } @else {
+          <p class="context-empty">Nessuna GPU funzionante. Acquistane una nello Shop del PC.</p>
+        }
+        @if (feedback()) {
+          <p
+            class="context-feedback"
+            role="status"
+          >
+            {{ feedback() }}
+          </p>
+        }
+      </section>
+    }
+  </div>
+}

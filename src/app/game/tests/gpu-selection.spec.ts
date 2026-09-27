@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GameService } from './game.service';
+import { GameService } from '../game.service';
 
 function createGame(): GameService {
   const game = new GameService();

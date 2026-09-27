@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GAME_BALANCE } from '../config/game-balance';
+import { GAME_BALANCE } from '../../config/game-balance';
 import {
   BLOCK_REWARD,
   canExpand,
@@ -22,7 +22,7 @@ import {
   RIGS_PER_PLOT,
   RIG_COUNT,
   STARTING_GPU_COUNT,
-} from './mining-world';
+} from '../mining-world';
 
 const MINES_PER_BLOCK = Math.ceil(100 / MINE_PROGRESS_PER_GPU);
 

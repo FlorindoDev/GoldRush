@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GAME_BALANCE } from '../config/game-balance';
-import { createWorld, serviceGpu, stopGpu, type MiningWorld } from '../game/mining-world';
-import { GpuVisuals, type GpuPose } from './gpu-visuals';
-import { gpuSceneWidth } from './models/gpu-model';
-import { loadTestGpu } from './testing/load-test-gpu';
+import { GAME_BALANCE } from '../../config/game-balance';
+import { createWorld, serviceGpu, stopGpu, type MiningWorld } from '../../game/mining-world';
+import { GpuVisuals, type GpuPose } from '../gpu-visuals';
+import { gpuSceneWidth } from '../models/gpu-model';
+import { loadTestGpu } from '../testing/load-test-gpu';
 
 const visualsToDispose: GpuVisuals[] = [];
 const duration = GAME_BALANCE.animation.transitionSeconds;
@@ -44,6 +44,14 @@ function homePose(id: number): GpuPose {
     position: new THREE.Vector3(id * 4, 1, 0),
     rotation: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), id * 0.2),
   };
+}
+
+function countNamedObjects(root: THREE.Object3D, name: string): number {
+  let count = 0;
+  root.traverse((object) => {
+    if (object.name === name) count++;
+  });
+  return count;
 }
 
 function startingWorldWithGpus(...ids: number[]): MiningWorld {
@@ -125,13 +133,22 @@ describe('GPU visuals', () => {
     const unlocked = { ...base, unlockedResearchIds: ['gpu-fan-silent'] };
     const upgraded = serviceGpu(unlocked, 1, { kind: 'fan', kit: 'silent' });
     visuals.sync(upgraded, null);
+    const gpu = visuals.objects[0];
+    expect(countNamedObjects(gpu, 'fan-rotor')).toBe(1);
     await vi.waitFor(() => {
-      expect(visuals.objects[0].getObjectByName('gpu-fan-rotor')).toBeTruthy();
+      expect(gpu.getObjectByName('gpu-fan-rotor')).toBeTruthy();
     });
+    expect(countNamedObjects(gpu, 'fan-rotor')).toBe(1);
+    expect(countNamedObjects(gpu, 'gpu-fan-rotor')).toBe(1);
+    expect(gpu.getObjectByName('gpu-fan-silent')).toBeUndefined();
     const preview = visuals.createWorkbenchPreview(1);
     expect(preview.getObjectByName('gpu-fan-rotor')).toBeTruthy();
+    expect(countNamedObjects(preview, 'fan-rotor')).toBe(1);
+    expect(countNamedObjects(preview, 'gpu-fan-rotor')).toBe(1);
     visuals.sync(serviceGpu(upgraded, 1, { kind: 'fan', kit: 'stock' }), null);
-    expect(visuals.objects[0].getObjectByName('gpu-fan-rotor')).toBeUndefined();
+    expect(gpu.getObjectByName('gpu-fan-rotor')).toBeUndefined();
+    expect(countNamedObjects(gpu, 'fan-rotor')).toBe(1);
+    expect(gpu.getObjectByName('gpu-fan-kit')).toBeUndefined();
     preview.traverse((object) => {
       if (object instanceof THREE.Mesh) object.geometry.dispose();
     });

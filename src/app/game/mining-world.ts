@@ -56,6 +56,7 @@ export interface MiningRig {
   readonly id: number;
   readonly plotId: number;
   readonly unlocked: boolean;
+  readonly rigProductId?: string;
   readonly setup: RigSetup;
   readonly gpus: readonly MiningGpu[];
 }
@@ -191,6 +192,7 @@ export function createPlots(): MiningPlot[] {
         id: rigId,
         plotId,
         unlocked: rigId <= STARTING_RIG_COUNT,
+        ...(rigId <= STARTING_RIG_COUNT ? { rigProductId: 'rig-gameplay' } : {}),
         setup: { ...GAMEPLAY_RIG_SETUP },
         gpus,
       };

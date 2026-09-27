@@ -1,23 +1,13 @@
 import * as THREE from 'three';
 import { GAME_BALANCE } from '../config/game-balance';
-import type { GpuFanKit } from '../game/gpu-maintenance';
 import { disposeObject } from './resources/dispose-object';
 
 export interface GpuVisualCondition {
   readonly dustPercent: number;
   readonly temperatureCelsius: number;
-  readonly fanKit: GpuFanKit;
 }
 
 const config = GAME_BALANCE.gpu.maintenance;
-const FAN_TRIM_COLORS: Record<GpuFanKit, number> = {
-  stock: 0xc79853,
-  silent: 0xb88b69,
-  performance: 0x76dcec,
-  pressure: 0x9bdc70,
-  industrial: 0xe8874d,
-  server: 0xcbd4e2,
-};
 
 /** Effetti per istanza: geometrie e texture del modello restano condivise e intatte. */
 export class GpuConditionEffects {
@@ -28,7 +18,6 @@ export class GpuConditionEffects {
   private readonly materials: THREE.Material[] = [];
   private readonly dustCloud = createCloud('gpu-dust-cloud', 72, 0xd1bd95);
   private readonly heatPlume = createCloud('gpu-heat-plume', 20, 0xaaa494);
-  private readonly fanTrim = new THREE.Group();
   private readonly size: THREE.Vector3;
   private readonly center: THREE.Vector3;
   private readonly up = new THREE.Vector3();
@@ -42,10 +31,8 @@ export class GpuConditionEffects {
     this.size = bounds.getSize(new THREE.Vector3());
     this.center = bounds.getCenter(new THREE.Vector3());
     this.root.name = 'gpu-condition-effects';
-    this.fanTrim.name = 'gpu-fan-kit';
-    this.root.add(this.dustCloud, this.heatPlume, this.fanTrim);
+    this.root.add(this.dustCloud, this.heatPlume);
     this.prepareMaterials(model);
-    this.createFanTrim(model, bounds);
   }
 
   update(condition: GpuVisualCondition, delta: number, reducedMotion: boolean): void {
@@ -61,12 +48,6 @@ export class GpuConditionEffects {
       0,
       1,
     );
-    this.fanTrim.visible = condition.fanKit !== 'stock';
-    for (const child of this.fanTrim.children) {
-      if (child instanceof THREE.Mesh) {
-        (child.material as THREE.MeshStandardMaterial).color.set(FAN_TRIM_COLORS[condition.fanKit]);
-      }
-    }
     this.dustCloud.visible = !reducedMotion && (dust > 0.025 || this.cleaningBurst > 0);
     this.heatPlume.visible = !reducedMotion && this.heat.value > 0;
     this.cleaningBurst = Math.max(0, this.cleaningBurst - delta);
@@ -170,45 +151,6 @@ export class GpuConditionEffects {
           : copy(object.material);
       }
     });
-  }
-
-  private createFanTrim(model: THREE.Object3D, bounds: THREE.Box3): void {
-    const fans: THREE.Object3D[] = [];
-    model.traverse((object) => {
-      if (
-        object.name === 'Spin' ||
-        object.name === 'fan-rotor' ||
-        object.name === 'gpu-fan-rotor'
-      ) {
-        fans.push(object);
-      }
-    });
-    const centers = fans.length
-      ? fans.map((fan) => {
-          const fanBounds = new THREE.Box3().setFromObject(fan);
-          return fanBounds.isEmpty()
-            ? fan.getWorldPosition(new THREE.Vector3())
-            : fanBounds.getCenter(new THREE.Vector3());
-        })
-      : [-0.26, 0.26].map(
-          (offset) =>
-            new THREE.Vector3(this.center.x + this.size.x * offset, bounds.max.y, this.center.z),
-        );
-    for (const center of centers) {
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(
-          Math.min(this.size.z * 0.35, this.size.x / (centers.length * 2.5)),
-          0.025,
-          5,
-          32,
-        ),
-        new THREE.MeshStandardMaterial({ color: 0xc79853, roughness: 0.55, metalness: 0.65 }),
-      );
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.set(center.x, bounds.max.y + 0.012, center.z);
-      this.fanTrim.add(ring);
-    }
-    this.fanTrim.visible = false;
   }
 
   private animateCloud(cloud: THREE.Points, heat: boolean): void {

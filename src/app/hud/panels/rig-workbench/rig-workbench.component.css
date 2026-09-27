@@ -192,11 +192,22 @@ h3 {
   margin: 10px 0 24px;
 }
 .count-choice {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
   min-height: 44px;
+  min-width: 0;
   border: 1px solid var(--bench-line);
   background: #273027;
   color: var(--bench-text);
   font-variant-numeric: tabular-nums;
+}
+.count-choice small {
+  color: var(--bench-muted);
+  font-size: 9px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 .count-choice[aria-pressed='true'] {
   border-color: var(--bench-accent);
@@ -240,6 +251,14 @@ h3 {
   color: var(--bench-muted);
   font-size: 14px;
   font-variant-numeric: tabular-nums;
+}
+.choice-stock {
+  color: #c0d6a9;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.choice-stock.unavailable {
+  color: #f0b08d;
 }
 .component-choice[aria-pressed='true'] {
   color: var(--bench-accent);

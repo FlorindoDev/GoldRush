@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { RESEARCH_TREE, flattenResearchTree } from '../../config/research-tree-config';
-import { NODE_HEIGHT, NODE_WIDTH, layoutResearch } from './research-layout';
+import { RESEARCH_TREE, flattenResearchTree } from '../../../config/research-tree-config';
+import { NODE_HEIGHT, NODE_WIDTH, layoutResearch } from '../research-layout';
 
 describe('research map layout', () => {
   for (const root of [RESEARCH_TREE, ...(RESEARCH_TREE.children ?? [])]) {

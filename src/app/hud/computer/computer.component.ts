@@ -20,18 +20,34 @@ import {
 } from '../../config/shop-config';
 import {
   inventoryEntries,
-  groupInventoryEntries,
   productAvailable,
   resaleValue,
   type InventoryEntry,
   type InventoryGroup,
 } from '../../game/inventory';
+import {
+  clampShopQuantity,
+  filterAndSortShopProducts,
+  filterInventoryCopies,
+  filterInventoryEntries,
+  inventoryCategoryCount,
+  inventoryConditionLabel,
+  inventoryCopyDetails,
+  inventoryCopyLabel,
+  mountedInventoryRigId,
+  resolveInventorySelectionAfterAction,
+  resolveSelectedInventoryEntry,
+  resolveSelectedInventoryGroup,
+  shopCategoryCount,
+  sortInventoryGroups,
+  type InventorySort,
+  type ProductSort,
+  type StockFilter,
+} from './computer-catalog';
 import { IconComponent } from '../icons/icon.component';
 import { ResearchThumbnails } from '../research-tree/research-thumbnails';
 
 type Application = 'desktop' | 'shop' | 'inventory';
-type StockFilter = 'all' | 'stock' | 'installed' | 'stock-new' | 'stock-used' | 'broken';
-type InventorySort = 'name' | 'quantity-desc' | 'value-desc';
 
 @Component({
   selector: 'app-computer',
@@ -46,7 +62,7 @@ export class ComputerComponent implements OnDestroy {
   readonly app = signal<Application>('desktop');
   readonly category = signal('all');
   readonly search = signal('');
-  readonly sort = signal('price-asc');
+  readonly sort = signal<ProductSort>('price-asc');
   readonly stockFilter = signal<StockFilter>('all');
   readonly inventorySort = signal<InventorySort>('name');
   readonly selection = signal<string | null>(null);
@@ -66,51 +82,27 @@ export class ComputerComponent implements OnDestroy {
   );
   readonly availableBalance = computed(() => this.game.balanceEur());
   readonly products = computed(() =>
-    SHOP_PRODUCTS.filter((product) => this.matches(product)).sort((a, b) =>
-      this.sort() === 'name'
-        ? a.name.localeCompare(b.name, 'it')
-        : this.sort() === 'price-desc'
-          ? b.priceEur - a.priceEur
-          : a.priceEur - b.priceEur,
-    ),
+    filterAndSortShopProducts(SHOP_PRODUCTS, this.category(), this.search(), this.sort()),
   );
   readonly visibleEntries = computed(() =>
-    this.entries().filter(
-      (entry) =>
-        this.matches(entry.product) &&
-        this.matchesInventoryFilter(entry),
-    ),
+    filterInventoryEntries(this.entries(), this.category(), this.search(), this.stockFilter()),
   );
   readonly inventoryGroups = computed(() => {
-    const groups = groupInventoryEntries(this.visibleEntries());
-    return groups.sort((a, b) => {
-      if (this.inventorySort() === 'quantity-desc') return b.quantity - a.quantity;
-      if (this.inventorySort() === 'value-desc')
-        return b.quantity * b.product.priceEur - a.quantity * a.product.priceEur;
-      return a.product.name.localeCompare(b.product.name, 'it');
-    });
+    return sortInventoryGroups(this.visibleEntries(), this.inventorySort());
   });
-  readonly selectedGroup = computed<InventoryGroup | null>(
-    () =>
-      this.inventoryGroups().find((group) =>
-        group.entries.some((entry) => entry.key === this.selection()),
-      ) ??
-      this.inventoryGroups()[0] ??
-      null,
+  readonly selectedGroup = computed<InventoryGroup | null>(() =>
+    resolveSelectedInventoryGroup(this.inventoryGroups(), this.selection()),
   );
-  readonly selectedEntry = computed<InventoryEntry | null>(() => {
-    const group = this.selectedGroup();
-    return (
-      group?.entries.find((entry) => entry.key === this.selection()) ?? group?.entries[0] ?? null
-    );
-  });
+  readonly selectedEntry = computed<InventoryEntry | null>(() =>
+    resolveSelectedInventoryEntry(
+      this.selectedGroup(),
+      this.selection(),
+      this.instanceSearch(),
+      this.visibleCopies(),
+    ),
+  );
   readonly visibleCopies = computed(() => {
-    const query = this.instanceSearch().trim().toLocaleLowerCase('it');
-    return (this.selectedGroup()?.entries ?? []).filter((entry) =>
-      `${this.copyLabel(entry)} ${this.copyDetails(entry)} ${entry.product.id}`
-        .toLocaleLowerCase('it')
-        .includes(query),
-    );
+    return filterInventoryCopies(this.selectedGroup()?.entries ?? [], this.instanceSearch());
   });
   readonly cartLines = computed(() =>
     [...this.cart()].map(([id, quantity]) => ({ product: SHOP_PRODUCTS_BY_ID.get(id)!, quantity })),
@@ -127,7 +119,33 @@ export class ComputerComponent implements OnDestroy {
       .plots.flatMap((plot) => plot.rigs)
       .filter((rig) => rig.unlocked),
   );
+  readonly rigSlots = computed(() =>
+    this.game
+      .world()
+      .plots.flatMap((plot) => plot.rigs)
+      .filter((rig) => !rig.unlocked),
+  );
   readonly targetRigId = signal(1);
+  readonly targetRigSlotId = signal<number | null>(null);
+  readonly selectedRigSlotId = computed<number | null>(
+    () =>
+      this.rigSlots().find((rig) => rig.id === this.targetRigSlotId())?.id ??
+      this.rigSlots()[0]?.id ??
+      null,
+  );
+  readonly replacementRigStockId = signal<number | null>(null);
+  readonly rigStockEntries = computed(() =>
+    this.entries().filter(
+      (entry) => entry.product.category === 'rig' && entry.stockId !== undefined,
+    ),
+  );
+  readonly selectedReplacementRigStockId = computed(
+    () =>
+      this.rigStockEntries().find((entry) => entry.stockId === this.replacementRigStockId())
+        ?.stockId ??
+      this.rigStockEntries()[0]?.stockId ??
+      null,
+  );
   private readonly euros = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
   private renderer?: ResearchThumbnails;
   private loading = false;
@@ -171,6 +189,7 @@ export class ComputerComponent implements OnDestroy {
     this.app.set(app);
     this.category.set('all');
     this.search.set('');
+    this.instanceSearch.set('');
     this.selection.set(null);
     this.feedback.set('');
     this.salePending.set(null);
@@ -178,6 +197,17 @@ export class ComputerComponent implements OnDestroy {
   selectCategory(id: string): void {
     this.category.set(id);
     this.selection.set(null);
+    this.instanceSearch.set('');
+    this.salePending.set(null);
+  }
+  setSearch(value: string): void {
+    this.search.set(value);
+    this.instanceSearch.set('');
+    this.salePending.set(null);
+  }
+  setStockFilter(value: StockFilter): void {
+    this.stockFilter.set(value);
+    this.instanceSearch.set('');
     this.salePending.set(null);
   }
   selectEntry(entry: InventoryEntry): void {
@@ -196,7 +226,7 @@ export class ComputerComponent implements OnDestroy {
     return productAvailable(this.game.world(), product);
   }
   stock(productId: string): number {
-    return this.game.world().inventory.items.filter((item) => item.productId === productId).length;
+    return this.game.stockQuantity(productId);
   }
   owned(productId: string): number {
     return this.entries()
@@ -205,32 +235,15 @@ export class ComputerComponent implements OnDestroy {
   }
   categoryCount(categoryId: string): number {
     if (this.app() === 'shop') {
-      return SHOP_PRODUCTS.filter(
-        (product) =>
-          (categoryId === 'all' || product.category === categoryId) && this.matches(product, false),
-      ).length;
+      return shopCategoryCount(SHOP_PRODUCTS, categoryId, this.search());
     }
-    const filteredEntries = this.entries().filter(
-      (entry) =>
-        this.matchesInventoryFilter(entry) &&
-        (categoryId === 'all' || entry.product.category === categoryId) &&
-        this.matches(entry.product, false),
-    );
-    return groupInventoryEntries(filteredEntries).length;
+    return inventoryCategoryCount(this.entries(), categoryId, this.search(), this.stockFilter());
   }
   quantity(id: string): number {
     return this.quantities().get(id) ?? 1;
   }
   setQuantity(id: string, value: string): void {
-    const quantity = Number(value);
-    this.quantities.update((values) =>
-      new Map(values).set(
-        id,
-        Number.isFinite(quantity)
-          ? Math.max(1, Math.min(SHOP_MAX_QUANTITY, Math.floor(quantity)))
-          : 1,
-      ),
-    );
+    this.quantities.update((values) => new Map(values).set(id, clampShopQuantity(value)));
   }
   addToCart(product: ShopProduct): void {
     if (!this.available(product)) return;
@@ -260,20 +273,13 @@ export class ComputerComponent implements OnDestroy {
     }, 'Ordine completato. Componenti disponibili in magazzino.');
   }
   conditionLabel(entry: InventoryEntry): string {
-    return entry.condition === 'broken' ? 'Guasta' : entry.condition === 'used' ? 'Usato' : 'Nuovo';
+    return inventoryConditionLabel(entry);
   }
   copyLabel(entry: InventoryEntry): string {
-    if (entry.gpuId !== undefined) return `GPU #${entry.gpuId}`;
-    if (entry.stockId !== undefined) return `Stock #${entry.stockId}`;
-    return entry.location;
+    return inventoryCopyLabel(entry);
   }
   copyDetails(entry: InventoryEntry): string {
-    const telemetry = entry.gpu
-      ? ` · Usura ${entry.gpu.wearPercent.toFixed(1)}% · Polvere ${entry.gpu.dustPercent.toFixed(1)}%`
-      : entry.quantity > 1
-        ? ` · ${entry.quantity} unità`
-        : '';
-    return `${this.conditionLabel(entry)} · ${entry.location}${telemetry}`;
+    return inventoryCopyDetails(entry);
   }
   stockQuantity(group: InventoryGroup): number {
     return group.entries
@@ -294,8 +300,20 @@ export class ComputerComponent implements OnDestroy {
     const item = this.game.world().inventory.items.find((item) => item.id === entry.stockId);
     return item ? resaleValue(item) : 0;
   }
+  rigGpuCount(entry: InventoryEntry): number {
+    if (entry.product.category !== 'rig') return 0;
+    if (entry.stockId !== undefined) {
+      const item = this.game.world().inventory.items.find((item) => item.id === entry.stockId);
+      return item?.rig?.gpus.filter(Boolean).length ?? 0;
+    }
+    return (
+      this.rigs()
+        .find((rig) => rig.id === entry.rigId)
+        ?.gpus.filter((gpu) => gpu.unlocked).length ?? 0
+    );
+  }
   sell(entry: InventoryEntry): void {
-    if (entry.stockId === undefined) return;
+    if (entry.stockId === undefined || this.game.running()) return;
     this.performEntryAction(
       entry,
       () => {
@@ -306,12 +324,56 @@ export class ComputerComponent implements OnDestroy {
     );
   }
   store(entry: InventoryEntry): void {
-    if (entry.gpuId === undefined) return;
+    if (entry.gpuId === undefined || this.game.running()) return;
     this.performEntryAction(
       entry,
       () => this.game.moveGpuToStock(entry.gpuId!),
       'GPU trasferita in magazzino. Lo slot nel RIG è libero.',
     );
+  }
+  storeRig(entry: InventoryEntry): void {
+    const rigId = this.mountedRigId(entry);
+    if (rigId === null || this.game.running()) return;
+    this.performEntryAction(
+      entry,
+      () => this.game.moveRigToStock(rigId),
+      'RIG trasferito in magazzino.',
+    );
+  }
+  mountRig(entry: InventoryEntry): void {
+    const targetRigId = this.selectedRigSlotId();
+    if (
+      entry.product.category !== 'rig' ||
+      entry.stockId === undefined ||
+      targetRigId === null ||
+      this.game.running()
+    )
+      return;
+    this.performEntryAction(
+      entry,
+      () => this.game.mountStockRig(entry.stockId!, targetRigId),
+      'RIG montato nella farm.',
+      `rig-${targetRigId}`,
+    );
+  }
+  replaceRig(entry: InventoryEntry): void {
+    const rigId = this.mountedRigId(entry);
+    const stockId = this.selectedReplacementRigStockId();
+    if (rigId === null || stockId === null || this.game.running()) return;
+    this.performEntryAction(
+      entry,
+      () => this.game.replaceRigFromStock(rigId, stockId),
+      'RIG sostituito con quello in magazzino.',
+    );
+  }
+  setRigSlotTarget(value: string): void {
+    const rigId = Number(value);
+    if (this.rigSlots().some((rig) => rig.id === rigId)) this.targetRigSlotId.set(rigId);
+  }
+  setReplacementRigStock(value: string): void {
+    const stockId = Number(value);
+    if (this.rigStockEntries().some((entry) => entry.stockId === stockId))
+      this.replacementRigStockId.set(stockId);
   }
   mount(entry: InventoryEntry): void {
     if (
@@ -333,46 +395,26 @@ export class ComputerComponent implements OnDestroy {
     this.game.inspectGpu(entry.gpuId);
     this.close();
   }
-  private matches(product: ShopProduct, includeCategory = true): boolean {
-    return (
-      (!includeCategory || this.category() === 'all' || product.category === this.category()) &&
-      `${product.name} ${product.id} ${product.description}`
-        .toLocaleLowerCase('it')
-        .includes(this.search().trim().toLocaleLowerCase('it'))
-    );
+  private mountedRigId(entry: InventoryEntry): number | null {
+    return mountedInventoryRigId(entry);
   }
-  private matchesInventoryFilter(entry: InventoryEntry): boolean {
-    switch (this.stockFilter()) {
-      case 'stock':
-        return entry.stockId !== undefined;
-      case 'installed':
-        return entry.stockId === undefined;
-      case 'stock-new':
-        return entry.stockId !== undefined && entry.condition === 'new';
-      case 'stock-used':
-        return entry.stockId !== undefined && entry.condition === 'used';
-      case 'broken':
-        return entry.condition === 'broken';
-      default:
-        return true;
-    }
-  }
-  private performEntryAction(entry: InventoryEntry, action: () => void, message: string): void {
-    const previousGroup = this.inventoryGroups().find((group) =>
-      group.entries.some((member) => member.key === entry.key),
-    );
-    const previousKeys = new Set(previousGroup?.entries.map((member) => member.key) ?? []);
-    const previousIndex = previousGroup?.entries.findIndex((member) => member.key === entry.key) ?? 0;
+  private performEntryAction(
+    entry: InventoryEntry,
+    action: () => void,
+    message: string,
+    preferredKey?: string,
+  ): void {
+    const previousGroups = this.inventoryGroups();
 
     this.perform(action, message);
     if (this.feedbackError()) return;
 
-    const nextGroup = this.inventoryGroups().find((group) => group.key === previousGroup?.key);
-    const nextEntry =
-      nextGroup?.entries.find((member) => member.key === entry.key) ??
-      nextGroup?.entries.find((member) => !previousKeys.has(member.key)) ??
-      nextGroup?.entries[Math.min(previousIndex, (nextGroup?.entries.length ?? 1) - 1)] ??
-      null;
+    const nextEntry = resolveInventorySelectionAfterAction(
+      previousGroups,
+      this.inventoryGroups(),
+      entry.key,
+      preferredKey,
+    );
     this.selection.set(nextEntry?.key ?? null);
     if (!nextEntry || nextEntry.key !== entry.key) this.instanceSearch.set('');
   }

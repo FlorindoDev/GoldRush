@@ -1,18 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { GAME_BALANCE } from '../config/game-balance';
-import { GPU_MODELS } from '../config/gpu-config';
-import { GameService } from './game.service';
-import { dustWearMultiplier, maintainGpu, thermalServiceHoursRemaining } from './gpu-maintenance';
+import { GAME_BALANCE } from '../../config/game-balance';
+import { GPU_MODELS, GPU_MODELS_BY_ID } from '../../config/gpu-config';
+import { GameService } from '../game.service';
+import { dustWearMultiplier, maintainGpu, thermalServiceHoursRemaining } from '../gpu-maintenance';
 import {
   applyGpuWork,
   createGpuOperatingState,
   gpuMiningPowerWatts,
   gpuTemperature,
   rigFanCoolingCelsius,
-} from './gpu-operation';
-import { GAMEPLAY_RIG_SETUP } from '../config/rig-config';
-import { getGpuTelemetry } from './gpu-telemetry';
-import { createWorld, getGpu, recordGpuWork, serviceGpu, type MiningWorld } from './mining-world';
+} from '../gpu-operation';
+import { GAMEPLAY_RIG_SETUP } from '../../config/rig-config';
+import { getGpuTelemetry } from '../gpu-telemetry';
+import { createWorld, getGpu, recordGpuWork, serviceGpu, type MiningWorld } from '../mining-world';
 
 const config = GAME_BALANCE.gpu.maintenance;
 afterEach(() => vi.useRealTimers());
@@ -59,6 +59,72 @@ describe('GPU maintenance', () => {
     expect(dustWearMultiplier(config.dustWearThresholdPercent)).toBe(1);
     expect(dustWearMultiplier(config.dustWearThresholdPercent + 1)).toBeGreaterThan(1);
     expect(dustWearMultiplier(100)).toBe(config.dustMaxWearMultiplier);
+  });
+
+  it('ramps automatic fan speed with heat and reaches 100% before thermal limit', () => {
+    const model = GPU_MODELS_BY_ID['gpu-compact'];
+    const gpu = createGpuOperatingState(model.id);
+    const fullSpeedTemperature =
+      model.specifications.limits.temperatureCelsius -
+      GAME_BALANCE.gpu.automaticFanCurve.fullSpeedMarginCelsius;
+    const telemetryAt = (temperatureCelsius: number) =>
+      getGpuTelemetry(1, { ...gpu, temperatureCelsius, lastUpdatedAt: 1000 }, 1000).fanSpeed;
+
+    expect(telemetryAt(model.specifications.mining.temperatureCelsius)).toBe(
+      model.specifications.mining.fanSpeedPercent,
+    );
+    expect(
+      telemetryAt((model.specifications.mining.temperatureCelsius + fullSpeedTemperature) / 2),
+    ).toBeGreaterThan(model.specifications.mining.fanSpeedPercent);
+    expect(telemetryAt(fullSpeedTemperature)).toBe(100);
+  });
+
+  it('uses automatic thermal fan ramp to cool hotter GPUs during work', () => {
+    const model = GPU_MODELS_BY_ID['gpu-compact'];
+    const hotGpu = {
+      ...createGpuOperatingState(model.id),
+      temperatureCelsius: model.specifications.mining.temperatureCelsius + 5,
+      lastUpdatedAt: 1000,
+    };
+    const automatic = applyGpuWork(hotGpu, 1, 1000, 2000);
+    const nominal = applyGpuWork(
+      { ...hotGpu, targetFanSpeedPercent: model.specifications.mining.fanSpeedPercent },
+      1,
+      1000,
+      2000,
+    );
+
+    expect(automatic.temperatureCelsius).toBeLessThan(nominal.temperatureCelsius);
+  });
+
+  it('computes wear from configured frequency, heat, dust and modest fan protection', () => {
+    const model = GPU_MODELS_BY_ID['gpu-compact'];
+    const gpu = {
+      ...createGpuOperatingState(model.id),
+      targetFrequencyGhz: model.specifications.mining.frequencyGhz * 1.1,
+      targetFanSpeedPercent: 100,
+      temperatureCelsius: 74,
+      dustPercent: 70,
+      wearPercent: 12,
+      lastUpdatedAt: 1000,
+    };
+    const worked = applyGpuWork(gpu, 0.5, 1000, 2000);
+    const formula = GAME_BALANCE.gpu.wearFormula;
+    const frequencyRatio = gpu.targetFrequencyGhz / model.specifications.mining.frequencyGhz;
+    const workedHours = GAME_BALANCE.economy.simulatedHoursPerAction * 0.5;
+    const dustLoad = (gpu.dustPercent + worked.dustPercent) / 200;
+    const expectedWear =
+      gpu.wearPercent +
+      model.specifications.wearPercentPerHour *
+        workedHours *
+        frequencyRatio ** formula.frequencyExponent *
+        (worked.temperatureCelsius / model.specifications.mining.temperatureCelsius) **
+          formula.heatStressExponent *
+        dustWearMultiplier(dustLoad * 100, model.specifications.dustDamage) *
+        (1 - formula.fanWearProtectionAtFullSpeed);
+
+    expect(worked.wearPercent).toBeCloseTo(expectedWear);
+    expect(formula.fanWearProtectionAtFullSpeed).toBeLessThan(0.1);
   });
 
   it('cleans only dust without repairing wear, cancelling faults or resetting service hours', () => {
@@ -139,6 +205,31 @@ describe('GPU maintenance', () => {
     );
   });
 
+  it('consumes a GPU fan kit from stock and returns the replaced kit', () => {
+    const game = new GameService();
+    game.world.set({
+      ...withCompactGpu(createWorld()),
+      cashEur: 100,
+      unlockedResearchIds: ['gpu-fan-performance'],
+    });
+    game.inspectGpu(1);
+    const before = game.world();
+    expect(() => game.serviceInspectedGpu({ kind: 'fan', kit: 'performance' })).toThrow(
+      'magazzino',
+    );
+    expect(game.world()).toBe(before);
+
+    game.buyCart([{ productId: 'gpu-fan-performance', quantity: 1 }]);
+    expect(game.stockQuantity('gpu-fan-performance')).toBe(1);
+    game.serviceInspectedGpu({ kind: 'fan', kit: 'performance' });
+    expect(getGpu(game.world(), 1).fanKit).toBe('performance');
+    expect(game.stockQuantity('gpu-fan-performance')).toBe(0);
+
+    game.serviceInspectedGpu({ kind: 'fan', kit: 'stock' });
+    expect(getGpu(game.world(), 1).fanKit).toBe('stock');
+    expect(game.stockQuantity('gpu-fan-performance')).toBe(1);
+  });
+
   it('isolates maintenance and cooldown by GPU, rejects locked GPUs', () => {
     const initial = createWorld();
     const worked = recordGpuWork(initial, 1, 1, 0, 1000);
@@ -160,6 +251,7 @@ describe('GPU maintenance', () => {
     game.world.update((world) => ({ ...world, cashEur: 500 }));
     game.unlockResearch('gpu-fan-silent');
     game.unlockResearch('gpu-fan-performance');
+    game.buyCart([{ productId: 'gpu-fan-performance', quantity: 1 }]);
     expect(() => game.serviceInspectedGpu({ kind: 'clean' })).toThrow('banco');
     game.inspectGpu(1);
     game.serviceInspectedGpu({ kind: 'fan', kit: 'performance' });

@@ -50,6 +50,40 @@ export class WorkbenchComponent implements OnDestroy {
     const gpu = this.gpu();
     return gpu !== null && GPU_MODELS_BY_ID[gpu.modelId].supportsFanKits;
   });
+
+  fanKitStockQuantity(kit: GpuFanKit): number {
+    return kit === 'stock' ? 0 : this.game.stockQuantity(`gpu-fan-${kit}`);
+  }
+
+  canChooseFanKit(kitId: GpuFanKit): boolean {
+    const kit = this.fanKits.find((option) => option.id === kitId);
+    const current = this.gpu();
+    return (
+      !this.game.running() &&
+      this.gpuSupportsFanKits() &&
+      kit !== undefined &&
+      (kit.researchId === null || this.game.isResearchUnlocked(kit.researchId)) &&
+      (kitId === 'stock' || current?.fanKit === kitId || this.fanKitStockQuantity(kitId) >= 1)
+    );
+  }
+
+  fanKitUnavailableReason(kitId: GpuFanKit): string {
+    if (this.game.running()) {
+      return 'Ferma il programma per intervenire sulla GPU';
+    }
+    if (!this.gpuSupportsFanKits()) {
+      return 'Questa GPU non supporta kit ventole';
+    }
+    const kit = this.fanKits.find((option) => option.id === kitId);
+    if (kit?.researchId && !this.game.isResearchUnlocked(kit.researchId)) {
+      return 'Sblocca nell’albero della ricerca';
+    }
+    if (kitId !== 'stock' && this.gpu()?.fanKit !== kitId && this.fanKitStockQuantity(kitId) < 1) {
+      return 'Serve 1 kit in magazzino';
+    }
+    return '';
+  }
+
   private readonly tick = signal(0);
   private readonly timer = setInterval(() => this.tick.update((tick) => tick + 1), 200);
   readonly telemetry = computed(() => {

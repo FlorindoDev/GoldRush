@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
-import { SHOP_PRODUCTS, SHOP_PRODUCTS_BY_ID } from '../config/shop-config';
-import { CRYPTO_CONFIG } from '../config/crypto-config';
-import { researchNode } from './research';
-import { createWorld, getGpu, type MiningWorld } from './mining-world';
-import { GameService } from './game.service';
-import { GPU_MODELS_BY_ID } from '../config/gpu-config';
-import { getGpuTelemetry } from './gpu-telemetry';
+import { SHOP_PRODUCTS, SHOP_PRODUCTS_BY_ID } from '../../config/shop-config';
+import { CRYPTO_CONFIG } from '../../config/crypto-config';
+import { researchNode } from '../research';
+import { createWorld, getGpu, type MiningWorld } from '../mining-world';
+import { GameService } from '../game.service';
+import { GPU_MODELS_BY_ID } from '../../config/gpu-config';
+import { getGpuTelemetry } from '../gpu-telemetry';
 import {
   isGpuOperational,
   gpuMiningPowerWatts,
   rigAuxiliaryPowerWattsPerGpu,
-} from './gpu-operation';
+} from '../gpu-operation';
 import {
   installStockGpu,
   inventoryEntries,
@@ -19,7 +19,7 @@ import {
   resaleValue,
   sellStockItem,
   storeGpu,
-} from './inventory';
+} from '../inventory';
 
 const funded = (): MiningWorld => ({ ...createWorld(), cashEur: 1000 });
 const buy = (world: MiningWorld, quantity = 1) =>

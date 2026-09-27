@@ -96,7 +96,7 @@
             {{
               app() === 'shop'
                 ? 'Consegna immediata in magazzino. GPU e ricambi venduti separatamente.'
-                : 'Stock e componenti montati. Le GPU guaste restano consultabili e possono essere vendute come ricambi.'
+                : 'Stock, RIG e componenti montati. GPU guaste e RIG possono essere venduti dal magazzino.'
             }}
           </p>
         </div>
@@ -110,7 +110,7 @@
               aria-label="Cerca componenti"
               placeholder="Cerca un componente…"
               [value]="search()"
-              (input)="search.set($any($event.target).value)"
+              (input)="setSearch($any($event.target).value)"
           /></label>
           @if (app() === 'shop') {
             <select
@@ -126,7 +126,7 @@
             <select
               aria-label="Filtra stato inventario"
               [value]="stockFilter()"
-              (change)="stockFilter.set($any($event.target).value)"
+              (change)="setStockFilter($any($event.target).value)"
             >
               <option value="all">Tutto l’inventario</option>
               <option value="stock">In magazzino</option>
@@ -404,11 +404,19 @@
                 <dt>Unità nella copia</dt>
                 <dd>{{ entry.quantity }}</dd>
               </div>
-              @for (spec of entry.product.specs; track spec.label) {
+              @if (entry.product.category === 'rig') {
                 <div>
-                  <dt>{{ spec.label }}</dt>
-                  <dd>{{ spec.value }}</dd>
+                  <dt>GPU {{ entry.stockId !== undefined ? 'incluse nel RIG' : 'montate' }}</dt>
+                  <dd>{{ rigGpuCount(entry) }}</dd>
                 </div>
+              }
+              @for (spec of entry.product.specs; track spec.label) {
+                @if (entry.product.category !== 'rig' || spec.label !== 'GPU incluse') {
+                  <div>
+                    <dt>{{ spec.label }}</dt>
+                    <dd>{{ spec.value }}</dd>
+                  </div>
+                }
               }
               @if (entry.gpu; as gpu) {
                 <div>
@@ -444,20 +452,46 @@
                 >
                   Sposta in magazzino<app-icon name="box" />
                 </button>
-                @if (game.running()) {
-                  <small>Ferma il programma per spostare componenti.</small>
-                }
               }
               @if (entry.stockId !== undefined) {
+                @if (entry.product.category === 'rig') {
+                  @if (rigSlots().length) {
+                    <label class="mount-target"
+                      >Monta in<select
+                        aria-label="Slot RIG di destinazione"
+                        [value]="selectedRigSlotId() ?? ''"
+                        [disabled]="game.running()"
+                        (change)="setRigSlotTarget($any($event.target).value)"
+                      >
+                        @for (rig of rigSlots(); track rig.id) {
+                          <option [value]="rig.id">RIG {{ rig.id }} · slot disponibile</option>
+                        }
+                      </select></label
+                    >
+                    <button
+                      class="primary"
+                      [disabled]="game.running() || selectedRigSlotId() === null"
+                      (click)="mountRig(entry)"
+                    >
+                      Monta RIG<app-icon name="arrow" />
+                    </button>
+                  } @else {
+                    <small>Nessuno slot RIG disponibile per il montaggio.</small>
+                  }
+                }
                 @if (entry.gpu && entry.condition !== 'broken') {
                   <label class="mount-target"
                     >Monta in<select
                       aria-label="RIG di destinazione"
                       [value]="targetRigId()"
+                      [disabled]="game.running()"
                       (change)="targetRigId.set(+$any($event.target).value)"
                     >
                       @for (rig of rigs(); track rig.id) {
-                        <option [value]="rig.id" [disabled]="!hasFreeSlot(rig.id)">
+                        <option
+                          [value]="rig.id"
+                          [disabled]="!hasFreeSlot(rig.id)"
+                        >
                           RIG {{ rig.id }} · {{ freeSlots(rig.id) }} slot
                           {{ freeSlots(rig.id) === 1 ? 'libero' : 'liberi' }}
                         </option>
@@ -477,32 +511,79 @@
                 }
                 @if (salePending() === entry.stockId) {
                   <div class="sale-confirm">
-                    <p>Vendere per {{ money(resale(entry)) }}?</p>
+                    <p>
+                      Vendere per {{ money(resale(entry)) }}?
+                      @if (entry.product.category === 'rig' && rigGpuCount(entry)) {
+                        Le {{ rigGpuCount(entry) }} GPU incluse saranno vendute con il RIG.
+                      }
+                    </p>
                     <button
                       class="primary"
+                      [disabled]="game.running()"
                       (click)="sell(entry)"
                     >
                       Conferma vendita</button
                     ><button (click)="salePending.set(null)">Annulla</button>
                   </div>
                 } @else {
-                  <button (click)="salePending.set(entry.stockId!)">
+                  <button
+                    [disabled]="game.running()"
+                    (click)="salePending.set(entry.stockId!)"
+                  >
                     {{ entry.condition === 'broken' ? 'Vendi come ricambi' : 'Vendi'
                     }}<strong>{{ money(resale(entry)) }}</strong>
                   </button>
                 }
               }
+              @if (entry.product.category === 'rig' && entry.stockId === undefined) {
+                <button
+                  [disabled]="game.running()"
+                  (click)="storeRig(entry)"
+                >
+                  Sposta RIG in magazzino<app-icon name="box" />
+                </button>
+                @if (rigStockEntries().length) {
+                  <label class="mount-target"
+                    >Sostituisci con<select
+                      aria-label="RIG di ricambio"
+                      [value]="selectedReplacementRigStockId() ?? ''"
+                      [disabled]="game.running()"
+                      (change)="setReplacementRigStock($any($event.target).value)"
+                    >
+                      @for (stockRig of rigStockEntries(); track stockRig.stockId) {
+                        <option [value]="stockRig.stockId">
+                          {{ copyLabel(stockRig) }} · {{ stockRig.product.name }}
+                        </option>
+                      }
+                    </select></label
+                  >
+                  <button
+                    class="primary"
+                    [disabled]="game.running() || selectedReplacementRigStockId() === null"
+                    (click)="replaceRig(entry)"
+                  >
+                    Sostituisci RIG<app-icon name="arrow" />
+                  </button>
+                }
+              }
+              @if (game.running()) {
+                <small>Ferma il programma per spostare, montare o vendere componenti.</small>
+              }
             </div>
             @if (selectedGroup(); as group) {
               @if (group.entries.length > 1) {
-                <div class="instance-picker" role="group" aria-label="Copie del componente">
+                <div
+                  class="instance-picker"
+                  role="group"
+                  aria-label="Copie del componente"
+                >
                   <strong>Seleziona una copia · {{ group.entries.length }} copie</strong>
                   <label class="copy-search">
                     <app-icon name="search" />
                     <input
                       type="search"
                       aria-label="Cerca copie"
-                      placeholder="ID, posizione, usura…"
+                      placeholder="ID GPU/RIG/stock, posizione, condizione…"
                       [value]="instanceSearch()"
                       (input)="instanceSearch.set($any($event.target).value)"
                     />
@@ -525,6 +606,12 @@
                 </div>
               }
             }
+          } @else if (selectedGroup()) {
+            <div class="empty-cart">
+              <app-icon name="search" />
+              <p>Nessuna copia corrisponde alla ricerca.</p>
+              <small>Modifica o cancella la ricerca per rivedere la copia selezionata.</small>
+            </div>
           } @else {
             <div class="empty-cart">
               <app-icon name="box" />

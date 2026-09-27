@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { GAME_BALANCE } from '../../config/game-balance';
-import { rigPosition } from '../environment/scene-layout';
-import { toolStationPosition } from '../tools/tool-stations';
-import { resolveCameraFocus, rigCameraFocus } from './camera-focus';
+import { GAME_BALANCE } from '../../../config/game-balance';
+import { rigPosition } from '../../environment/scene-layout';
+import { toolStationPosition } from '../../tools/tool-stations';
+import { resolveCameraFocus, rigCameraFocus } from '../camera-focus';
 
 const CAMERA = GAME_BALANCE.camera.scene;
 
@@ -82,5 +82,37 @@ describe('camera focus', () => {
         .toArray(),
     );
     expect(focus.offset.toArray()).toEqual(station.cameraOffset);
+  });
+
+  it('returns to the GPU workbench after inspecting a GPU from the closed computer', () => {
+    const focus = resolveCameraFocus({
+      viewedRigId: 7,
+      cameraPreset: 'front',
+      inspectedGpuId: 1,
+      selectedToolStationId: 'computer',
+      computerOpen: false,
+    });
+    const station = GAME_BALANCE.toolStations.workbench;
+    expect(focus.target.toArray()).toEqual(
+      toolStationPosition('workbench')
+        .add(new THREE.Vector3(...station.focusTargetOffset))
+        .toArray(),
+    );
+  });
+
+  it('keeps the camera on the computer while it is open', () => {
+    const focus = resolveCameraFocus({
+      viewedRigId: 7,
+      cameraPreset: 'front',
+      inspectedGpuId: null,
+      selectedToolStationId: 'computer',
+      computerOpen: true,
+    });
+    const station = GAME_BALANCE.toolStations.computer;
+    expect(focus.target.toArray()).toEqual(
+      toolStationPosition('computer')
+        .add(new THREE.Vector3(...station.focusTargetOffset))
+        .toArray(),
+    );
   });
 });

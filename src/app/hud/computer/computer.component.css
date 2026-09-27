@@ -51,7 +51,13 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: -3px;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px #b6d78b35;
+}
+button:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
 }
 input,
 select {
@@ -60,6 +66,20 @@ select {
   padding: 9px 12px;
   color: inherit;
   background: #1d241c;
+}
+select {
+  max-width: 100%;
+  padding: 9px 34px 9px 12px;
+  color: #f1f0e8;
+  color-scheme: dark;
+}
+select option {
+  color: #f1f0e8;
+  background: #1d241c;
+}
+select option:checked {
+  color: #17210e;
+  background: var(--accent);
 }
 app-icon {
   display: inline-block;
@@ -641,7 +661,7 @@ button.primary {
 .copy-list {
   display: grid;
   gap: 6px;
-  max-height: auto;
+  max-height: min(36vh, 320px);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -702,8 +722,12 @@ button.primary {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
   font-size: 12px;
   color: var(--muted);
+}
+.mount-target select {
+  flex: 1 1 150px;
 }
 .sale-confirm {
   border: 1px solid var(--line);
@@ -865,6 +889,10 @@ button.primary {
   .catalog-toolbar {
     padding: 16px;
   }
+  .catalog-toolbar select {
+    flex: 1 1 150px;
+    width: 100%;
+  }
   .catalog-caption {
     padding: 0 16px 14px;
   }
@@ -872,6 +900,9 @@ button.primary {
     border-left: 0;
     border-top: 1px solid var(--line);
     overflow: visible;
+  }
+  .copy-list {
+    max-height: 28vh;
   }
   .cart-items {
     max-height: 300px;

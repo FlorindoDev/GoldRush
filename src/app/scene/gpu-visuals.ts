@@ -175,7 +175,6 @@ export class GpuVisuals {
         telemetry ?? {
           dustPercent: gpu.state.dustPercent,
           temperatureCelsius: gpuTemperature(gpu.state, Date.now(), gpu.rigSetup),
-          fanKit: gpu.state.fanKit,
         },
         delta,
         reducedMotion,

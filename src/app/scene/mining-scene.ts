@@ -45,7 +45,7 @@ interface GpuInteractions {
   viewRig(id: number): void;
   inspectRig(id: number): void;
   hover(id: number | null, x: number, y: number): void;
-  contextMenu(id: number | null, x: number, y: number): void;
+  contextMenu(target: { kind: 'gpu'; id: number } | null, x: number, y: number): void;
   telemetry(id: number): GpuTelemetry;
 }
 
@@ -73,6 +73,7 @@ export class MiningScene {
   private viewedPlotId = 1;
   private viewedRigId = 1;
   private selectedToolStationId: ToolStationId | null = null;
+  private computerOpen = false;
   private cameraPreset: CameraPreset = 'front';
   private inspectedGpuId: number | null = null;
   private selectedGpuId: number | null = null;
@@ -94,6 +95,7 @@ export class MiningScene {
   private readonly pointer = new THREE.Vector2();
   private readonly raycaster = new THREE.Raycaster();
   private contextPointerStart: { x: number; y: number } | null = null;
+  private currentWorld?: MiningWorld;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -154,7 +156,9 @@ export class MiningScene {
     selectedToolStationId: ToolStationId | null,
     activeGpuIds: readonly number[] = [],
     selectedGpuId: number | null = null,
+    computerOpen = false,
   ): void {
+    this.currentWorld = world;
     const inspection =
       inspectedGpuId !== null && isGpuUnlocked(world, inspectedGpuId) ? inspectedGpuId : null;
     const rigInspection =
@@ -164,6 +168,7 @@ export class MiningScene {
     const rigChanged = viewedRigId !== this.viewedRigId;
     const cameraPresetChanged = cameraPreset !== this.cameraPreset;
     const toolStationChanged = selectedToolStationId !== this.selectedToolStationId;
+    const computerOpenChanged = computerOpen !== this.computerOpen;
     this.inspectedGpuId = inspection;
     this.selectedGpuId = selectedGpuId;
     this.isMining = mining;
@@ -172,6 +177,7 @@ export class MiningScene {
     this.viewedRigId = viewedRigId;
     this.cameraPreset = cameraPreset;
     this.selectedToolStationId = selectedToolStationId;
+    this.computerOpen = computerOpen;
     this.syncPlots(world);
     this.syncRigSlotTiles(world);
     this.syncRigs(world);
@@ -183,13 +189,15 @@ export class MiningScene {
       plotChanged ||
       rigChanged ||
       cameraPresetChanged ||
-      toolStationChanged
+      toolStationChanged ||
+      computerOpenChanged
     ) {
       const focus = resolveCameraFocus({
         viewedRigId,
         cameraPreset,
         inspectedGpuId: inspection,
         selectedToolStationId,
+        computerOpen,
       });
       this.cameraController.focus(focus.target, focus.offset);
     }
@@ -579,9 +587,9 @@ export class MiningScene {
       this.interactions.contextMenu(null, event.clientX, event.clientY);
       return;
     }
-    const gpuId = this.findGpuAtPointer(event);
+    const target = this.findContextTargetAtPointer(event);
     this.clearGpuHover();
-    this.interactions.contextMenu(gpuId ?? null, event.clientX, event.clientY);
+    this.interactions.contextMenu(target ?? null, event.clientX, event.clientY);
   };
 
   private readonly handleContextPointerDown = (event: PointerEvent): void => {
@@ -671,6 +679,46 @@ export class MiningScene {
     }
     return undefined;
   }
+
+  private findContextTargetAtPointer(
+    event: Pick<MouseEvent, 'clientX' | 'clientY'>,
+  ): { kind: 'gpu'; id: number } | undefined {
+    const rect = this.canvas.getBoundingClientRect();
+    this.pointer.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const rigRoots: THREE.Object3D[] = Array.from(this.rigs.values(), (rig) => rig.root);
+    if (this.previewRigId !== null) {
+      rigRoots.push(this.rigWorkbench.rigMount);
+    }
+    const targets = [...this.gpuVisuals.objects, this.workbench.root, ...rigRoots];
+    return this.currentWorld
+      ? resolveSceneContextTarget(this.raycaster.intersectObjects(targets, true), this.currentWorld)
+      : undefined;
+  }
+}
+
+export function resolveSceneContextTarget(
+  hits: readonly THREE.Intersection[],
+  world: MiningWorld,
+): { kind: 'gpu'; id: number } | undefined {
+  for (const hit of hits) {
+    let object: THREE.Object3D | null = hit.object;
+    while (object) {
+      const gpuId = object.userData['gpuId'];
+      if (typeof gpuId === 'number') {
+        return isGpuUnlocked(world, gpuId) ? { kind: 'gpu', id: gpuId } : undefined;
+      }
+      const rigId = object.userData['rigId'];
+      if (typeof rigId === 'number') {
+        break;
+      }
+      object = object.parent;
+    }
+  }
+  return undefined;
 }
 
 function rigSetupKey(setup: MiningWorld['plots'][number]['rigs'][number]['setup']): string {

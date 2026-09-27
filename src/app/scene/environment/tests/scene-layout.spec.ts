@@ -10,7 +10,7 @@ import {
   TOOL_AREA_WIDTH,
   rigPlotCenter,
   rigPosition,
-} from './scene-layout';
+} from '../scene-layout';
 
 describe('scene plot layout', () => {
   it('spaces plots in a three-by-three grid to the left of the tools', () => {

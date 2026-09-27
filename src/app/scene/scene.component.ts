@@ -3,7 +3,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  computed,
   effect,
   inject,
   OnDestroy,
@@ -20,17 +19,21 @@ import { MiningScene } from './mining-scene';
 import { SceneAssets } from './resources/scene-assets';
 import type { ToolStationId } from './tools/tool-stations';
 import { getGpu, isGpuUnlocked } from '../game/mining-world';
-import { GPU_MODELS_BY_ID } from '../config/gpu-config';
 import { SHOP_PRODUCTS_BY_ID } from '../config/shop-config';
-import { isGpuOperational } from '../game/gpu-operation';
+import {
+  SceneContextMenuComponent,
+  type SceneContextMenu,
+  type SceneContextRequest,
+  type SceneContextTarget,
+} from './scene-context-menu.component';
 
 @Component({
   selector: 'app-scene',
-  imports: [IconComponent, SceneControlsComponent],
+  imports: [IconComponent, SceneControlsComponent, SceneContextMenuComponent],
   templateUrl: './scene.component.html',
   styleUrl: './scene.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'closeGpuContextMenu()' },
+  host: { '(document:keydown.escape)': 'closeContextMenuFromEscape()' },
 })
 export class SceneComponent implements AfterViewInit, OnDestroy {
   readonly game = inject(GameService);
@@ -39,24 +42,12 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
   readonly unavailable = signal(false);
   readonly cameraPreset = signal<CameraPreset>('front');
   readonly selectedToolStationId = signal<ToolStationId | null>(null);
-  readonly gpuContextMenu = signal<{ gpuId: number; x: number; y: number } | null>(null);
+  readonly contextMenu = signal<SceneContextMenu | null>(null);
   readonly contextFeedback = signal('');
   readonly contextNotice = signal('');
-  readonly contextGpu = computed(() => {
-    const menu = this.gpuContextMenu();
-    const world = this.game.world();
-    if (!menu || !isGpuUnlocked(world, menu.gpuId)) return null;
-    const gpu = getGpu(world, menu.gpuId);
-    if (gpu.onWorkbench) return null;
-    return { gpu, model: GPU_MODELS_BY_ID[gpu.modelId] };
-  });
-  readonly replacementGpus = computed(() =>
-    this.game.world().inventory.items.filter((item) => item.gpu && isGpuOperational(item.gpu)),
-  );
   private scene?: MiningScene;
   private destroyed = false;
   private contextNoticeTimeout?: ReturnType<typeof setTimeout>;
-  readonly stockProducts = SHOP_PRODUCTS_BY_ID;
 
   constructor() {
     effect(() => {
@@ -70,6 +61,12 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
       const viewedRigId = this.game.viewedRigId();
       const cameraPreset = this.cameraPreset();
       const selectedToolStationId = this.selectedToolStationId();
+      const computerOpen = this.game.computerOpen();
+      const running = this.game.running();
+      const menu = this.contextMenu();
+      const targetUnavailable =
+        menu !== null && (!isGpuUnlocked(world, menu.id) || getGpu(world, menu.id).onWorkbench);
+      if (running || targetUnavailable) this.closeContextMenu();
       this.scene?.update(
         world,
         mining,
@@ -81,6 +78,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
         selectedToolStationId,
         activeGpuIds,
         selectedGpuId,
+        computerOpen,
       );
     });
   }
@@ -118,7 +116,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
           telemetry: (id) => this.game.gpuTelemetry(id),
           openComputer: () => this.setSelectedToolStationId('computer'),
           hover: (gpuId, x, y) => this.gpuHover.emit(gpuId === null ? null : { gpuId, x, y }),
-          contextMenu: (gpuId, x, y) => this.openGpuContextMenu(gpuId, x, y),
+          contextMenu: (target, x, y) => this.openContextMenu(target, x, y),
         },
         assets,
       );
@@ -133,6 +131,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
         this.selectedToolStationId(),
         this.game.activeGpuIds(),
         this.game.selectedGpuId(),
+        this.game.computerOpen(),
       );
     } catch (error) {
       console.error('Impossibile inizializzare la scena 3D.', error);
@@ -158,19 +157,45 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
     if (id === 'computer') this.game.computerOpen.set(true);
   }
 
-  closeGpuContextMenu(): void {
-    this.gpuContextMenu.set(null);
+  closeContextMenu(restoreFocus = false): void {
+    const wasOpen = this.contextMenu() !== null;
+    this.contextMenu.set(null);
     this.contextFeedback.set('');
+    if (restoreFocus && wasOpen) this.canvas().nativeElement.focus();
   }
 
-  removeContextGpu(): void {
-    const menu = this.gpuContextMenu();
-    const gpu = this.contextGpu()?.gpu;
-    if (!menu || !gpu) return;
+  closeContextMenuFromEscape(): void {
+    this.closeContextMenu(true);
+  }
+
+  handleContextAction(request: SceneContextRequest): void {
+    const menu = this.contextMenu();
+    const world = this.game.world();
+    const { target } = request;
+    if (
+      this.game.running() ||
+      !menu ||
+      menu.kind !== target.kind ||
+      menu.id !== target.id ||
+      !isGpuUnlocked(world, target.id) ||
+      getGpu(world, target.id).onWorkbench
+    ) {
+      return;
+    }
+
     try {
-      this.game.moveGpuToStock(gpu.id);
-      this.showContextNotice(`GPU #${gpu.id} spostata in magazzino.`);
-      this.closeGpuContextMenu();
+      if (request.action === 'remove') {
+        this.game.moveGpuToStock(target.id);
+        this.showContextNotice(`GPU #${target.id} spostata in magazzino.`);
+      } else {
+        const stock = world.inventory.items.find((item) => item.id === request.stockId);
+        if (!stock) return;
+        const replacementName = SHOP_PRODUCTS_BY_ID.get(stock.productId)?.name ?? stock.productId;
+        if (!stock.gpu) return;
+        this.game.replaceGpuFromStock(target.id, request.stockId);
+        this.showContextNotice(`GPU #${target.id} sostituita con ${replacementName}.`);
+      }
+      this.closeContextMenu(true);
     } catch (error) {
       this.contextFeedback.set(
         error instanceof Error ? error.message : 'Operazione non disponibile.',
@@ -178,37 +203,29 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  replaceContextGpu(stockId: number): void {
-    const menu = this.gpuContextMenu();
-    const gpu = this.contextGpu()?.gpu;
-    const stock = this.game.world().inventory.items.find((item) => item.id === stockId);
-    if (!menu || !gpu || !stock?.gpu) return;
-    const replacementName = this.stockProducts.get(stock.productId)?.name ?? stock.productId;
-    try {
-      this.game.replaceGpuFromStock(gpu.id, stockId);
-      this.showContextNotice(`GPU #${gpu.id} sostituita con ${replacementName}.`);
-      this.closeGpuContextMenu();
-    } catch (error) {
-      this.contextFeedback.set(
-        error instanceof Error ? error.message : 'Operazione non disponibile.',
-      );
-    }
-  }
-
-  private openGpuContextMenu(gpuId: number | null, x: number, y: number): void {
-    this.closeGpuContextMenu();
-    if (gpuId === null || !isGpuUnlocked(this.game.world(), gpuId)) return;
-    const gpu = getGpu(this.game.world(), gpuId);
-    if (gpu.onWorkbench) return;
+  private openContextMenu(target: SceneContextTarget | null, x: number, y: number): void {
+    this.closeContextMenu();
+    const world = this.game.world();
+    if (
+      !target ||
+      this.game.running() ||
+      !isGpuUnlocked(world, target.id) ||
+      getGpu(world, target.id).onWorkbench
+    )
+      return;
     this.contextNotice.set('');
     if (this.contextNoticeTimeout) clearTimeout(this.contextNoticeTimeout);
     const bounds = this.canvas().nativeElement.getBoundingClientRect();
-    const maxMenuHeight = Math.min(bounds.height * 0.7, 520);
-    const yPosition = Math.max(8, Math.min(y - bounds.top, bounds.height - maxMenuHeight - 8));
-    this.gpuContextMenu.set({
-      gpuId,
-      x: Math.max(8, Math.min(x - bounds.left, bounds.width - 292)),
-      y: yPosition,
+    const menuWidth = Math.min(272, Math.max(0, bounds.width - 16));
+    const maxMenuHeight = Math.min(bounds.height * 0.68, 460);
+    const maxLeft = Math.max(8, bounds.width - menuWidth - 8);
+    const maxTop = Math.max(8, bounds.height - maxMenuHeight - 8);
+    this.contextMenu.set({
+      ...target,
+      x: Math.max(8, Math.min(x - bounds.left, maxLeft)),
+      y: Math.max(8, Math.min(y - bounds.top, maxTop)),
+      width: menuWidth,
+      maxHeight: maxMenuHeight,
     });
   }
 

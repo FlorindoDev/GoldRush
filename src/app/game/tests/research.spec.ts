@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
-import { RESEARCH_TREE, flattenResearchTree } from '../config/research-tree-config';
-import { GameService } from './game.service';
-import { createWorld } from './mining-world';
+import { RESEARCH_TREE, flattenResearchTree } from '../../config/research-tree-config';
+import { GameService } from '../game.service';
+import { createWorld } from '../mining-world';
 import {
   canUnlockResearch,
   isResearchUnlocked,
   researchPriceAvailable,
   unlockResearch,
-} from './research';
+} from '../research';
 
 describe('Albero della ricerca', () => {
   it('has unique IDs, valid references and a GLB for every node', () => {
@@ -59,6 +59,7 @@ describe('Albero della ricerca', () => {
     expect(() => game.setGpusCrypto([1], 'LTC')).toThrow('Sblocca');
     game.unlockResearch('fan-pressure-140');
     game.unlockResearch('litecoin');
+    game.buyCart([{ productId: 'fan-pressure-140', quantity: 5 }]);
     game.configureInspectedRig({ fanId: 'fan-pressure-140' });
     game.setGpusCrypto([1], 'LTC');
     expect(game.world().plots[0].rigs[0].setup.fanId).toBe('fan-pressure-140');

@@ -86,6 +86,109 @@ export class RigWorkbenchComponent {
     this.configure({ coolingMethodId });
   }
 
+  fanCountRequired(count: number): number {
+    return Math.max(0, count - (this.setup()?.fanCount ?? 0));
+  }
+
+  canChooseFanCount(count: number): boolean {
+    const current = this.setup();
+    if (this.game.running() || !current) {
+      return false;
+    }
+    const required = this.fanCountRequired(count);
+    return required === 0 || this.game.stockQuantity(current.fanId) >= required;
+  }
+
+  fanCountUnavailableReason(count: number): string {
+    const current = this.setup();
+    if (this.game.running()) {
+      return 'Ferma il programma per modificare il RIG';
+    }
+    if (current && !this.canChooseFanCount(count)) {
+      return `Servono ${this.fanCountRequired(count)} ventole ${FAN_MODELS_BY_ID[current.fanId].name} in magazzino`;
+    }
+    return '';
+  }
+
+  fanModelRequired(fanId: FanModelId): number {
+    const current = this.setup();
+    return current?.fanId === fanId ? 0 : (current?.fanCount ?? 0);
+  }
+
+  canChooseFanModel(fanId: FanModelId): boolean {
+    const required = this.fanModelRequired(fanId);
+    return (
+      !this.game.running() &&
+      this.game.isResearchUnlocked(fanId) &&
+      (required === 0 || this.game.stockQuantity(fanId) >= required)
+    );
+  }
+
+  fanModelUnavailableReason(fanId: FanModelId): string {
+    if (this.game.running()) {
+      return 'Ferma il programma per modificare il RIG';
+    }
+    if (!this.game.isResearchUnlocked(fanId)) {
+      return 'Sblocca nell’albero della ricerca';
+    }
+    if (!this.canChooseFanModel(fanId)) {
+      return `Servono ${this.fanModelRequired(fanId)} ventole in magazzino`;
+    }
+    return '';
+  }
+
+  canChooseFilter(id: RigDustSystemId): boolean {
+    return (
+      !this.game.running() &&
+      (id === 'none' || this.game.isResearchUnlocked(`filter-${id}`)) &&
+      (id === 'none' ||
+        this.setup()?.dustSystemId === id ||
+        this.game.stockQuantity(`filter-${id}`) >= 1)
+    );
+  }
+
+  filterUnavailableReason(id: RigDustSystemId): string {
+    if (this.game.running()) {
+      return 'Ferma il programma per modificare il RIG';
+    }
+    if (id !== 'none' && !this.game.isResearchUnlocked(`filter-${id}`)) {
+      return 'Sblocca nell’albero della ricerca';
+    }
+    if (
+      id !== 'none' &&
+      this.setup()?.dustSystemId !== id &&
+      this.game.stockQuantity(`filter-${id}`) < 1
+    ) {
+      return 'Serve 1 filtro in magazzino';
+    }
+    return '';
+  }
+
+  coolingStockQuantity(id: RigCoolingMethodId): number {
+    return id === 'none' ? 0 : this.game.stockQuantity(`cooling-${id}`);
+  }
+
+  canChooseCooling(id: RigCoolingMethodId): boolean {
+    return (
+      !this.game.running() &&
+      (id === 'none' || this.setup()?.coolingMethodId === id || this.coolingStockQuantity(id) >= 1)
+    );
+  }
+
+  coolingUnavailableReason(id: RigCoolingMethodId): string {
+    if (this.game.running()) {
+      return 'Ferma il programma per modificare il RIG';
+    }
+    if (
+      id !== 'none' &&
+      this.setup()?.coolingMethodId !== id &&
+      this.coolingStockQuantity(id) < 1
+    ) {
+      return 'Serve 1 modulo in magazzino';
+    }
+    return '';
+  }
+
   close(): void {
     this.game.closeInspectedRigWorkbench();
     this.closeBench.emit();

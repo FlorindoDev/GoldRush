@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { delay, execute, ScriptHost } from './interpreter';
-import { parse } from './parser';
+import { delay, execute, ScriptHost } from '../interpreter';
+import { parse } from '../parser';
 
 function fixture() {
   let progress = 0;

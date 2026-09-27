@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GAME_BALANCE } from '../config/game-balance';
-import { GameService } from './game.service';
-import { getGpu } from './mining-world';
+import { GAME_BALANCE } from '../../config/game-balance';
+import { GameService } from '../game.service';
+import { getGpu } from '../mining-world';
 
 function createGame(code: string) {
   const game = new GameService();

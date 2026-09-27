@@ -209,11 +209,8 @@
                       type="button"
                       class="fan-kit"
                       [attr.aria-pressed]="card.fanKit === kit.id"
-                      [disabled]="
-                        game.running() ||
-                        !gpuSupportsFanKits() ||
-                        (kit.researchId !== null && !game.isResearchUnlocked(kit.researchId))
-                      "
+                      [disabled]="!canChooseFanKit(kit.id)"
+                      [title]="fanKitUnavailableReason(kit.id)"
                       (click)="service({ kind: 'fan', kit: kit.id })"
                     >
                       <span class="fan-kit-copy">
@@ -221,18 +218,29 @@
                         <span class="fan-kit-specs">
                           <span>{{ gpuSupportsFanKits() ? kit.maxRpm : 0 }} rpm</span>
                           @if (
-                            kit.researchId !== null &&
-                            !game.isResearchUnlocked(kit.researchId)
+                            kit.researchId !== null && !game.isResearchUnlocked(kit.researchId)
                           ) {
                             <span>· Da sbloccare nella ricerca</span>
                           }
                           @if (kit.id !== 'stock') {
                             <span class="fan-kit-impact">
-                              · {{ kit.extraPowerWatts > 0 ? '+' : '' }}{{ kit.extraPowerWatts }} W ·
-                              {{ kit.coolingCelsius < 0 ? '+' : '' }}{{ -kit.coolingCelsius }} °C
+                              · {{ kit.extraPowerWatts > 0 ? '+' : '' }}{{ kit.extraPowerWatts }} W
+                              · {{ kit.coolingCelsius < 0 ? '+' : '' }}{{ -kit.coolingCelsius }} °C
                             </span>
                           }
                         </span>
+                        @if (kit.id === 'stock') {
+                          <span class="fan-kit-stock">Integrato · nessun ricambio</span>
+                        } @else {
+                          <span
+                            class="fan-kit-stock"
+                            [class.unavailable]="
+                              card.fanKit !== kit.id && fanKitStockQuantity(kit.id) < 1
+                            "
+                          >
+                            Magazzino: {{ fanKitStockQuantity(kit.id) }}
+                          </span>
+                        }
                       </span>
                       @if (card.fanKit === kit.id) {
                         <app-icon name="check" />

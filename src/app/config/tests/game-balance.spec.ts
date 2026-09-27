@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GAME_BALANCE } from './game-balance';
+import { GAME_BALANCE } from '../game-balance';
 
 describe('game balance', () => {
   it('keeps starting hardware and GPU telemetry within configured limits', () => {

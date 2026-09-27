@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GameService } from './game.service';
+import { GameService } from '../game.service';
 
 async function waitForPause(game: GameService): Promise<void> {
   for (let attempt = 0; attempt < 100 && !game.waitingForStep(); attempt++) {

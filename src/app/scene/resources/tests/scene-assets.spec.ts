@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SceneAssets } from './scene-assets';
-import { disposeObject } from './dispose-object';
+import { SceneAssets } from '../scene-assets';
+import { disposeObject } from '../dispose-object';
 
 afterEach(() => vi.restoreAllMocks());
 

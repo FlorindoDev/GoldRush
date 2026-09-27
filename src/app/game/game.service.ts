@@ -3,8 +3,13 @@ import {
   purchaseCart,
   sellStockItem,
   storeGpu,
+  storeRig,
   installStockGpu,
+  installStockRig,
   replaceInstalledGpu,
+  replaceRig,
+  configureRigWithStock,
+  serviceGpuWithStock,
   type CartLine,
 } from './inventory';
 import { GAME_BALANCE } from '../config/game-balance';
@@ -34,7 +39,6 @@ import {
   billElectricityForDay,
   countUnlockedGpus,
   countUnlockedRigs,
-  configureRig,
   createWorld,
   farmPowerWatts,
   getGpu,
@@ -42,7 +46,6 @@ import {
   getCryptoProgress,
   isCryptoBlockSettled,
   getRig,
-  serviceGpu,
   setGpuWorkbenchState,
   recordGpuWork,
   requireOperationalGpu,
@@ -166,6 +169,10 @@ export class GameService {
     this.world.update((world) => sellStockItem(world, id));
   }
 
+  stockQuantity(productId: string): number {
+    return this.world().inventory.items.filter((item) => item.productId === productId).length;
+  }
+
   moveGpuToStock(id: number): void {
     if (this.running()) throw new Error('Ferma il programma prima di smontare una GPU.');
     this.world.update((world) => storeGpu(world, id));
@@ -180,6 +187,46 @@ export class GameService {
   replaceGpuFromStock(gpuId: number, stockId: number): void {
     if (this.running()) throw new Error('Ferma il programma prima di sostituire una GPU.');
     this.world.update((world) => replaceInstalledGpu(world, gpuId, stockId));
+  }
+
+  moveRigToStock(rigId: number): void {
+    if (this.running()) throw new Error('Ferma il programma prima di spostare un RIG.');
+    this.assertRigOffWorkbench(rigId);
+    const gpuIds = getRig(this.world(), rigId).gpus.map((gpu) => gpu.id);
+    this.world.update((world) => storeRig(world, rigId));
+    if (gpuIds.includes(this.selectedGpuId() ?? -1)) this.selectedGpuId.set(null);
+    if (this.selectedRigId() === rigId) this.selectedRigId.set(null);
+  }
+
+  mountStockRig(stockId: number, rigId: number): void {
+    if (this.running()) throw new Error('Ferma il programma prima di montare un RIG.');
+    this.world.update((world) => installStockRig(world, stockId, rigId));
+    this.selectedGpuId.set(null);
+    this.selectedRigId.set(rigId);
+    this.viewedRigId.set(rigId);
+    this.viewedPlotId.set(plotIdForRig(rigId));
+  }
+
+  replaceRigFromStock(rigId: number, stockId: number): void {
+    if (this.running()) throw new Error('Ferma il programma prima di sostituire un RIG.');
+    this.assertRigOffWorkbench(rigId);
+    this.world.update((world) => replaceRig(world, rigId, stockId));
+    this.selectedGpuId.set(null);
+    this.selectedRigId.set(rigId);
+    this.viewedRigId.set(rigId);
+    this.viewedPlotId.set(plotIdForRig(rigId));
+  }
+
+  private assertRigOffWorkbench(rigId: number): void {
+    const rig = getRig(this.world(), rigId);
+    const inspectedGpuId = this.inspectedGpuId();
+    if (
+      this.inspectedRigId() === rigId ||
+      (inspectedGpuId !== null && rig.gpus.some((gpu) => gpu.id === inspectedGpuId)) ||
+      rig.gpus.some((gpu) => gpu.unlocked && gpu.onWorkbench)
+    ) {
+      throw new Error('Chiudi il banco e rimonta le GPU prima di spostare il RIG.');
+    }
   }
   private controller?: AbortController;
   private rigPoweredDownAt = Date.now();
@@ -530,7 +577,7 @@ export class GameService {
     ) {
       throw new Error('Sblocca il filtro nell’albero della ricerca.');
     }
-    this.world.update((world) => configureRig(world, rigId, update));
+    this.world.update((world) => configureRigWithStock(world, rigId, update));
   }
 
   returnToRig(): void {
@@ -552,7 +599,7 @@ export class GameService {
 
   serviceInspectedGpu(action: GpuMaintenanceAction): void {
     const id = this.requireWorkbenchGpu();
-    this.world.update((world) => serviceGpu(world, id, action));
+    this.world.update((world) => serviceGpuWithStock(world, id, action));
   }
 
   private requireWorkbenchGpu(): number {

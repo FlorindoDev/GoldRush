@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GpuConditionEffects } from './gpu-condition-effects';
-import { loadTestGpu } from './testing/load-test-gpu';
-import { disposeObject } from './resources/dispose-object';
+import { GpuConditionEffects } from '../gpu-condition-effects';
+import { loadTestGpu } from '../testing/load-test-gpu';
+import { disposeObject } from '../resources/dispose-object';
 
 let template: THREE.Group;
 beforeEach(async () => {
@@ -27,12 +27,13 @@ describe('GPU condition effects', () => {
     expect(firstMesh.geometry).toBe(original.geometry);
     expect(firstMesh.material).not.toBe(secondMesh.material);
     expect(firstMesh.material).not.toBe(original.material);
-    a.update({ dustPercent: 90, temperatureCelsius: 95, fanKit: 'performance' }, 0.1, false);
-    b.update({ dustPercent: 0, temperatureCelsius: 34, fanKit: 'stock' }, 0.1, false);
-    for (const name of ['gpu-dust-cloud', 'gpu-heat-plume', 'gpu-fan-kit']) {
+    a.update({ dustPercent: 90, temperatureCelsius: 95 }, 0.1, false);
+    b.update({ dustPercent: 0, temperatureCelsius: 34 }, 0.1, false);
+    for (const name of ['gpu-dust-cloud', 'gpu-heat-plume']) {
       expect(a.root.getObjectByName(name)?.visible).toBe(true);
       expect(b.root.getObjectByName(name)?.visible).toBe(false);
     }
+    expect(a.root.getObjectByName('gpu-fan-kit')).toBeUndefined();
     const disposeOwned = vi.spyOn(firstMesh.material as THREE.Material, 'dispose');
     a.dispose();
     expect(disposeOwned).toHaveBeenCalledOnce();
@@ -42,7 +43,7 @@ describe('GPU condition effects', () => {
 
   it('emits a short cleaning burst, cools down, and respects reduced motion', () => {
     const effects = new GpuConditionEffects(template.clone(true));
-    const dirty = { dustPercent: 80, temperatureCelsius: 95, fanKit: 'industrial' as const };
+    const dirty = { dustPercent: 80, temperatureCelsius: 95 };
     const clean = { ...dirty, dustPercent: 0, temperatureCelsius: 34 };
     effects.update(dirty, 0.1, false);
     effects.update(clean, 0.1, false);
@@ -54,7 +55,24 @@ describe('GPU condition effects', () => {
     effects.update(dirty, 0.1, true);
     expect(effects.root.getObjectByName('gpu-dust-cloud')?.visible).toBe(false);
     expect(effects.root.getObjectByName('gpu-heat-plume')?.visible).toBe(false);
-    expect(effects.root.getObjectByName('gpu-fan-kit')?.visible).toBe(true);
+    expect(effects.root.getObjectByName('gpu-fan-kit')).toBeUndefined();
+    effects.dispose();
+  });
+
+  it('keeps model fan geometry and adds no synthetic fan overlay', () => {
+    const model = template.clone(true);
+    const fan = model.getObjectByName('fan-rotor');
+    expect(fan).toBeTruthy();
+    const originalChildren = [...fan!.children];
+    const effects = new GpuConditionEffects(model);
+
+    expect(effects.root.children.map((child) => child.name)).toEqual([
+      'gpu-dust-cloud',
+      'gpu-heat-plume',
+    ]);
+    expect(effects.root.children.every((child) => child instanceof THREE.Points)).toBe(true);
+    expect(fan!.children).toEqual(originalChildren);
+
     effects.dispose();
   });
 });

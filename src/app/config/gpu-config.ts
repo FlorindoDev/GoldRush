@@ -344,6 +344,14 @@ export const GPU_RUNTIME_CONFIG = {
   cooldownMs: 5_000,
   benchCoolingMs: 30_000,
   fanCoolingCelsiusPerPercent: 0.15,
+  automaticFanCurve: {
+    fullSpeedMarginCelsius: 5,
+  },
+  wearFormula: {
+    frequencyExponent: 2,
+    heatStressExponent: 2,
+    fanWearProtectionAtFullSpeed: 0.08,
+  },
   maintenance: {
     thermalServiceIntervalHours: 24,
     dustPercentPerHour: 0.2,

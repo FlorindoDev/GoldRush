@@ -16,6 +16,7 @@ interface CameraFocusState {
   readonly cameraPreset: CameraPreset;
   readonly inspectedGpuId: number | null;
   readonly selectedToolStationId: ToolStationId | null;
+  readonly computerOpen?: boolean;
 }
 
 export function rigCameraFocus(rigId: number, preset: CameraPreset): CameraFocus {
@@ -26,8 +27,11 @@ export function rigCameraFocus(rigId: number, preset: CameraPreset): CameraFocus
 }
 
 export function resolveCameraFocus(state: CameraFocusState): CameraFocus {
-  const stationId =
-    state.selectedToolStationId ?? (state.inspectedGpuId !== null ? 'workbench' : null);
+  const selectedToolStationId =
+    state.selectedToolStationId === 'computer' && !state.computerOpen
+      ? null
+      : state.selectedToolStationId;
+  const stationId = selectedToolStationId ?? (state.inspectedGpuId !== null ? 'workbench' : null);
   if (stationId === null) {
     return rigCameraFocus(state.viewedRigId, state.cameraPreset);
   }

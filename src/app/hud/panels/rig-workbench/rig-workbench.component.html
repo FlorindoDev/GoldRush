@@ -120,10 +120,20 @@
                     type="button"
                     class="count-choice"
                     [attr.aria-pressed]="current.fanCount === count"
-                    [disabled]="game.running()"
+                    [attr.aria-label]="
+                      'Quantità ' +
+                      count +
+                      ': ' +
+                      fanCountRequired(count) +
+                      ' ventole aggiuntive richieste, ' +
+                      game.stockQuantity(current.fanId) +
+                      ' in magazzino'
+                    "
+                    [disabled]="!canChooseFanCount(count)"
+                    [title]="fanCountUnavailableReason(count)"
                     (click)="changeFanCount(count)"
                   >
-                    {{ count }}
+                    <span>{{ count }}</span>
                   </button>
                 }
               </div>
@@ -137,18 +147,25 @@
                     type="button"
                     class="component-choice"
                     [attr.aria-pressed]="current.fanId === fan.id"
-                    [disabled]="game.running() || !game.isResearchUnlocked(fan.id)"
-                    [title]="
-                      game.isResearchUnlocked(fan.id) ? '' : 'Sblocca nell’albero della ricerca'
-                    "
+                    [disabled]="!canChooseFanModel(fan.id)"
+                    [title]="fanModelUnavailableReason(fan.id)"
                     (click)="changeFan(fan.id)"
                   >
                     <span class="choice-copy">
                       <strong>{{ fan.name }}</strong>
-                      <span class="choice-specs"
-                        >{{ fan.diameterMm }} mm · {{ fan.rpm }} rpm · {{ fan.airflowCfm }} CFM ·
-                        {{ fan.powerWatts }} W</span
+                      <span class="choice-specs">
+                        {{ fan.diameterMm }} mm · {{ fan.rpm }} rpm · {{ fan.airflowCfm }} CFM ·
+                        {{ fan.powerWatts }} W
+                      </span>
+                      <span
+                        class="choice-stock"
+                        [class.unavailable]="
+                          current.fanId !== fan.id &&
+                          game.stockQuantity(fan.id) < fanModelRequired(fan.id)
+                        "
                       >
+                        Magazzino: {{ game.stockQuantity(fan.id) }}
+                      </span>
                     </span>
                     @if (current.fanId === fan.id) {
                       <app-icon name="check" />
@@ -172,15 +189,8 @@
                     type="button"
                     class="component-choice"
                     [attr.aria-pressed]="current.dustSystemId === option[0]"
-                    [disabled]="
-                      game.running() ||
-                      (option[0] !== 'none' && !game.isResearchUnlocked('filter-' + option[0]))
-                    "
-                    [title]="
-                      option[0] === 'none' || game.isResearchUnlocked('filter-' + option[0])
-                        ? ''
-                        : 'Sblocca nell’albero della ricerca'
-                    "
+                    [disabled]="!canChooseFilter(option[0])"
+                    [title]="filterUnavailableReason(option[0])"
                     (click)="changeFilter(option[0])"
                   >
                     <span class="choice-copy">
@@ -191,6 +201,20 @@
                         }}
                         °C resistenza</span
                       >
+                      @if (option[0] === 'none') {
+                        <span class="choice-stock">Integrato · nessun ricambio</span>
+                      } @else {
+                        <span
+                          class="choice-stock"
+                          [class.unavailable]="
+                            current.dustSystemId !== option[0] &&
+                            game.stockQuantity('filter-' + option[0]) < 1
+                          "
+                        >
+                          Magazzino: {{ game.stockQuantity('filter-' + option[0]) }} · richiesto:
+                          {{ current.dustSystemId === option[0] ? 0 : 1 }}
+                        </span>
+                      }
                     </span>
                     @if (current.dustSystemId === option[0]) {
                       <app-icon name="check" />
@@ -216,17 +240,32 @@
                     type="button"
                     class="component-choice"
                     [attr.aria-pressed]="current.coolingMethodId === option[0]"
-                    [disabled]="game.running()"
+                    [disabled]="!canChooseCooling(option[0])"
+                    [title]="coolingUnavailableReason(option[0])"
                     (click)="changeCooling(option[0])"
                   >
                     <span class="choice-copy">
                       <strong>{{ option[1].name }}</strong>
-                      <span class="choice-specs"
-                        >−{{ option[1].coolingCelsius }} °C · +{{ option[1].airflowCfm }} CFM · +{{
+                      <span class="choice-specs">
+                        −{{ option[1].coolingCelsius }} °C · +{{ option[1].airflowCfm }} CFM · +{{
                           option[1].extraPowerWatts
                         }}
-                        W</span
-                      >
+                        W
+                      </span>
+                      @if (option[0] === 'none') {
+                        <span class="choice-stock">Integrato · nessun ricambio</span>
+                      } @else {
+                        <span
+                          class="choice-stock"
+                          [class.unavailable]="
+                            current.coolingMethodId !== option[0] &&
+                            coolingStockQuantity(option[0]) < 1
+                          "
+                        >
+                          Magazzino: {{ coolingStockQuantity(option[0]) }} · richiesto:
+                          {{ current.coolingMethodId === option[0] ? 0 : 1 }}
+                        </span>
+                      }
                     </span>
                     @if (current.coolingMethodId === option[0]) {
                       <app-icon name="check" />

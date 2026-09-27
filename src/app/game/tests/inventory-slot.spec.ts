@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { GameService } from './game.service';
-import { installStockGpu, storeGpu } from './inventory';
-import { createWorld, getGpu } from './mining-world';
+import { GameService } from '../game.service';
+import { installStockGpu, storeGpu } from '../inventory';
+import { createWorld, getGpu } from '../mining-world';
 
 describe('Exact inventory slot integration', () => {
   it.each([3, 5, 0, -1, NaN, Infinity])(
