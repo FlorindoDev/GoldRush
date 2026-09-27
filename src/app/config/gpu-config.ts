@@ -10,6 +10,7 @@ export interface GpuDustDamageConfig {
 export const GPU_MODELS = [
   {
     id: 'gpu-compact',
+    miningPower: 1.8,
     name: 'Miner S1 · Compact',
     style: 'compact',
     fans: 1,
@@ -40,6 +41,7 @@ export const GPU_MODELS = [
   },
   {
     id: 'gpu-dual',
+    miningPower: 3.6,
     name: 'Miner D2 · Dual',
     style: 'dual',
     fans: 2,
@@ -69,6 +71,7 @@ export const GPU_MODELS = [
   },
   {
     id: 'gpu-triple',
+    miningPower: 6.8,
     name: 'Miner T3 · Triple',
     style: 'triple',
     fans: 3,
@@ -98,6 +101,7 @@ export const GPU_MODELS = [
   },
   {
     id: 'gpu-blower',
+    miningPower: 4.1,
     name: 'Miner B1 · Blower',
     style: 'blower',
     fans: 1,
@@ -127,6 +131,7 @@ export const GPU_MODELS = [
   },
   {
     id: 'gpu-passive',
+    miningPower: 1,
     name: 'Miner P0 · Passive',
     style: 'passive',
     fans: 0,
@@ -156,6 +161,7 @@ export const GPU_MODELS = [
   },
   {
     id: 'gpu-liquid',
+    miningPower: 8.2,
     name: 'Miner L0 · Hydro',
     style: 'liquid',
     fans: 0,
@@ -185,6 +191,7 @@ export const GPU_MODELS = [
   },
   {
     id: 'gpu-proart',
+    miningPower: 6.1,
     name: 'Miner A3 · Atelier',
     style: 'proart',
     fans: 3,
@@ -214,6 +221,7 @@ export const GPU_MODELS = [
   },
   {
     id: 'gpu-nitro',
+    miningPower: 9.5,
     name: 'Miner N3 · Neon',
     style: 'nitro',
     fans: 3,
@@ -243,6 +251,7 @@ export const GPU_MODELS = [
   },
   {
     id: 'gpu-workstation',
+    miningPower: 7.6,
     name: 'Miner W2 · Workstation',
     style: 'workstation',
     fans: 2,
@@ -272,6 +281,7 @@ export const GPU_MODELS = [
   },
   {
     id: 'gpu-low-profile',
+    miningPower: 2.7,
     name: 'Miner LP2 · Slim',
     style: 'low-profile',
     fans: 2,
@@ -301,6 +311,7 @@ export const GPU_MODELS = [
   },
   {
     id: 'gpu-hybrid',
+    miningPower: 5.7,
     name: 'Miner H1 · Hybrid',
     style: 'hybrid',
     fans: 1,
@@ -360,7 +371,7 @@ export const GPU_RUNTIME_CONFIG = {
   },
   maintenance: {
     thermalServiceIntervalHours: 24,
-    dustPercentPerHour: 0.2,
+    dustPercentPerHour: 0.08,
     heatEffectStartCelsius: 78,
   },
 } as const;

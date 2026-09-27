@@ -202,7 +202,7 @@
           [attr.aria-selected]="guideSection() === 'functions'"
           (click)="selectGuideSection('functions')"
         >
-          Comandi
+          Azioni e strumenti
         </button>
         <button
           id="guide-tab-constructs"
@@ -212,7 +212,7 @@
           [attr.aria-selected]="guideSection() === 'constructs'"
           (click)="selectGuideSection('constructs')"
         >
-          Codice e cicli
+          Scrivere il programma
         </button>
         <button
           id="guide-tab-gpu"
@@ -324,8 +324,9 @@
             la console agganciata, trascina il bordo inferiore.
           </p>
           <p class="guide-note">
-            Il codice resta salvato in questo browser quando disponibile. La partita è una
-            simulazione e riparte ricaricando la pagina.
+            Partita e file MineScript si salvano automaticamente in questo browser. Puoi scaricare o
+            importare un salvataggio dalle Impostazioni. Il programma in esecuzione si ferma quando
+            chiudi la pagina; la partita riprende dal progresso già completato.
           </p>
         </section>
       }
@@ -337,10 +338,10 @@
           role="tabpanel"
           aria-labelledby="guide-tab-functions"
         >
-          <h2 id="guide-title">Comandi e raccolte MineScript</h2>
+          <h2 id="guide-title">Azioni e strumenti</h2>
           <p class="dialog-intro">
-            Qui trovi i comandi per minare, controllare il progresso e scrivere nella console, poi
-            gli strumenti per organizzare i dati in vettori, pile e code.
+            Qui trovi come avviare il mining, leggere i risultati e usare vettori, pile e code per
+            organizzare i dati.
           </p>
           <nav
             class="guide-toc"
@@ -420,7 +421,7 @@
                 <tr>
                   <td><code>progress()</code></td>
                   <td>
-                    Restituisce il progresso del blocco Bitcoin. Passa una sigla, per esempio
+                    Restituisce il progresso del blocco DOGE. Passa una sigla, per esempio
                     <code>progress("KAS")</code>, per leggere un'altra catena. Risultato da
                     <strong>0 a 100</strong>, anche con decimali.
                   </td>
@@ -792,7 +793,8 @@
             <p>
               Sono sbloccati {{ balance.world.startingRigCount }} RIG e
               {{ balance.world.startingGpuCount }} GPU. Puoi leggere anche gli slot bloccati, ma non
-              usarli per minare. Lo sblocco di altri RIG e GPU non è ancora disponibile.
+              usarli per minare. Compra GPU e telai nello shop, poi montali dal magazzino. La
+              ricerca rende disponibili nuovi modelli, senza includere l'acquisto dei pezzi.
             </p>
           </aside>
           <h3
@@ -802,22 +804,17 @@
             Minare nella farm
           </h3>
           <p>
-            <code>mine()</code> è una funzione globale: avvia tutte le GPU sbloccate e operative.
-            Ogni scheda aggiunge {{ balance.world.progressPerGpuAtFullFarm }}/{{ gpuCapacity }}% al
-            blocco attivo della propria cripto alla frequenza di base ({{
-              balance.gpu.mining.frequencyGhz
-            }}
-            GHz). Potenza base GPU scala con <code>basePowerPerGpu</code> ({{
-              balance.mining.basePowerPerGpu
-            }}x); la frequenza effettiva amplifica output con esponente
-            <code>frequencyPowerExponent</code> ({{ balance.mining.frequencyPowerExponent }}).
-            Entrambi modificabili in <code>config/world-config.ts</code>. Ogni cripto conserva
-            progressi, numerazione e difficoltà separati. Per esempio, Bitcoin parte da
-            {{ balance.world.cryptoBlockDifficulty.bitcoin.startingMultiplier }}, aumenta di
-            {{ balance.world.cryptoBlockDifficulty.bitcoin.increasePerMinedBlock }} per blocco e
-            arriva al massimo di {{ balance.world.cryptoBlockDifficulty.bitcoin.maxMultiplier }}. Le
-            difficoltà di ciascuna cripto sono in <code>config/world-config.ts</code>; prezzo in
-            euro e quantità per blocco sono in <code>config/crypto-config.ts</code>.
+            Parti con una GPU passiva e Dogecoin (DOGE), la valuta meno redditizia. Compra altre
+            schede, ricerca hardware e nuove crypto, poi adatta frequenza e raffreddamento. La
+            potenza nominale dipende dal modello: moltiplicala per il rapporto tra frequenza
+            effettiva e nominale e per {{ balance.mining.baseProgressPerAction }}%, poi dividi per
+            la difficoltà della crypto. Calore e polvere riducono la frequenza effettiva; aumentare
+            i GHz fa crescere il consumo più rapidamente del lavoro.
+          </p>
+          <p>
+            Ogni catena aumenta la difficoltà dopo ciascun blocco, fino al proprio massimo. Cambiare
+            crypto o GPU conserva il lavoro già fatto e non azzera la difficoltà. La ricompensa
+            resta fissa: una catena matura richiede più potenza per mantenere il margine.
           </p>
           <app-guide-code [source]="guideCode.gpuMining" />
           <p>
@@ -825,8 +822,8 @@
             <code>mine()</code> per completare un blocco. Ogni chiamata dura
             {{ balance.mining.actionDurationMs }} ms, oppure
             {{ balance.mining.actionDurationMs / 2 }} ms a velocità 2×. Contano GPU sbloccate,
-            operative e montate nei RIG; le schede in stop vengono saltate. Usa
-            <code>progress()</code> legge Bitcoin; usa <code>progress("KAS")</code> per leggere
+            operative e montate nei RIG; le schede in stop vengono saltate.
+            <code>progress()</code> legge DOGE; usa <code>progress("KAS")</code> per leggere
             un'altra cripto.
           </p>
           <h3
@@ -1332,10 +1329,65 @@
             l'assegnazione corrente. Non puoi modificarla durante il mining delle schede coinvolte.
             Sblocca ogni cripto nell'albero ricerca prima di assegnarla. <code>mine()</code> avvia
             tutte le GPU operative e ciascuna mina la propria cripto; l'output indica sigla e GPU.
-            Un vettore vuoto non modifica nessuna GPU; input non validi annullano tutta
+            Il vettore deve contenere almeno una GPU; input non validi annullano tutta
             l'assegnazione.
           </p>
           <app-guide-code [source]="guideCode.cryptoAssignment" />
+          <h3>Progressione delle crypto</h3>
+          <p>Ogni ricerca richiede la valuta precedente e il numero totale di blocchi indicato.</p>
+          <div
+            class="guide-table-wrapper"
+            role="region"
+            aria-label="Progressione delle crypto"
+            tabindex="0"
+          >
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th>Crypto</th>
+                  <th>Premio</th>
+                  <th>Difficoltà iniziale → massima</th>
+                  <th>Aumento/blocco</th>
+                  <th>Ricerca</th>
+                  <th>Blocchi</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (crypto of cryptoConfig; track crypto.id) {
+                  <tr>
+                    <td>{{ crypto.symbol }}</td>
+                    <td>{{ crypto.coinsPerBlock * crypto.priceEur }} €</td>
+                    <td>
+                      {{ crypto.difficulty.startingMultiplier }} →
+                      {{ crypto.difficulty.maxMultiplier }}
+                    </td>
+                    <td>+{{ crypto.difficulty.increasePerMinedBlock }}</td>
+                    <td>{{ crypto.research.costEur }} €</td>
+                    <td>{{ crypto.research.requiredBlocks }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <h3>Stimare e ottimizzare il margine</h3>
+          <p>
+            <code>gpu.estimate()</code> fotografa la stima corrente.
+            <code>gpu.estimate("DOGE", 1.1)</code> confronta una crypto e una frequenza senza
+            modificarle. Sono accettate sigla, nome o ID; frequenza nei limiti della scheda. Puoi
+            confrontare anche crypto bloccate, ma devi ricercarle prima di assegnarle.
+          </p>
+          <p>
+            Campi disponibili: <code>crypto</code>, <code>unlocked</code>, <code>difficulty</code>,
+            <code>maxDifficulty</code>, <code>rewardEur</code>, <code>progressPerAction</code> (%),
+            <code>powerWatts</code>, <code>energyCostPerActionEur</code>,
+            <code>revenuePerActionEur</code>, <code>profitPerActionEur</code>. Il margine sottrae la
+            corrente della scheda e la sua quota dei moduli RIG. Non include acquisti, manutenzione
+            o standby delle altre GPU. Ricavo stimato sul lavoro: nessun accredito parziale.
+            Ricalcola dopo ogni azione: calore, polvere e tariffa cambiano. GPU ferme, bloccate o al
+            banco producono una stima nulla. A blocco concluso la stima usa la difficoltà del
+            prossimo.
+          </p>
+          <app-guide-code [source]="guideCode.optimization" />
           <p>
             Il messaggio è facoltativo: <code>mine(gpus, "testo")</code> aggiunge il testo alle
             righe di progresso e ricompensa; <code>mine(gpus, false)</code> le nasconde. Puoi
@@ -1345,9 +1397,9 @@
             ciascuna cripto. Gli avvisi sulle GPU ferme o non operative restano visibili.
           </p>
           <p>
-            La ricompensa del blocco è divisa fra le cripto in proporzione al lavoro delle GPU. I
-            prezzi sono fissi e simulati. Cambiare assegnazione non converte cripto già possedute e
-            non cambia il lavoro già accumulato.
+            Ogni cripto paga il proprio premio quando la sua catena raggiunge il 100%. I prezzi sono
+            fissi e simulati. Cambiare assegnazione non converte cripto già possedute e non cambia
+            il lavoro già accumulato.
           </p>
           <h3
             id="energy-payment"
@@ -1376,7 +1428,7 @@
           role="tabpanel"
           aria-labelledby="guide-tab-constructs"
         >
-          <h2 id="guide-title">Variabili, cicli, condizioni e funzioni</h2>
+          <h2 id="guide-title">Scrivere il programma</h2>
           <p class="dialog-intro">
             Salva valori nelle variabili, ripeti comandi con i cicli, scegli cosa eseguire con
             <code>if</code> e <code>else</code>, e riusa il codice con <code>def</code>.
@@ -1487,19 +1539,28 @@
                 <code>+</code> aggiunge una scheda all'editor. Trascina la scheda su un altro editor
                 per spostarla, oppure fuori dagli editor per aprire una finestra. Trascina l'intera
                 finestra su un altro editor per unirne tutte le schede. La X della scheda la chiude
-                senza eliminare il file. Puoi avviare un solo file alla volta. Nel file avviato,
-                <code>import "nome.mine";</code> rende disponibili le funzioni dell'altro file. Un
-                file importato può contenere solo <code>def</code> e <code>import</code>: il corpo
-                di una funzione importata viene eseguito quando la richiami.
+                senza eliminare il file. Puoi avviare un solo file alla volta. Scrivi gli import al
+                livello principale del file avviato.
+                <code>import &lbrace; nome &rbrace; from "file.mine";</code> importa una o più
+                funzioni per nome; <code>import * from "file.mine";</code> le importa tutte. Anche
+                <code>import "file.mine";</code> importa tutto. Il nome del file deve coincidere,
+                maiuscole comprese. Un file importato può contenere solo <code>def</code> e
+                <code>import</code>: il corpo di una funzione importata viene eseguito solo quando
+                la richiami. Gli import possono essere concatenati tra file, ma non circolari.
               </p>
-              <p><strong>1. Crea utilita.mine con questa funzione:</strong></p>
+              <p><strong>1. Crea utilita.mine con queste due funzioni:</strong></p>
               <app-guide-code [source]="guideCode.fileLibrary" />
               <p>
                 <strong
-                  >2. Nel file principale, importa la funzione e avvia solo questo file:</strong
+                  >2. Nel file principale, importa tutte le funzioni e avvia solo questo file:
+                  stampa 6 e 9.</strong
                 >
               </p>
               <app-guide-code [source]="guideCode.fileImport" />
+              <p>
+                <strong>Per usarne solo una, sostituisci il codice del file principale con:</strong>
+              </p>
+              <app-guide-code [source]="guideCode.fileImportSelected" />
             </article>
             <article>
               <h3
@@ -1533,8 +1594,8 @@
                   </li>
                   <li><strong>Valore assente:</strong> <code>null</code>.</li>
                   <li>
-                    <strong>Raccolte:</strong> vettori, pile e code, descritte in Comandi e
-                    raccolte.
+                    <strong>Raccolte:</strong> vettori, pile e code, descritte in Azioni e
+                    strumenti.
                   </li>
                   <li>
                     <strong>Oggetti della farm:</strong> plot, RIG e schede, descritti in GPU.
@@ -1748,6 +1809,7 @@
   #settings
   class="settings-dialog"
   (click)="onBackdrop($event, settings)"
+  (close)="cancelSaveReset()"
   aria-label="Impostazioni"
 >
   <div class="settings-heading">
@@ -1782,4 +1844,87 @@
       (change)="updateGpuHoverTooltip($event)"
     />
   </label>
+  <section
+    class="setting-save"
+    aria-label="Salvataggi"
+  >
+    <strong>Salvataggi</strong>
+    <small>La partita e i file MineScript si salvano automaticamente in questo browser.</small>
+    <div class="setting-save-actions">
+      <button
+        type="button"
+        [disabled]="game.running()"
+        (click)="downloadSave()"
+      >
+        Scarica salvataggio
+      </button>
+      <button
+        type="button"
+        [disabled]="game.running()"
+        (click)="saveFileInput.click()"
+      >
+        Importa salvataggio
+      </button>
+    </div>
+    <input
+      #saveFileInput
+      type="file"
+      accept=".json,application/json"
+      aria-label="Seleziona un salvataggio JSON"
+      hidden
+      (change)="importSave($event)"
+    />
+    @if (confirmingSaveReset()) {
+      <p
+        class="setting-save-warning"
+        role="alert"
+      >
+        Eliminerai i progressi della farm e tutti i file MineScript salvati in questo browser. Senza
+        un file esportato, non potrai recuperarli.
+      </p>
+      <div class="setting-save-actions">
+        <button
+          type="button"
+          (click)="cancelSaveReset()"
+        >
+          Annulla
+        </button>
+        <button
+          type="button"
+          class="setting-save-danger"
+          [disabled]="game.running()"
+          (click)="resetSave()"
+        >
+          Elimina e ricomincia
+        </button>
+      </div>
+    } @else {
+      <div class="setting-save-actions">
+        <button
+          type="button"
+          class="setting-save-danger"
+          [disabled]="game.running()"
+          (click)="requestSaveReset()"
+        >
+          Elimina salvataggi
+        </button>
+      </div>
+    }
+    @if (gameSave.error()) {
+      <p
+        class="setting-save-status"
+        role="alert"
+      >
+        {{ gameSave.error() }}
+      </p>
+    }
+    @if (saveMessage()) {
+      <p
+        class="setting-save-status"
+        role="status"
+      >
+        {{ saveMessage() }}
+      </p>
+    }
+  </section>
 </dialog>

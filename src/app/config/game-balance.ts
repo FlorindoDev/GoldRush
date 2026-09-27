@@ -7,7 +7,7 @@ import {
   GPU_RUNTIME_CONFIG,
 } from './gpu-config';
 import { GAMEPLAY_RIG_MODEL_ID, GAMEPLAY_RIG_SETUP, RIG_FAN_TUNING } from './rig-config';
-import { CRYPTO_CONFIG } from './crypto-config';
+import { CRYPTO_CONFIG, STARTING_CRYPTO_ID, requireCrypto } from './crypto-config';
 import { RIG_COOLING_METHODS } from './cooling-config';
 import { RIG_DUST_SYSTEMS } from './dust-filter-config';
 import {
@@ -60,7 +60,7 @@ export const GAME_BALANCE = {
     bitcoinPriceEur: CRYPTO_CONFIG.find((crypto) => crypto.id === 'bitcoin')!.priceEur,
   },
   clock: CLOCK_CONFIG,
-  mining: { ...MINING_CONFIG, blockDifficulty: WORLD_CONFIG.cryptoBlockDifficulty.bitcoin },
+  mining: { ...MINING_CONFIG, blockDifficulty: requireCrypto(STARTING_CRYPTO_ID).difficulty },
   editor: EDITOR_CONFIG,
   scripting: SCRIPTING_CONFIG,
   camera: CAMERA_CONFIG,

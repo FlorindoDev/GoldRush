@@ -29,7 +29,7 @@ describe('Albero della ricerca', () => {
     expect(canUnlockResearch(initial, filter)).toBe(true);
     const unlocked = unlockResearch(initial, filter.id);
     expect(isResearchUnlocked(unlocked, filter.id)).toBe(true);
-    expect(researchPriceAvailable(unlocked)).toBeCloseTo(520);
+    expect(researchPriceAvailable(unlocked)).toBeCloseTo(600 - filter.costEur);
     expect(initial.holdings.bitcoin).toBe(0.01);
     expect(() => unlockResearch(unlocked, filter.id)).toThrow('già sbloccata');
     expect(() => unlockResearch(createWorld(), filter.id)).toThrow('Saldo insufficiente');
@@ -56,13 +56,20 @@ describe('Albero della ricerca', () => {
     game.world.set({ ...createWorld(), holdings: { bitcoin: 1 } });
     game.inspectRig(1);
     expect(() => game.configureInspectedRig({ fanId: 'fan-pressure-140' })).toThrow('Sblocca');
-    expect(() => game.setGpusCrypto([1], 'LTC')).toThrow('Sblocca');
+    expect(() => game.setGpusCrypto([1], 'RVN')).toThrow('Sblocca');
     game.unlockResearch('fan-pressure-140');
-    game.unlockResearch('litecoin');
+    game.world.update((world) => ({
+      ...world,
+      cryptoChains: {
+        ...world.cryptoChains,
+        dogecoin: { ...world.cryptoChains.dogecoin, settledBlockIds: [1, 2, 3, 4] },
+      },
+    }));
+    game.unlockResearch('ravencoin');
     game.buyCart([{ productId: 'fan-pressure-140', quantity: 5 }]);
     game.configureInspectedRig({ fanId: 'fan-pressure-140' });
-    game.setGpusCrypto([1], 'LTC');
+    game.setGpusCrypto([1], 'RVN');
     expect(game.world().plots[0].rigs[0].setup.fanId).toBe('fan-pressure-140');
-    expect(game.world().plots[0].rigs[0].gpus[0].cryptoId).toBe('litecoin');
+    expect(game.world().plots[0].rigs[0].gpus[0].cryptoId).toBe('ravencoin');
   });
 });

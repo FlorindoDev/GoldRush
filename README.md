@@ -40,7 +40,7 @@ Per orientarti: `src/app/hud/hud.component.ts` coordina la UI sovrapposta; `src/
 
 Pulsante con l'albero in alto a destra. La schermata mostra tutti i nodi collegati e un'anteprima statica dei GLB; scegli un nodo per vedere requisiti e costo, poi sbloccalo usando il valore in euro del portafoglio. Le ventole e i filtri sbloccati diventano selezionabili sul banco RIG; le criptovalute sbloccate possono essere assegnate con `setCrypto`.
 
-Configura la struttura in `src/app/config/research-tree-config.ts`: ogni nodo definisce `id`, `name`, `category`, `model` (percorso GLB), `description`, `costEur` e, se serve, `requirements`, `initiallyUnlocked` e `children`. `children` crea automaticamente il collegamento e richiede lo sblocco del genitore; in `requirements` puoi aggiungere altri nodi (`kind: 'node'`), blocchi estratti (`kind: 'blocks'`) o RIG posseduti (`kind: 'rigs'`). Gli ID di ventole, filtri e cripto devono corrispondere ai rispettivi file di configurazione. Gli sblocchi seguono lo stato in memoria della partita e si azzerano con **Reset** o al ricaricamento, come il resto della farm.
+Configura la struttura in `src/app/config/research-tree-config.ts`: ogni nodo definisce `id`, `name`, `category`, `model` (percorso GLB), `description`, `costEur` e, se serve, `requirements`, `initiallyUnlocked` e `children`. `children` crea automaticamente il collegamento e richiede lo sblocco del genitore; in `requirements` puoi aggiungere altri nodi (`kind: 'node'`), blocchi estratti (`kind: 'blocks'`) o RIG posseduti (`kind: 'rigs'`). Gli ID di ventole, filtri e cripto devono corrispondere ai rispettivi file di configurazione. Gli sblocchi fanno parte del salvataggio della partita e si azzerano con **Reset**.
 
 `src/app/config/game-balance.ts` compone i gruppi di configurazione usati dal gioco. Modifica il file del componente che vuoi bilanciare:
 
@@ -107,7 +107,9 @@ Rig, GPU, banco, plot, piazzole, pavimento e Bitcoin della partita sono caricati
 dai GLB. I generatori Three.js sono usati solo per esportare gli asset.
 Le piazzole sono dimensionate per l'intera famiglia di rig, compresi i moduli
 laterali. Le monete BTC, LTC, DOGE, XMR, ETC, KAS, RVN ed ERG condividono le
-dimensioni del Bitcoin; il sistema economico della partita continua a usare BTC.
+dimensioni del Bitcoin. La partita parte da DOGE e sblocca progressivamente le altre
+valute fino a BTC. Premi, difficoltà, ricerche, prezzi e corrente sono descritti in
+[`docs/game-balance.md`](docs/game-balance.md).
 
 File e documentazione in [`public/assets/models/`](public/assets/models/README.md).
 Rigenera i GLB con `npm run models:generate`. Riferimenti online, attribuzioni,
@@ -124,12 +126,15 @@ while (progress() < 100) {
 ```
 
 - `mine()`: funzione globale; avvia insieme tutte le GPU sbloccate e operative montate nei rig. Schede sul banco o ferme vengono saltate. Il premio viene assegnato solo al raggiungimento del 100%.
-- `progress()`: progresso attuale, 0–100.
+- `progress()`: progresso DOGE, 0–100. `progress("RVN")` legge una catena specifica.
+- `gpu.estimate("RVN", 1.1)`: confronta progresso, difficoltà, consumo e margine a una frequenza scelta senza modificare la GPU. Argomenti facoltativi; guida interna con campi, limiti ed esempio completo.
 - `print(valore)`: scrive in console.
 - `wait(ms)`: pausa interrompibile entro il limite configurato. La velocità 2× accelera le azioni `mine()`.
 - `repeat(n) { ... }`: intero non negativo entro il limite configurato.
 - `parallel`: lancia insieme comandi semplici su GPU diverse. `mine()` coordina già tutte le GPU sbloccate.
 - `for (let i = 0; i < 5; i++) { ... }`, `while (...) { ... }`, `if (...) { ... } else { ... }`.
+- `def nome(parametri) { ... }` definisce una funzione; `return valore;` restituisce il risultato. Puoi chiamarla con `nome(valori)`.
+- `import { nome } from "utilita.mine";` importa le funzioni indicate da un altro file. `import * from "utilita.mine";` e `import "utilita.mine";` importano tutte le sue funzioni. I file importati contengono solo `def` e `import`; avvii un solo file alla volta. La guida nel gioco mostra esempi completi.
 - Variabili `let`, assegnazione, `++`, `--`, numeri, stringhe, booleani, vettori, attributi, metodi, `+ - * / %`, confronti `== != < <= > >=`, `&& || !` e parentesi.
 - Commenti `//`; punto e virgola obbligatorio per istruzioni semplici. Variabili in un unico ambito per esecuzione; vengono azzerate al run successivo. Le dichiarazioni dentro i cicli possono riassegnarle.
 
@@ -226,9 +231,9 @@ Il consumo include le GPU attive e lo standby delle altre GPU sbloccate e operat
 | --------------------------------- | ---------------- | --------------------------------------------------------------------- |
 | `electricity.getPowerWatts()`     | `powerWatts`     | W istantanei dell'intera farm, incluso standby                        |
 | `electricity.getEnergyKwh()`      | `energyKwh`      | kWh complessivi della partita, incluso lavoro già pagato o interrotto |
-| `electricity.getPendingCostEur()` | `pendingCostEur` | Euro stimati per la prossima bolletta                                  |
+| `electricity.getPendingCostEur()` | `pendingCostEur` | Euro stimati per la prossima bolletta                                 |
 | `electricity.getTotalCostEur()`   | `totalCostEur`   | Euro pagati più costo pendente                                        |
-| `electricity.getPricePerKwh()`    | `pricePerKwh`    | Tariffa corrente in €/kWh                                              |
+| `electricity.getPricePerKwh()`    | `pricePerKwh`    | Tariffa corrente in €/kWh                                             |
 
 `kWh = W / 1000 × ore simulate`. Una GPU alla frequenza base consuma 0,205 kWh per azione (0,0615 € alla tariffa iniziale); `mine()` somma i consumi delle schede attive. I consumi restano pendenti anche tra script diversi o dopo un errore. A blocco completato il premio lordo viene accreditato. Ogni 24 ore di gioco la bolletta viene convertita in BTC al cambio fisso, arrotondata una sola volta al satoshi più vicino e sottratta al saldo. Il saldo può diventare negativo se la bolletta supera il saldo disponibile: il debito resta visibile. Un blocco viene pagato una sola volta; il consumo pendente si azzera dopo l'addebito giornaliero.
 
@@ -243,7 +248,7 @@ print(electricity.getEnergyKwh());
 print(electricity.getPendingCostEur());
 ```
 
-`gpu-operation.ts` contiene regole pure di frequenza, temperatura, usura e stop; `electricity.ts` contiene conversione monetaria e tipi dei contatori. `mining-world.ts` applica azioni e saldi immutabili. `GameService` coordina azioni interrompibili e letture live. Wallet e pannello corrente si occupano soltanto di presentazione. Stato, consumi e stop restano in memoria fino a ricaricamento o nuova partita.
+`gpu-operation.ts` contiene regole pure di frequenza, temperatura, usura e stop; `electricity.ts` contiene conversione monetaria e tipi dei contatori. `mining-world.ts` applica azioni e saldi immutabili. `GameService` coordina azioni interrompibili e letture live. `game-save.ts` valida, salva e importa lo stato. Wallet e pannello corrente si occupano soltanto di presentazione. Stato, consumi e stop si ripristinano al ricaricamento.
 
 L'interprete analizza il programma prima di eseguirlo. Non usa `eval`, `Function` né accesso alle API del browser. I limiti sono in `scripting` e `editor.maxLogEntries`. Gli errori riportano la riga. Un errore di runtime conserva le azioni già completate. Stop annulla anche il mining pendente senza attribuire ricompense.
 
@@ -254,7 +259,7 @@ L'interprete analizza il programma prima di eseguirlo. Non usa `eval`, `Function
 - Tooltip e pannello corrente usano superfici opache, separatori sottili e un'apertura di 150 ms con dissolvenza e breve scorrimento, disattivata con `prefers-reduced-motion`. Riferimenti: [tooltip Carbon](https://carbondesignsystem.com/components/tooltip/style/) e [movimento Carbon](https://carbondesignsystem.com/elements/motion/overview/).
 - All'avvio è mostrato il primo rig con GPU 1; gli altri rig restano bloccati e sono rappresentati dai quadrati a terra. Non esiste ancora un metodo per sbloccare rig o GPU. Completare blocchi non aggiunge hardware. Il banco resta un singolo arredo sulla destra. La GPU esaminata è distinta dal blocco attivo del programma.
 - Ctrl/Cmd + Invio esegue; Tab aggiunge due spazi; Esc poi Tab permette di uscire dall'editor. Durante il run, codice e selezione sono bloccati.
-- Il codice viene salvato in `localStorage` se disponibile; la partita resta in memoria. Ricaricando la pagina si riparte dal primo blocco. **Nuova partita** mantiene il codice.
+- Partita e file MineScript vengono salvati automaticamente in `localStorage` quando disponibile. Il salvataggio comprende farm, inventario, ricerche, saldo, blocchi e tempo di gioco. Nelle **Impostazioni** puoi scaricare o importare un file JSON, oppure eliminare salvataggi e file MineScript dopo una conferma: il gioco riparte dallo stato iniziale. Il codice in esecuzione non riparte da solo dopo il caricamento; **Nuova partita** azzera la farm ma mantiene i file.
 - Nessun backend, account, mining reale o economia di acquisto.
 - Serve WebGL2 per la scena. Se non disponibile, il gioco rimane utilizzabile tramite i controlli testuali. Font, modelli e dipendenze sono serviti localmente.
 

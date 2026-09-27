@@ -1,3 +1,5 @@
+import { createDualGpuWorld } from './world-fixture';
+import { GPU_MODELS_BY_ID } from '../../config/gpu-config';
 import { describe, expect, it } from 'vitest';
 import { GAME_BALANCE } from '../../config/game-balance';
 import { satoshisToEuros } from '../electricity';
@@ -20,16 +22,16 @@ import {
 
 describe('GPU operation and electricity', () => {
   it('accumulates energy without charging before the game day ends', () => {
-    const world = mineGpu(createWorld(), 1, 0);
+    const world = mineGpu(createDualGpuWorld(), 1, 0);
     expect(world.satoshis).toBe(0);
     expect(world.electricity.energyKwh).toBeCloseTo(0.237);
     expect(world.electricity.pendingKwh).toBeCloseTo(0.237);
     expect(world.lastSettlement).toBeNull();
-    expect(satoshisToEuros(BLOCK_REWARD)).toBe(600);
+    expect(satoshisToEuros(BLOCK_REWARD)).toBe(18);
   });
 
   it('pays the block reward at completion and bills electricity at day end', () => {
-    let world = createWorld();
+    let world = createDualGpuWorld();
     world = { ...world, blocks: [{ id: 1, progress: 99.9 }] };
     const settled = mineGpu(world, 1, 0);
     expect(settled.electricity.paidSatoshis).toBe(0);
@@ -54,7 +56,7 @@ describe('GPU operation and electricity', () => {
   });
 
   it('retains debt when the day-end electricity bill exceeds the available balance', () => {
-    const world = createWorld();
+    const world = createDualGpuWorld();
     const rewarded = mineGpu(
       {
         ...world,
@@ -72,15 +74,17 @@ describe('GPU operation and electricity', () => {
   });
 
   it('underclock trades lower progress for lower power and wear', () => {
-    const normal = mineGpu(createWorld(), 1, 0);
-    const underclocked = mineGpu(setGpuFrequency(createWorld(), 1, 0.9), 1, 0);
-    expect(underclocked.blocks[0].progress).toBeCloseTo(MINE_PROGRESS_PER_GPU / 2);
-    expect(underclocked.electricity.energyKwh).toBeCloseTo(0.08325);
+    const normal = mineGpu(createDualGpuWorld(), 1, 0);
+    const underclocked = mineGpu(setGpuFrequency(createDualGpuWorld(), 1, 0.9), 1, 0);
+    expect(underclocked.blocks[0].progress).toBeCloseTo(
+      (MINE_PROGRESS_PER_GPU * GPU_MODELS_BY_ID['gpu-dual'].miningPower) / 2,
+    );
+    expect(underclocked.electricity.energyKwh).toBeCloseTo(0.10725);
     expect(getGpu(underclocked, 1).wearPercent).toBeLessThan(getGpu(normal, 1).wearPercent);
   });
 
   it('overclock increases progress, heat, wear and energy independently per GPU', () => {
-    const original = createWorld();
+    const original = createDualGpuWorld();
     const normal = mineGpu(original, 1, 0);
     const boosted = mineGpu(setGpuFrequency(original, 1, 2.4), 1, 0);
     expect(boosted.blocks[0].progress).toBeGreaterThan(normal.blocks[0].progress);
@@ -94,13 +98,13 @@ describe('GPU operation and electricity', () => {
   });
 
   it.each([NaN, Infinity, -1, 0.49])('rejects invalid clock %s without mutation', (frequency) => {
-    const original = createWorld();
+    const original = createDualGpuWorld();
     expect(() => setGpuFrequency(original, 1, frequency)).toThrow('frequenza');
     expect(getGpu(original, 1).targetFrequencyGhz).toBe(1.8);
   });
 
   it('accepts both frequency boundaries and latches a stop above the absolute maximum', () => {
-    let world = setGpuFrequency(createWorld(), 1, 0.5);
+    let world = setGpuFrequency(createDualGpuWorld(), 1, 0.5);
     expect(getGpu(world, 1).targetFrequencyGhz).toBe(0.5);
     world = setGpuFrequency(world, 1, 2.6);
     expect(getGpu(world, 1).stopped).toBe(false);
@@ -113,7 +117,7 @@ describe('GPU operation and electricity', () => {
   });
 
   it('stops on overheating without progress, then requires cooldown and explicit clearStop', () => {
-    let world = setGpuFrequency(createWorld(), 1, 2.6);
+    let world = setGpuFrequency(createDualGpuWorld(), 1, 2.6);
     let progress = 0;
     for (let action = 0; action < 20 && !getGpu(world, 1).stopped; action++) {
       progress = world.blocks[0].progress;
@@ -122,14 +126,14 @@ describe('GPU operation and electricity', () => {
     expect(getGpu(world, 1).stopReason).toBe('Surriscaldamento');
     expect(world.blocks[0].progress).toBe(progress);
     expect(() => resumeGpu(world, 1, 0)).toThrow('surriscaldata');
-    expect(gpuTemperature(getGpu(world, 1), 5000)).toBe(34);
+    expect(gpuTemperature(getGpu(world, 1), 5000, world.plots[0].rigs[0].setup)).toBe(34);
     expect(() => mineGpu(world, 1, 5000)).toThrow('ferma');
     const cooled = resumeGpu(setGpuFrequency(world, 1, 1.8), 1, 5000);
     expect(mineGpu(cooled, 1, 5000).blocks[0].progress).toBeGreaterThan(progress);
   });
 
   it('manual stop is idempotent, sets power to zero and preserves wear when cleared', () => {
-    const mined = mineGpu(createWorld(), 1, 0);
+    const mined = mineGpu(createDualGpuWorld(), 1, 0);
     const stopped = stopGpu(stopGpu(mined, 1), 1);
     expect(farmPowerWatts(stopped, null)).toBe(32);
     expect(getGpuTelemetry(1, getGpu(stopped, 1), 0).powerWatts).toBe(0);
@@ -140,7 +144,7 @@ describe('GPU operation and electricity', () => {
   });
 
   it('charges standby for other unlocked GPUs, excluding stopped cards', () => {
-    const initial = createWorld();
+    const initial = createDualGpuWorld();
     const twoGpus = {
       ...initial,
       plots: initial.plots.map((plot) => ({
@@ -157,7 +161,7 @@ describe('GPU operation and electricity', () => {
   });
 
   it('keeps partial energy and wear without progress or a premature payout', () => {
-    const partial = recordGpuWork(createWorld(), 1, 0.5, 0, 425);
+    const partial = recordGpuWork(createDualGpuWorld(), 1, 0.5, 0, 425);
     expect(partial.electricity.pendingKwh).toBeCloseTo(0.1185);
     expect(getGpu(partial, 1).wearPercent).toBeCloseTo(0.0025);
     expect(partial.blocks[0].progress).toBe(0);
@@ -169,7 +173,7 @@ describe('GPU operation and electricity', () => {
   });
 
   it('wear reaching 100 blocks restart until maintenance and a new world resets all state', () => {
-    const original = createWorld();
+    const original = createDualGpuWorld();
     const worn = {
       ...original,
       plots: original.plots.map((plot) => ({
@@ -184,7 +188,7 @@ describe('GPU operation and electricity', () => {
     expect(getGpu(failed, 1).wearPercent).toBe(100);
     expect(failed.blocks[0].progress).toBe(0);
     expect(() => resumeGpu(failed, 1, GAME_BALANCE.gpu.cooldownMs)).toThrow('esaurita');
-    expect(getGpu(createWorld(), 1).wearPercent).toBe(0);
-    expect(createWorld().electricity.energyKwh).toBe(0);
+    expect(getGpu(createDualGpuWorld(), 1).wearPercent).toBe(0);
+    expect(createDualGpuWorld().electricity.energyKwh).toBe(0);
   });
 });

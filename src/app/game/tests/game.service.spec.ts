@@ -91,4 +91,19 @@ describe('GameService script controls', () => {
     await execution;
     expect(output(game)).toEqual(['first', 'second']);
   });
+
+  it('does not start a second file during continuous execution', async () => {
+    const game = createGame('wait(50); print("main");');
+    const entryId = game.activeFileId();
+    const other = game.createFile('other.mine');
+    game.updateFileCode(other.id, 'print("other");');
+
+    const execution = game.runFile(entryId);
+    await game.runFile(other.id);
+
+    expect(game.executingFileId()).toBe(entryId);
+    expect(game.activeFileId()).toBe(entryId);
+    await execution;
+    expect(output(game)).toEqual(['main']);
+  });
 });

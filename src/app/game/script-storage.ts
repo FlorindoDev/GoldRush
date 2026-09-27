@@ -13,6 +13,10 @@ const LINE_EFFECTS_STORAGE_KEY = 'blockcraft-line-effects';
 const GPU_HOVER_TOOLTIP_STORAGE_KEY = 'blockcraft-gpu-hover-tooltip';
 const DEFAULT_CODE = EXAMPLES[0].code;
 
+export function defaultScriptFiles(): ScriptFile[] {
+  return [{ id: 'main', name: 'main.mine', code: DEFAULT_CODE }];
+}
+
 export function loadScriptFiles(): ScriptFile[] {
   try {
     const stored = localStorage.getItem(FILES_STORAGE_KEY);
@@ -88,6 +92,13 @@ export function persistScriptFiles(
   } catch {
     // Editing remains available without storage.
   }
+}
+
+export function clearStoredScriptFiles(storage?: Pick<Storage, 'removeItem'>): void {
+  const target = storage ?? localStorage;
+  target.removeItem(FILES_STORAGE_KEY);
+  target.removeItem(ACTIVE_FILE_STORAGE_KEY);
+  target.removeItem(CODE_STORAGE_KEY);
 }
 
 function loadLegacyCode(): string {

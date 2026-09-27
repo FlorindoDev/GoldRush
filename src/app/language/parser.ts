@@ -18,6 +18,7 @@ const RESERVED_WORDS = [
   'def',
   'return',
   'import',
+  'from',
 ];
 
 const PRECEDENCE: Record<string, number> = {
@@ -107,12 +108,27 @@ class Parser {
         return { kind: 'def', name, parameters, body: this.parseBlock(), line };
       }
       if (this.match('import')) {
+        let names: string[] | null = null;
+        if (this.match('{')) {
+          names = [];
+          do {
+            const name = this.readName('funzione');
+            if (names.includes(name)) {
+              throw new ScriptError(`funzione "${name}" importata due volte.`, line);
+            }
+            names.push(name);
+          } while (this.match(','));
+          this.expect('}');
+          this.expect('from');
+        } else if (this.match('*')) {
+          this.expect('from');
+        }
         const file = this.parseExpression();
         if (file.kind !== 'literal' || typeof file.value !== 'string') {
           throw new ScriptError('import richiede il nome del file tra virgolette.', line);
         }
         this.expect(';');
-        return { kind: 'import', fileName: file.value, line };
+        return { kind: 'import', fileName: file.value, names, line };
       }
       if (this.match('return')) {
         const value = this.current.text === ';' ? null : this.parseExpression();

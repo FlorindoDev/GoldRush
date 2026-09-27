@@ -1,3 +1,4 @@
+import { STARTING_CRYPTO_ID } from '../../config/crypto-config';
 import { GAMEPLAY_RIG_SETUP } from '../../config/rig-config';
 import { SHOP_PRODUCTS_BY_ID } from '../../config/shop-config';
 import { createGpuOperatingState } from '../gpu-operation';
@@ -39,7 +40,7 @@ function emptyGpuSlot(gpu: ReturnType<typeof getRig>['gpus'][number], now: numbe
   return {
     ...gpu,
     ...createGpuOperatingState(),
-    cryptoId: 'bitcoin' as const,
+    cryptoId: STARTING_CRYPTO_ID,
     unlocked: false,
     onWorkbench: false,
     lastUpdatedAt: now,

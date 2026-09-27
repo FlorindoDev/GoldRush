@@ -14,21 +14,30 @@ while (progress() < 100) {
 print("Blocco completato!");`,
   },
   {
+    name: 'Ottimizzare il margine',
+    code: GUIDE_CODE.optimization,
+  },
+  {
     name: 'Funzione con parametro e return',
     code: GUIDE_CODE.functionDefinition,
   },
   {
     name: 'Mining multi-cripto',
-    code: `// Sblocca KAS e LTC nell'albero ricerca, poi assegna le GPU.
+    code: `// Installa quattro GPU e sblocca KAS e LTC nell'albero ricerca.
 let gpus = plots[0].rigs[0].gpus;
 setCrypto(gpus.slice(0, 2), "KAS");
 setCrypto(gpus.slice(2, 4), "LTC");
 print(gpus[0].crypto);
 print("Progresso KAS: " + progress("KAS"));
-// Le altre GPU mantengono la loro assegnazione (BTC inizialmente).
-// mine() senza vettore avvia tutte le GPU operative: ognuna mina la propria cripto.
+// Le altre GPU mantengono la loro assegnazione (DOGE inizialmente).
+// Smetti di lavorare sulle catene complete, senza avviarne un nuovo blocco.
 while (progress("KAS") < 100 || progress("LTC") < 100) {
-  mine(10); // Output ogni 10% per ciascuna cripto.
+  if (progress("KAS") < 100) {
+    mine(gpus.slice(0, 2), 10);
+  }
+  if (progress("LTC") < 100) {
+    mine(gpus.slice(2, 4), 10);
+  }
 }`,
   },
   {

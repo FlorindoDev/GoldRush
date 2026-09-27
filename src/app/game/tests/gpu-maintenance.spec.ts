@@ -1,3 +1,4 @@
+import { withUnlockedGpus } from './world-fixture';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GAME_BALANCE } from '../../config/game-balance';
 import { GPU_MODELS, GPU_MODELS_BY_ID } from '../../config/gpu-config';
@@ -190,7 +191,7 @@ describe('GPU maintenance', () => {
         expect(maintainGpu(gpu, { kind: 'fan', kit: 'silent' }).fanKit, model.id).toBe('silent');
       } else {
         expect(() => maintainGpu(gpu, { kind: 'fan', kit: 'silent' }), model.id).toThrow(
-          'non ha ventole',
+          'non supporta kit ventole',
         );
       }
     }
@@ -231,7 +232,7 @@ describe('GPU maintenance', () => {
   });
 
   it('isolates maintenance and cooldown by GPU, rejects locked GPUs', () => {
-    const initial = createWorld();
+    const initial = withUnlockedGpus(createWorld(), 2);
     const worked = recordGpuWork(initial, 1, 1, 0, 1000);
     const serviced = serviceGpu(worked, 1, { kind: 'thermal' });
     const otherWorked = recordGpuWork(serviced, 2, 1, 0, 1000);
@@ -246,7 +247,7 @@ describe('GPU maintenance', () => {
     vi.useFakeTimers();
     const game = new GameService();
     game.start();
-    game.world.update(withCompactGpu);
+    game.world.update((world) => withCompactGpu(withUnlockedGpus(world, 2)));
     game.setLineEffectsEnabled(false);
     game.world.update((world) => ({ ...world, cashEur: 500 }));
     game.unlockResearch('gpu-fan-silent');

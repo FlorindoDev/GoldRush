@@ -17,7 +17,7 @@ interface CodeToken {
 }
 
 const TOKEN_PATTERN =
-  /\/\/[^\r\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b(?:let|if|else|while|for|repeat|parallel|def|return|import)\b|\b(?:true|false|null)\b|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$]*(?=\s*\()|===|!==|==|!=|<=|>=|\+\+|--|&&|\|\||[+\-*/%=<>!]|[()[\]{},.;]/g;
+  /\/\/[^\r\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b(?:let|if|else|while|for|repeat|parallel|def|return|import|from)\b|\b(?:true|false|null)\b|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$]*(?=\s*\()|===|!==|==|!=|<=|>=|\+\+|--|&&|\|\||[+\-*/%=<>!]|[()[\]{},.;]/g;
 
 const KEYWORDS = new Set([
   'let',
@@ -30,6 +30,7 @@ const KEYWORDS = new Set([
   'def',
   'return',
   'import',
+  'from',
 ]);
 const LITERALS = new Set(['true', 'false', 'null']);
 const OPERATORS = new Set([

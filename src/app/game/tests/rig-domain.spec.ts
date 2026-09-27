@@ -1,3 +1,4 @@
+import { PURCHASED_RIG_SETUP, STARTING_RIG_FAN_COUNT } from '../../config/rig-config';
 import { describe, expect, it } from 'vitest';
 import { createWorld, getGpu, getRig, type MiningWorld } from '../mining-world';
 import { GameService } from '../game.service';
@@ -50,7 +51,7 @@ describe('RIG inventory domain', () => {
     expect(game.stockQuantity('gpu-passive')).toBe(0);
 
     const stored = game.world().inventory.items.find((item) => item.rig)!;
-    expect(stored.rig?.setup).toEqual(getRig(purchased, 8).setup);
+    expect(stored.rig?.setup).toEqual(PURCHASED_RIG_SETUP);
     expect(stored.rig?.gpus.map((gpu) => gpu?.state.wearPercent ?? null)).toEqual([
       17,
       8,
@@ -90,7 +91,7 @@ describe('RIG inventory domain', () => {
     expect(oldRig.productId).toBe('rig-gameplay');
     expect(oldRig.rig?.gpus[0]).not.toBeNull();
     expect(oldRig.rig?.gpus[0]?.state.modelId).toBe(getGpu(createWorld(), 1).modelId);
-    expect(oldRig.rig?.gpus[1]).not.toBeNull();
+    expect(oldRig.rig?.gpus[1]).toBeNull();
     expect(inventoryEntries(game.world()).some((entry) => entry.stockId === oldRig.id)).toBe(true);
 
     const cashBeforeSale = game.world().cashEur;
@@ -139,7 +140,9 @@ describe('RIG inventory domain', () => {
     game.inspectRig(1);
     game.buyCart([{ productId: 'fan-pressure-140', quantity: 4 }]);
     const insufficientStock = game.world();
-    expect(() => game.configureInspectedRig({ fanId: 'fan-pressure-140' })).toThrow('magazzino');
+    expect(() => game.configureInspectedRig({ fanId: 'fan-pressure-140', fanCount: 5 })).toThrow(
+      'magazzino',
+    );
     expect(game.world()).toBe(insufficientStock);
 
     game.buyCart([{ productId: 'fan-pressure-140', quantity: 1 }]);
@@ -147,9 +150,9 @@ describe('RIG inventory domain', () => {
       { productId: 'filter-mesh', quantity: 1 },
       { productId: 'cooling-air', quantity: 1 },
     ]);
-    game.configureInspectedRig({ fanId: 'fan-pressure-140' });
+    game.configureInspectedRig({ fanId: 'fan-pressure-140', fanCount: 5 });
     game.configureInspectedRig({ fanCount: 4, dustSystemId: 'mesh', coolingMethodId: 'air' });
-    expect(game.stockQuantity('fan-airflow-120')).toBe(5);
+    expect(game.stockQuantity('fan-airflow-120')).toBe(STARTING_RIG_FAN_COUNT);
     expect(game.stockQuantity('fan-pressure-140')).toBe(1);
     expect(game.stockQuantity('filter-mesh')).toBe(0);
     expect(game.stockQuantity('cooling-air')).toBe(0);

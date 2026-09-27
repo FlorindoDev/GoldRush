@@ -13,6 +13,7 @@ import {
   type CartLine,
 } from './inventory';
 import { GAME_BALANCE } from '../config/game-balance';
+import { estimateGpuMining } from './mining-estimate';
 import { CRYPTO_CONFIG, cryptoValueEur, requireCrypto } from '../config/crypto-config';
 import { gpuIdsFromVector } from './script-api/gpu-script-object';
 import type { RigSetup } from '../config/rig-config';
@@ -23,9 +24,11 @@ import { satoshisToEuros } from './electricity';
 import { isResearchUnlocked, unlockResearch } from './research';
 import { applyGpuWork, gpuTemperatureWhilePoweredDown, isGpuOperational } from './gpu-operation';
 import { getGpuTelemetry } from './gpu-telemetry';
+import { loadGameSave, type GameSave } from './game-save';
 import type { GpuMaintenanceAction } from './gpu-maintenance';
 import type { ElectricityReadings } from './script-api/electricity-script-object';
 import {
+  defaultScriptFiles,
   loadActiveFileId,
   loadLineEffectsEnabled,
   loadScriptFiles,
@@ -106,9 +109,11 @@ interface MiningAction {
 
 @Injectable({ providedIn: 'root' })
 export class GameService {
+  private readonly initialSave = loadGameSave();
+  private restoredOnStartup = this.initialSave !== null;
   private nextGlobalMineGroupId = 0;
-  readonly world = signal(createWorld());
-  readonly gameElapsedMinutes = signal(0);
+  readonly world = signal(this.initialSave?.world ?? createWorld());
+  readonly gameElapsedMinutes = signal(this.initialSave?.gameElapsedMinutes ?? 0);
   readonly started = signal(false);
   readonly computerOpen = signal(false);
   readonly running = signal(false);
@@ -133,9 +138,11 @@ export class GameService {
   readonly stepMode = signal(false);
   readonly waitingForStep = signal(false);
   readonly lineEffectsEnabled = signal(loadLineEffectsEnabled());
-  readonly speed = signal(1);
-  readonly files = signal(loadScriptFiles());
-  readonly activeFileId = signal(loadActiveFileId(this.files()));
+  readonly speed = signal(this.initialSave?.speed ?? 1);
+  readonly files = signal<ScriptFile[]>(
+    this.initialSave?.files ? [...this.initialSave.files] : loadScriptFiles(),
+  );
+  readonly activeFileId = signal(this.initialSave?.activeFileId ?? loadActiveFileId(this.files()));
   readonly activeFile = computed(
     () => this.files().find((file) => file.id === this.activeFileId()) ?? this.files()[0]!,
   );
@@ -149,8 +156,11 @@ export class GameService {
     return world.blocks.find((block) => block.id === world.selectedId)!;
   });
   readonly expandable = computed(() => canExpand(this.world()));
-  readonly completed = computed(
-    () => this.world().blocks.filter((block) => block.progress === 100).length,
+  readonly completed = computed(() =>
+    Object.values(this.world().cryptoChains).reduce(
+      (total, chain) => total + chain.settledBlockIds.length,
+      0,
+    ),
   );
   readonly balance = computed(() =>
     (this.world().satoshis / GAME_BALANCE.world.satoshisPerBitcoin).toFixed(8),
@@ -248,11 +258,59 @@ export class GameService {
       return;
     }
     this.started.set(true);
+    if (this.restoredOnStartup) {
+      this.restoredOnStartup = false;
+      this.log('Partita salvata ripristinata.', 'success');
+      return;
+    }
     this.log(
       `Ambiente pronto. ${STARTING_RIG_COUNT} RIG e ${STARTING_GPU_COUNT} GPU sbloccati; il resto della farm è bloccato.`,
       'success',
     );
     this.log('Esegui il codice per iniziare a minare.');
+  }
+
+  createSave(): GameSave {
+    return {
+      version: 1,
+      savedAt: Date.now(),
+      world: this.world(),
+      gameElapsedMinutes: this.gameElapsedMinutes(),
+      files: this.files(),
+      activeFileId: this.activeFileId(),
+      speed: this.speed(),
+    };
+  }
+
+  restoreSave(save: GameSave): void {
+    if (this.running()) throw new Error('Ferma il programma prima di importare la partita.');
+    this.clearLineEffects();
+    this.world.set(save.world);
+    this.gameElapsedMinutes.set(save.gameElapsedMinutes);
+    this.files.set([...save.files]);
+    this.activeFileId.set(save.activeFileId);
+    this.speed.set(save.speed);
+    this.billedGameDay = Math.max(
+      save.world.electricity.lastPriceChangeDay ?? 0,
+      save.world.lastElectricityBill?.gameDay ?? 0,
+    );
+    this.rigPoweredDownAt = Date.now();
+    this.selectedGpuId.set(null);
+    this.selectedRigId.set(null);
+    this.inspectedGpuId.set(null);
+    this.inspectedRigId.set(null);
+    this.viewedRigId.set(1);
+    this.viewedPlotId.set(1);
+    this.computerOpen.set(false);
+    this.activeLine.set(0);
+    this.errorLine.set(0);
+    this.errorFileId.set(null);
+    this.lineFileId.set(null);
+    this.executingFileId.set(null);
+    this.logs.set([]);
+    this.log('Partita importata.', 'success');
+    this.started.set(true);
+    this.persistFiles();
   }
 
   advanceGameTime(realElapsedMilliseconds: number): void {
@@ -436,6 +494,8 @@ export class GameService {
               getGpu: (id) => getGpu(this.world(), id),
               getTelemetry: (id) => this.gpuTelemetry(id),
               getCryptoProgress: (cryptoId) => getCryptoProgress(this.world(), cryptoId),
+              estimateMining: (id, crypto, frequency) =>
+                estimateGpuMining(this.world(), id, crypto, frequency),
               isSelected: (id) => this.selectedGpuId() === id,
               setFrequencyGhz: (id, frequency) => this.setGpuFrequencyGhz(id, frequency),
               setFanSpeedPercent: (id, percentage) => this.setGpuFanSpeedPercent(id, percentage),
@@ -719,11 +779,21 @@ export class GameService {
     this.viewedRigId.set(1);
     this.viewedPlotId.set(1);
     this.started.set(false);
+    this.restoredOnStartup = false;
     this.logs.set([]);
     this.errorLine.set(0);
     this.errorFileId.set(null);
     this.lineFileId.set(null);
     this.executingFileId.set(null);
+  }
+
+  resetSavedGame(): void {
+    if (this.running()) throw new Error('Ferma il programma prima di eliminare i salvataggi.');
+    this.reset();
+    this.files.set(defaultScriptFiles());
+    this.activeFileId.set('main');
+    this.speed.set(1);
+    this.start();
   }
 
   clearLogs(): void {
@@ -999,7 +1069,9 @@ export class GameService {
     this.world.update((world) => stopGpuOnWorld(world, gpuId));
     const controller = this.miningControllers.get(gpuId);
     if (controller) {
-      controller.abort(new Error(`GPU ${gpuId} fermata. Usa clearStop() per riabilitarla.`));
+      controller.abort(
+        new DOMException(`GPU ${gpuId} fermata. Usa clearStop() per riabilitarla.`, 'AbortError'),
+      );
     }
   }
 

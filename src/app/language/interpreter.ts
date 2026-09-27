@@ -93,7 +93,7 @@ class Interpreter {
     private readonly host: ScriptHost,
     private readonly signal: AbortSignal,
     private readonly onLine: (line: number, sourceName?: string) => void | Promise<void>,
-    private readonly functions: ReadonlyMap<string, FunctionDefinition>,
+    private functions: ReadonlyMap<string, FunctionDefinition>,
     context?: InterpreterContext,
   ) {
     const globals = host.globals ?? {};
@@ -339,7 +339,9 @@ class Interpreter {
       throw new ScriptError('troppe chiamate di funzione annidate.', line, this.sourceName);
     }
     const previousSourceName = this.sourceName;
+    const previousFunctions = this.functions;
     this.sourceName = sourceName;
+    this.functions = definition.functions;
     this.callDepth++;
     this.scopes.push(new Map(statement.parameters.map((name, index) => [name, args[index]])));
     try {
@@ -353,6 +355,7 @@ class Interpreter {
       this.scopes.pop();
       this.callDepth--;
       this.sourceName = previousSourceName;
+      this.functions = previousFunctions;
     }
   }
 

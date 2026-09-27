@@ -10,6 +10,7 @@ import { RIG_COOLING_METHODS } from '../../../config/cooling-config';
 import { RIG_DUST_SYSTEMS } from '../../../config/dust-filter-config';
 import { FAN_MODELS_BY_ID } from '../../../config/fan-config';
 import { GameService } from '../../../game/game.service';
+import { estimateGpuMining } from '../../../game/mining-estimate';
 import { rigFanCoolingCelsius } from '../../../game/gpu-operation';
 import {
   getCryptoBlock,
@@ -48,6 +49,11 @@ export class PowerComponent implements OnDestroy {
   readonly cryptoBlock = computed(() => {
     const gpu = this.gpu();
     return gpu ? getCryptoBlock(this.game.world(), gpu.cryptoId) : null;
+  });
+  readonly miningEstimate = computed(() => {
+    this.tick();
+    const gpu = this.gpu();
+    return gpu ? estimateGpuMining(this.game.world(), gpu.id) : null;
   });
   readonly rig = computed(() => {
     const id = this.game.selectedRigId();

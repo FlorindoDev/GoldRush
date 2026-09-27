@@ -27,17 +27,17 @@ export const SHOP_CATEGORIES = [
 
 // Prezzi di acquisto simulati, separati dai costi di ricerca.
 const GPU_PRICES: Record<string, number> = {
-  'gpu-passive': 65,
-  'gpu-compact': 140,
-  'gpu-dual': 280,
-  'gpu-triple': 480,
-  'gpu-blower': 320,
-  'gpu-liquid': 760,
-  'gpu-proart': 560,
-  'gpu-nitro': 680,
-  'gpu-workstation': 620,
-  'gpu-low-profile': 380,
-  'gpu-hybrid': 920,
+  'gpu-passive': 45,
+  'gpu-compact': 85,
+  'gpu-dual': 190,
+  'gpu-triple': 400,
+  'gpu-blower': 225,
+  'gpu-liquid': 590,
+  'gpu-proart': 390,
+  'gpu-nitro': 650,
+  'gpu-workstation': 530,
+  'gpu-low-profile': 150,
+  'gpu-hybrid': 355,
 };
 const research = flattenResearchTree();
 const spec = (label: string, value: string) => ({ label, value });
@@ -52,6 +52,7 @@ export const SHOP_PRODUCTS: readonly ShopProduct[] = [
     researchId: gpu.id,
     description: research.find((node) => node.id === gpu.id)?.description ?? '',
     specs: [
+      spec('Potenza mining', `${gpu.miningPower}×`),
       spec('Frequenza nominale', `${gpu.specifications.mining.frequencyGhz} GHz`),
       spec('Consumo nominale', `${gpu.specifications.mining.powerWatts} W`),
       spec('Ventole', `${gpu.fans}`),
@@ -62,7 +63,7 @@ export const SHOP_PRODUCTS: readonly ShopProduct[] = [
     name: fan.name,
     category: 'fan',
     model: `assets/models/fans/${fan.id}.glb`,
-    priceEur: [18, 32, 55, 85, 110, 145, 190][fan.tier - 1],
+    priceEur: [8, 16, 30, 48, 65, 90, 125][fan.tier - 1],
     researchId: fan.id,
     description: 'Ventola per il telaio del RIG. Prezzo per singola unità.',
     specs: [
@@ -76,7 +77,7 @@ export const SHOP_PRODUCTS: readonly ShopProduct[] = [
     name: GPU_FAN_KITS[fan.id].label,
     category: 'fan',
     model: `assets/models/fans/gpu-fan-${fan.id}.glb`,
-    priceEur: [25, 40, 60, 85, 120][index],
+    priceEur: [12, 24, 40, 65, 100][index],
     researchId: `gpu-fan-${fan.id}`,
     description: 'Kit di ricambio per le ventole della scheda video.',
     specs: [
@@ -89,7 +90,7 @@ export const SHOP_PRODUCTS: readonly ShopProduct[] = [
     name: filter.name,
     category: 'filter',
     model: `assets/models/filters/${filter.id}.glb`,
-    priceEur: [24, 48, 75][index],
+    priceEur: [12, 28, 50][index],
     researchId: filter.id,
     description: 'Pannello antipolvere per il RIG. Riduce lo sporco sulle schede.',
     specs: [
@@ -104,7 +105,7 @@ export const SHOP_PRODUCTS: readonly ShopProduct[] = [
       name: node.name,
       category: 'rig',
       model: node.model,
-      priceEur: [120, 240, 320, 360][index],
+      priceEur: [95, 210, 300, 340][index],
       researchId: node.id,
       description: node.description,
       specs: [
@@ -117,7 +118,7 @@ export const SHOP_PRODUCTS: readonly ShopProduct[] = [
     name: cooling.name,
     category: 'cooling',
     model: `assets/models/cooling/${cooling.id}.glb`,
-    priceEur: [35, 160, 290][index],
+    priceEur: [25, 110, 220][index],
     researchId: 'rig-8-frame-bracket',
     description: 'Modulo esterno per il raffreddamento del RIG.',
     specs: [

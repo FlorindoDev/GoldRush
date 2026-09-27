@@ -11,8 +11,8 @@ describe('game balance', () => {
     expect(world.startingRigCount).toBeLessThanOrEqual(rigCount);
     expect(world.startingGpuCount).toBeGreaterThan(0);
     expect(world.startingGpuCount).toBeLessThanOrEqual(world.startingRigCount * world.gpusPerRig);
-    expect(world.progressPerGpuAtFullFarm).toBeGreaterThan(0);
-    expect(world.progressPerGpuAtFullFarm).toBeLessThanOrEqual(gpuCount * 100);
+    expect(GAME_BALANCE.mining.baseProgressPerAction).toBeGreaterThan(0);
+    expect(GAME_BALANCE.mining.baseProgressPerAction).toBeLessThanOrEqual(gpuCount * 100);
     expect(gpu.idle.frequencyGhz).toBeLessThanOrEqual(gpu.mining.frequencyGhz);
     expect(gpu.mining.frequencyGhz).toBeLessThanOrEqual(gpu.limits.frequencyGhz);
     expect(gpu.limits.minFrequencyGhz).toBeGreaterThan(0);

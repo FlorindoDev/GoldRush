@@ -92,12 +92,28 @@ export function gpuMiningPowerWatts(
   rigSetup: RigSetup = GAMEPLAY_RIG_SETUP,
   temperatureCelsius = gpu.temperatureCelsius,
 ): number {
-  const { mining } = GPU_MODELS_BY_ID[gpu.modelId].specifications;
+  const { idle, mining } = GPU_MODELS_BY_ID[gpu.modelId].specifications;
   const frequencyGhz = gpuEffectiveFrequencyGhz(gpu, temperatureCelsius);
   return (
-    mining.powerWatts * (frequencyGhz / mining.frequencyGhz) ** 2 +
+    idle.powerWatts +
+    (mining.powerWatts - idle.powerWatts) * (frequencyGhz / mining.frequencyGhz) ** 2 +
     config.fanKits[gpu.fanKit].extraPowerWatts +
     rigAuxiliaryPowerWattsPerGpu(rigSetup)
+  );
+}
+
+/** Lavoro nominale per azione a difficoltà 1; il throttling riduce la frequenza effettiva. */
+export function gpuMiningProgress(
+  gpu: GpuOperatingState,
+  temperatureCelsius = gpu.temperatureCelsius,
+): number {
+  const model = GPU_MODELS_BY_ID[gpu.modelId];
+  const frequencyRatio =
+    gpuEffectiveFrequencyGhz(gpu, temperatureCelsius) / model.specifications.mining.frequencyGhz;
+  return (
+    GAME_BALANCE.mining.baseProgressPerAction *
+    model.miningPower *
+    frequencyRatio ** GAME_BALANCE.mining.frequencyPowerExponent
   );
 }
 

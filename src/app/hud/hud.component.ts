@@ -1,9 +1,11 @@
+import { CRYPTO_CONFIG } from '../config/crypto-config';
 import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
   computed,
   inject,
+  OnDestroy,
   signal,
   viewChild,
 } from '@angular/core';
@@ -22,6 +24,7 @@ import { ConsoleComponent } from './panels/console/console.component';
 import { EditorComponent } from './panels/editor/editor.component';
 import { FileManagerComponent } from './panels/file-manager/file-manager.component';
 import { GameService } from '../game/game.service';
+import { GameSaveManager } from '../game/game-save';
 import { loadGpuHoverTooltipEnabled, persistGpuHoverTooltipEnabled } from '../game/script-storage';
 import { EXAMPLES, LANGUAGE_GUIDE_EXAMPLE } from '../language/examples';
 import { GUIDE_CODE } from '../language/guide-code';
@@ -88,8 +91,11 @@ const SHORTCUT_GROUPS = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'hoveredGpu.set(null)' },
 })
-export class HudComponent {
+export class HudComponent implements OnDestroy {
   readonly game = inject(GameService);
+  readonly gameSave = new GameSaveManager(this.game);
+  readonly saveMessage = signal('');
+  readonly confirmingSaveReset = signal(false);
   readonly editorWindows = signal<readonly EditorWindow[]>([
     { id: 'editor', fileIds: [this.game.activeFileId()], activeFileId: this.game.activeFileId() },
   ]);
@@ -114,6 +120,7 @@ export class HudComponent {
     return this.hoveredGpu();
   });
   readonly balance = GAME_BALANCE;
+  readonly cryptoConfig = CRYPTO_CONFIG;
   readonly plotCapacity = PLOT_COUNT;
   readonly rigCapacity = RIG_COUNT;
   readonly gpuCapacity = GPU_COUNT;
@@ -139,6 +146,10 @@ export class HudComponent {
 
   constructor() {
     this.game.start();
+  }
+
+  ngOnDestroy(): void {
+    this.gameSave.destroy();
   }
 
   openFile(id: string): void {
@@ -416,11 +427,80 @@ export class HudComponent {
   }
 
   openSettings(): void {
+    this.confirmingSaveReset.set(false);
     this.settings().nativeElement.showModal();
   }
 
   closeSettings(): void {
     this.settings().nativeElement.close();
+  }
+
+  cancelSaveReset(): void {
+    this.confirmingSaveReset.set(false);
+  }
+
+  requestSaveReset(): void {
+    this.saveMessage.set('');
+    this.confirmingSaveReset.set(true);
+  }
+
+  resetSave(): void {
+    if (!this.confirmingSaveReset()) return;
+    try {
+      const savedLocally = this.gameSave.reset();
+      this.resetEditorWindows();
+      this.saveMessage.set(
+        savedLocally
+          ? 'Salvataggi eliminati. Nuova partita avviata.'
+          : 'Nuova partita avviata, ma impossibile aggiornare tutti i salvataggi nel browser.',
+      );
+    } catch (error) {
+      this.saveMessage.set(error instanceof Error ? error.message : 'Ripristino non riuscito.');
+    } finally {
+      this.confirmingSaveReset.set(false);
+    }
+  }
+
+  downloadSave(): void {
+    try {
+      this.gameSave.download();
+      this.saveMessage.set('Salvataggio scaricato.');
+    } catch (error) {
+      this.saveMessage.set(error instanceof Error ? error.message : 'Download non riuscito.');
+    }
+  }
+
+  async importSave(event: Event): Promise<void> {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || !input.files?.[0]) return;
+    try {
+      const savedLocally = await this.gameSave.importFile(input.files[0]);
+      this.resetEditorWindows();
+      this.saveMessage.set(
+        savedLocally
+          ? 'Partita importata e salvata nel browser.'
+          : 'Partita importata. Il browser non permette il salvataggio automatico.',
+      );
+    } catch (error) {
+      this.saveMessage.set(error instanceof Error ? error.message : 'Importazione non riuscita.');
+    } finally {
+      input.value = '';
+    }
+  }
+
+  private resetEditorWindows(): void {
+    for (const editor of this.editorWindows()) {
+      if (editor.id !== 'editor') this.windowLayout.forgetEditor(editor.id);
+    }
+    this.editorWindows.set([
+      {
+        id: 'editor',
+        fileIds: [this.game.activeFileId()],
+        activeFileId: this.game.activeFileId(),
+      },
+    ]);
+    this.windowLayout.focusWindow('editor');
+    this.scene().setSelectedToolStationId(null);
   }
 
   updateLineEffects(event: Event): void {

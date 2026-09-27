@@ -55,7 +55,7 @@ describe('Mining world', () => {
     expect(world.satoshis).toBe(0);
     expect(world.blocks[0].progress).toBeCloseTo(MINE_PROGRESS_PER_GPU);
     for (let call = 1; call < MINES_PER_BLOCK; call++) {
-      world = mineGpu(world, 1);
+      world = mineGpu(world, 1, call * GAME_BALANCE.gpu.cooldownMs);
     }
     expect(world.blocks[0].progress).toBe(100);
     expect(world.satoshis).toBe(BLOCK_REWARD);

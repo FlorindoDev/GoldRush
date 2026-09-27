@@ -1,3 +1,4 @@
+import { withUnlockedGpus } from './world-fixture';
 import { describe, expect, it } from 'vitest';
 import { GameService } from '../game.service';
 import { installStockGpu, storeGpu } from '../inventory';
@@ -7,7 +8,7 @@ describe('Exact inventory slot integration', () => {
   it.each([3, 5, 0, -1, NaN, Infinity])(
     'rejects occupied, foreign or invalid slot %s without consuming stock',
     (slotId) => {
-      const world = storeGpu(storeGpu(createWorld(), 1), 2);
+      const world = storeGpu(storeGpu(withUnlockedGpus(createWorld(), 3), 1), 2);
       const before = structuredClone(world);
 
       expect(() => installStockGpu(world, 1, 1, slotId)).toThrow('slot libero');
@@ -16,7 +17,7 @@ describe('Exact inventory slot integration', () => {
   );
 
   it('preserves wear and slot identity while consuming only the selected copy', () => {
-    const stored = storeGpu(storeGpu(createWorld(), 1), 2);
+    const stored = storeGpu(storeGpu(withUnlockedGpus(createWorld(), 3), 1), 2);
     const world = {
       ...stored,
       inventory: {
@@ -48,7 +49,7 @@ describe('Exact inventory slot integration', () => {
 
   it('passes the selected slot through the service and blocks changes while running', () => {
     const game = new GameService();
-    game.world.set(storeGpu(storeGpu(createWorld(), 1), 2));
+    game.world.set(storeGpu(storeGpu(withUnlockedGpus(createWorld(), 3), 1), 2));
     const before = game.world();
     game.running.set(true);
 

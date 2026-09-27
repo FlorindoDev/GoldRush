@@ -1,3 +1,4 @@
+import { createDualGpuWorld } from './world-fixture';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GAME_BALANCE } from '../../config/game-balance';
 import { GameService } from '../game.service';
@@ -5,6 +6,7 @@ import { getGpu } from '../mining-world';
 
 function createGame(code: string) {
   const game = new GameService();
+  game.world.set(createDualGpuWorld());
   game.start();
   game.setLineEffectsEnabled(false);
   game.updateCode(code);
@@ -98,7 +100,7 @@ describe('Mining controls through MineScript', () => {
     expect(getGpu(normal.world(), 1).wearPercent).toBe(getGpu(fast.world(), 1).wearPercent);
     const before = normal.world().electricity;
     await vi.advanceTimersByTimeAsync(5000);
-    expect(normal.gpuTelemetry(1).temperatureCelsius).toBe(34);
+    expect(normal.gpuTelemetry(1).temperatureCelsius).toBe(0);
     expect(normal.world().electricity).toEqual(before);
   });
 
@@ -124,8 +126,8 @@ describe('Mining controls through MineScript', () => {
     expect(game.world().lastSettlement?.electricitySatoshis).toBe(0);
     expect(game.world().electricity.paidSatoshis).toBe(0);
     expect(game.world().electricity.pendingKwh).toBeGreaterThan(0);
-    expect(game.balance()).toBe('0.01');
-    expect(game.balanceEur()).toBe(600);
+    expect(game.balance()).toBe('0.00030000');
+    expect(game.balanceEur()).toBe(18);
     game.reset();
     expect(game.world().lastSettlement).toBeNull();
     expect(game.readElectricity().totalCostEur).toBe(0);

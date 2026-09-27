@@ -5,12 +5,15 @@ import type { CryptoId } from '../../config/crypto-config';
 import type { MiningGpu } from '../mining-world';
 import { requireArguments } from './script-api-utils';
 import { requireVector } from '../../language/collections/vector';
+import type { MiningEstimate } from '../mining-estimate';
+import { MiningEstimateScriptObject } from './mining-estimate-script-object';
 
 /** Accesso allo stato corrente: gli oggetti script non conservano snapshot della GPU. */
 export interface GpuScriptControls {
   getGpu(id: number): MiningGpu;
   getTelemetry(id: number): GpuTelemetry;
   getCryptoProgress(cryptoId: CryptoId): number;
+  estimateMining(id: number, crypto?: string, frequencyGhz?: number): MiningEstimate;
   isSelected(id: number): boolean;
   setFrequencyGhz(id: number, frequencyGhz: number): void;
   setFanSpeedPercent(id: number, fanSpeedPercent: number | null): void;
@@ -82,6 +85,32 @@ export class GpuScriptObject implements ScriptObject {
     line: number,
     _parallelGroupId?: number,
   ): Promise<Value> {
+    if (name === 'estimate') {
+      if (
+        args.length > 2 ||
+        (args.length > 0 && typeof args[0] !== 'string') ||
+        (args.length > 1 && typeof args[1] !== 'number')
+      ) {
+        throw new ScriptError(
+          'estimate accetta una sigla cripto facoltativa e una frequenza numerica facoltativa.',
+          line,
+        );
+      }
+      try {
+        return new MiningEstimateScriptObject(
+          this.controls.estimateMining(
+            this.id,
+            args[0] as string | undefined,
+            args[1] as number | undefined,
+          ),
+        );
+      } catch (error) {
+        throw new ScriptError(
+          error instanceof Error ? error.message : 'Stima non disponibile.',
+          line,
+        );
+      }
+    }
     if (Object.hasOwn(TELEMETRY_METHODS, name)) {
       requireArguments(name, args, 0, line);
       return this.controls.getTelemetry(this.id)[TELEMETRY_METHODS[name]];

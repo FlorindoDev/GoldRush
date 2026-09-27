@@ -4,7 +4,7 @@ const HIGHLIGHT_PATTERNS = [
   /\/\/[^\n]*/,
   /\/\*/,
   /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/,
-  /\b(?:parallel|repeat|for|while|if|else|let|def|return|import|true|false)\b/,
+  /\b(?:parallel|repeat|for|while|if|else|let|def|return|import|from|true|false)\b/,
   /\.[a-zA-Z_][a-zA-Z_0-9]*(?=\s*\()/,
   /\b[a-zA-Z_][a-zA-Z_0-9]*(?=\s*\()/,
   /\.[a-zA-Z_][a-zA-Z_0-9]*/,
@@ -157,7 +157,7 @@ function getTokenClass(token: string, followsCall: boolean): string {
   if (token.startsWith('.')) {
     return followsCall ? 'token-function' : 'token-member';
   }
-  if (/^(parallel|repeat|for|while|if|else|let|def|return|import|true|false)$/.test(token)) {
+  if (/^(parallel|repeat|for|while|if|else|let|def|return|import|from|true|false)$/.test(token)) {
     return 'token-keyword';
   }
   if (followsCall) {

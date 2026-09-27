@@ -40,7 +40,7 @@ export type Statement =
   | { kind: 'assign'; name: string; value: Expression; declare: boolean; line: number }
   | { kind: 'def'; name: string; parameters: string[]; body: Statement[]; line: number }
   | { kind: 'return'; value: Expression | null; line: number }
-  | { kind: 'import'; fileName: string; line: number }
+  | { kind: 'import'; fileName: string; names: string[] | null; line: number }
   | { kind: 'repeat'; count: Expression; body: Statement[]; line: number }
   | { kind: 'parallel'; body: Statement[]; line: number }
   | { kind: 'while'; condition: Expression; body: Statement[]; line: number }

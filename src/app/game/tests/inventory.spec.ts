@@ -1,3 +1,4 @@
+import { withUnlockedGpus } from './world-fixture';
 import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { SHOP_PRODUCTS, SHOP_PRODUCTS_BY_ID } from '../../config/shop-config';
@@ -43,7 +44,7 @@ describe('Shop e magazzino', () => {
       { productId: 'fan-airflow-120', quantity: 3 },
       { productId: 'rig-gameplay', quantity: 1 },
     ]);
-    expect(after.cashEur).toBe(696);
+    expect(after.cashEur).toBe(791);
     expect(after.inventory.items).toHaveLength(6);
     expect(new Set(after.inventory.items.map((item) => item.id)).size).toBe(6);
     expect(after.plots).toBe(before.plots);
@@ -76,11 +77,11 @@ describe('Shop e magazzino', () => {
     expect(before.inventory.items).toEqual([]);
   });
   it('accepts an exact balance and converts only the required crypto', () => {
-    expect(buy({ ...funded(), cashEur: 65 }).cashEur).toBe(0);
+    expect(buy({ ...funded(), cashEur: 45 }).cashEur).toBe(0);
     const world = buy({ ...createWorld(), cashEur: 10, holdings: { bitcoin: 1 } });
     expect(world.cashEur).toBe(0);
     const price = CRYPTO_CONFIG.find((coin) => coin.id === 'bitcoin')!.priceEur;
-    expect(world.holdings.bitcoin).toBeCloseTo(1 - 55 / price);
+    expect(world.holdings.bitcoin).toBeCloseTo(1 - 35 / price);
   });
   it('keeps damaged GPU identity and wear when stored, and sells a broken card once', () => {
     const initial = createWorld();
@@ -115,12 +116,12 @@ describe('Shop e magazzino', () => {
     expect(() => installStockGpu(stored, 1, 1)).toThrow('funzionante');
     const sale = sellStockItem(stored, 1);
     expect(sale.cashEur).toBe(resaleValue(stored.inventory.items[0]));
-    expect(sale.cashEur).toBe(6.5);
+    expect(sale.cashEur).toBe(4.5);
     expect(sale.inventory.items).toHaveLength(0);
     expect(() => sellStockItem(sale, 1)).toThrow('non più presente');
   });
   it('mounts into an empty unlocked slot, consumes stock and preserves the slot assignment', () => {
-    const purchased = buy(funded());
+    const purchased = buy(withUnlockedGpus(funded(), 4));
     expect(() => installStockGpu(purchased, 1, 1)).toThrow('slot libero');
     const stored = storeGpu(purchased, 1);
     const after = installStockGpu(stored, 1, 1);
@@ -131,7 +132,7 @@ describe('Shop e magazzino', () => {
     expect(() => installStockGpu(stored, 1, 36)).toThrow('slot libero');
   });
   it('mounts stock into the requested empty GPU slot instead of the first free slot', () => {
-    const stored = storeGpu(storeGpu(createWorld(), 1), 2);
+    const stored = storeGpu(storeGpu(withUnlockedGpus(createWorld(), 2), 1), 2);
     const mounted = installStockGpu(stored, 1, 1, 2);
 
     expect(getGpu(mounted, 1).unlocked).toBe(false);

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GAME_BALANCE } from '../../config/game-balance';
+import { GUIDE_CODE } from '../guide-code';
 import { delay, execute, ScriptHost } from '../interpreter';
 import { parse } from '../parser';
 
@@ -43,6 +44,76 @@ describe('MineScript', () => {
     const f = fixture();
     await f.run('def doppio(numero) { return numero * 2; } print(doppio(3));');
     expect(f.output).toEqual(['6']);
+  });
+
+  it('imports and runs every function from the guide example', async () => {
+    const f = fixture();
+    f.host.entryFileName = 'main.mine';
+    f.host.modules = { 'utilita.mine': GUIDE_CODE.fileLibrary };
+
+    await f.run(GUIDE_CODE.fileImport);
+    expect(f.output).toEqual(['6', '9']);
+
+    f.output.length = 0;
+    await f.run(GUIDE_CODE.fileImportSelected);
+    expect(f.output).toEqual(['6']);
+
+    f.output.length = 0;
+    await f.run('import { doppio, triplo } from "utilita.mine"; print(triplo(doppio(2)));');
+    expect(f.output).toEqual(['12']);
+
+    f.output.length = 0;
+    await f.run('import "utilita.mine"; print(triplo(4));');
+    expect(f.output).toEqual(['12']);
+  });
+
+  it('imports selected functions without exposing their private helpers', async () => {
+    const f = fixture();
+    f.host.modules = {
+      'utilita.mine': 'def doppio(n) { return aiuto(n) * 2; } def aiuto(n) { return n + 1; }',
+    };
+
+    await f.run('import { doppio } from "utilita.mine"; print(doppio(3));');
+    expect(f.output).toEqual(['8']);
+    await expect(f.run('import { doppio } from "utilita.mine"; print(aiuto(3));')).rejects.toThrow(
+      'funzione "aiuto" sconosciuta.',
+    );
+    await expect(f.run('import { mancante } from "utilita.mine";')).rejects.toThrow(
+      'funzione "mancante" non trovata',
+    );
+  });
+
+  it('supports imports through another library without starting its code', async () => {
+    const f = fixture();
+    f.host.modules = {
+      'base.mine': 'def base(n) { return n + 1; }',
+      'utilita.mine': 'import { base } from "base.mine"; def doppio(n) { return base(n) * 2; }',
+    };
+
+    await f.run('import { doppio } from "utilita.mine"; print(doppio(3));');
+    expect(f.output).toEqual(['8']);
+    await expect(f.run('import { doppio } from "utilita.mine"; print(base(3));')).rejects.toThrow(
+      'funzione "base" sconosciuta.',
+    );
+  });
+
+  it('rejects invalid imports before running the main file', async () => {
+    const f = fixture();
+    f.host.entryFileName = 'main.mine';
+    f.host.modules = {
+      'side.mine': 'print("unexpected"); def utile() { return 1; }',
+      'cycle.mine': 'import "main.mine";',
+    };
+
+    for (const source of [
+      'print("early"); import "missing.mine";',
+      'print("early"); import "side.mine";',
+      'print("early"); import "cycle.mine";',
+      'print("early"); import "toString";',
+    ]) {
+      await expect(f.run(source)).rejects.toThrow();
+      expect(f.output).toEqual([]);
+    }
   });
 
   it('uses the live progress in while and supports if/else', async () => {

@@ -2,6 +2,7 @@ import { GAME_BALANCE } from '../config/game-balance';
 import type { Inventory } from './inventory';
 import {
   CRYPTO_CONFIG,
+  STARTING_CRYPTO_ID,
   cryptoValueEur,
   requireCrypto,
   type CryptoId,
@@ -16,7 +17,7 @@ import {
   applyGpuWork,
   clearGpuStop,
   createGpuOperatingState,
-  gpuEffectiveFrequencyGhz,
+  gpuMiningProgress,
   gpuIdlePowerWatts,
   gpuMiningPowerWatts,
   gpuTemperature,
@@ -70,6 +71,7 @@ export interface MiningPlot {
 
 export interface MiningWorld {
   readonly inventory: Inventory;
+  /** Alias della catena iniziale per HUD e script senza argomento. */
   readonly blocks: readonly MiningBlock[];
   readonly cryptoChains: Readonly<Record<CryptoId, CryptoChain>>;
   readonly plots: readonly MiningPlot[];
@@ -91,17 +93,20 @@ export const RIG_COUNT = PLOT_COUNT * RIGS_PER_PLOT;
 export const GPU_COUNT = RIG_COUNT * GPUS_PER_RIG;
 export const STARTING_RIG_COUNT = GAME_BALANCE.world.startingRigCount;
 export const STARTING_GPU_COUNT = GAME_BALANCE.world.startingGpuCount;
-export const MINE_PROGRESS_PER_GPU = GAME_BALANCE.world.progressPerGpuAtFullFarm / GPU_COUNT;
+export const MINE_PROGRESS_PER_GPU = GAME_BALANCE.mining.baseProgressPerAction;
 const BITCOIN = CRYPTO_CONFIG.find((crypto) => crypto.id === 'bitcoin')!;
-export const BLOCK_REWARD = cryptoRewardSatoshis('bitcoin');
+export const BLOCK_REWARD = cryptoRewardSatoshis(STARTING_CRYPTO_ID);
 
 export function getBlockDifficulty(
   blocksAlreadyMined: number,
-  cryptoId: CryptoId = 'bitcoin',
+  cryptoId: CryptoId = STARTING_CRYPTO_ID,
 ): number {
   const { startingMultiplier, increasePerMinedBlock, maxMultiplier } =
-    GAME_BALANCE.world.cryptoBlockDifficulty[cryptoId];
-  return Math.min(startingMultiplier + blocksAlreadyMined * increasePerMinedBlock, maxMultiplier);
+    requireCrypto(cryptoId).difficulty;
+  return Math.min(
+    startingMultiplier + Math.max(0, blocksAlreadyMined) * increasePerMinedBlock,
+    maxMultiplier,
+  );
 }
 
 export function cryptoRewardSatoshis(cryptoId: CryptoId): number {
@@ -115,7 +120,7 @@ export function cryptoRewardSatoshis(cryptoId: CryptoId): number {
 function getCryptoChain(world: MiningWorld, cryptoId: CryptoId): CryptoChain {
   const chain = world.cryptoChains[cryptoId];
   if (
-    cryptoId === 'bitcoin' &&
+    cryptoId === STARTING_CRYPTO_ID &&
     (world.blocks !== chain.blocks || world.selectedId !== chain.selectedId)
   ) {
     return {
@@ -146,23 +151,23 @@ export function isCryptoBlockSettled(
 
 function withCryptoChain(world: MiningWorld, cryptoId: CryptoId, chain: CryptoChain): MiningWorld {
   const cryptoChains = { ...world.cryptoChains, [cryptoId]: chain };
-  return cryptoId === 'bitcoin'
+  return cryptoId === STARTING_CRYPTO_ID
     ? { ...world, cryptoChains, blocks: chain.blocks, selectedId: chain.selectedId }
     : { ...world, cryptoChains };
 }
 
 export function createWorld(): MiningWorld {
-  const bitcoinBlocks = [{ id: 1, progress: 0 }];
+  const startingBlocks = [{ id: 1, progress: 0 }];
   const cryptoChains = Object.fromEntries(
     CRYPTO_CONFIG.map((crypto) => [
       crypto.id,
-      crypto.id === 'bitcoin'
-        ? { blocks: bitcoinBlocks, selectedId: 1, settledBlockIds: [] }
+      crypto.id === STARTING_CRYPTO_ID
+        ? { blocks: startingBlocks, selectedId: 1, settledBlockIds: [] }
         : { blocks: [{ id: 1, progress: 0 }], selectedId: 1, settledBlockIds: [] },
     ]),
   ) as unknown as Record<CryptoId, CryptoChain>;
   return {
-    blocks: bitcoinBlocks,
+    blocks: startingBlocks,
     cryptoChains,
     plots: createPlots(),
     selectedId: 1,
@@ -184,7 +189,7 @@ export function createPlots(): MiningPlot[] {
       const rigId = plotIndex * RIGS_PER_PLOT + rigIndex + 1;
       const gpus = Array.from({ length: GPUS_PER_RIG }, (_, gpuIndex) => ({
         ...createGpuOperatingState(),
-        cryptoId: 'bitcoin' as const,
+        cryptoId: STARTING_CRYPTO_ID,
         id: (rigId - 1) * GPUS_PER_RIG + gpuIndex + 1,
         rigId,
         plotId,
@@ -213,12 +218,7 @@ export function mineGpu(
 ): MiningWorld {
   const gpu = requireOperationalGpu(world, gpuId);
   const rigSetup = getRig(world, gpu.rigId).setup;
-  const frequencyGhz = gpuEffectiveFrequencyGhz(gpu, gpuTemperature(gpu, startedAt, rigSetup));
-  const frequencyMultiplier =
-    (frequencyGhz / GAME_BALANCE.gpu.mining.frequencyGhz) **
-    GAME_BALANCE.mining.frequencyPowerExponent;
-  const miningPower =
-    MINE_PROGRESS_PER_GPU * GAME_BALANCE.mining.basePowerPerGpu * frequencyMultiplier;
+  const miningPower = gpuMiningProgress(gpu, gpuTemperature(gpu, startedAt, rigSetup));
   const chain = getCryptoChain(world, gpu.cryptoId);
   const block = chain.blocks.find((item) => item.id === chain.selectedId)!;
   if (block.progress >= 100 && activeGpuIds.length < 2) {
@@ -228,9 +228,9 @@ export function mineGpu(
   if (!isGpuOperational(getGpu(worked, gpuId))) {
     return worked;
   }
-  const blocksAlreadyMined = chain.blocks.filter((item) => item.progress === 100).length;
-  const difficulty = getBlockDifficulty(blocksAlreadyMined, gpu.cryptoId);
-  const progress = Math.min(100, block.progress + miningPower / difficulty);
+  const difficulty = getBlockDifficulty(block.id - 1, gpu.cryptoId);
+  const accumulatedProgress = block.progress + miningPower / difficulty;
+  const progress = accumulatedProgress >= 100 - 1e-9 ? 100 : accumulatedProgress;
   const result = withCryptoChain(worked, gpu.cryptoId, {
     ...chain,
     blocks: chain.blocks.map((item) => (item.id === block.id ? { ...item, progress } : item)),
@@ -240,9 +240,9 @@ export function mineGpu(
     : result;
 }
 
-/** CompatibilitÃ  con le chiamate storiche che liquidano Bitcoin. */
+/** Liquida la catena iniziale. */
 export function settleCompletedBlock(world: MiningWorld): MiningWorld {
-  return settleCompletedCryptoBlock(world, 'bitcoin');
+  return settleCompletedCryptoBlock(world, STARTING_CRYPTO_ID);
 }
 
 /** Liquida un blocco esclusivamente sulla catena della relativa cripto. */
@@ -365,6 +365,9 @@ export function assignGpusCrypto(
     if (!isGpuUnlocked(world, id)) {
       throw new Error(`GPU ${id} bloccata o inesistente.`);
     }
+  }
+  if (crypto.research.costEur > 0 && !world.unlockedResearchIds.includes(crypto.id)) {
+    throw new Error('Sblocca la criptovaluta nell’albero della ricerca.');
   }
   const ids = new Set(gpuIds);
   return {
@@ -650,10 +653,11 @@ export function expandWorld(world: MiningWorld): MiningWorld {
     const currentBlock = chain.blocks.find((block) => block.id === chain.selectedId)!;
     if (currentBlock.progress === 100) {
       const id = chain.blocks.length + 1;
+      expanded = settleCompletedCryptoBlock(expanded, crypto.id);
       expanded = withCryptoChain(expanded, crypto.id, {
         blocks: [...chain.blocks, { id, progress: 0 }],
         selectedId: id,
-        settledBlockIds: chain.settledBlockIds,
+        settledBlockIds: getCryptoChain(expanded, crypto.id).settledBlockIds,
       });
     }
   }
