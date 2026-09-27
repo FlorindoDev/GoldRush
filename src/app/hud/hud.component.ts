@@ -183,28 +183,6 @@ export class HudComponent implements OnDestroy {
     }
   }
 
-  finishEditorPointer(event: PointerEvent, sourceWindowId: string): void {
-    const drag = this.windowLayout.stopWindowInteraction(event);
-    if (!drag?.moved || drag.name !== sourceWindowId) return;
-    const sourceElement = event.currentTarget as HTMLElement;
-    const candidates = Array.from(
-      sourceElement.parentElement?.querySelectorAll<HTMLElement>('.editor-window') ?? [],
-    ).reverse();
-    const target = candidates.find((element) => {
-      if (element.hidden || element.dataset['editorWindowId'] === sourceWindowId) return false;
-      const bounds = element.getBoundingClientRect();
-      return (
-        event.clientX >= bounds.left &&
-        event.clientX <= bounds.right &&
-        event.clientY >= bounds.top &&
-        event.clientY <= bounds.bottom
-      );
-    });
-    if (target?.dataset['editorWindowId']) {
-      this.mergeEditors(sourceWindowId, target.dataset['editorWindowId']);
-    }
-  }
-
   selectEditorTab(windowId: string, fileId: string): void {
     this.editorWindows.update((windows) =>
       windows.map((entry) =>
@@ -395,28 +373,6 @@ export class HudComponent implements OnDestroy {
     }
     this.windowLayout.focusWindow(targetWindowId);
     if (!this.game.running()) this.game.selectFile(dragged.fileId);
-  }
-
-  private mergeEditors(sourceWindowId: string, targetWindowId: string): void {
-    const source = this.editorWindows().find((entry) => entry.id === sourceWindowId);
-    const target = this.editorWindows().find((entry) => entry.id === targetWindowId);
-    if (!source || !target || source === target) return;
-    this.editorWindows.set(
-      this.editorWindows()
-        .filter((entry) => entry.id !== sourceWindowId)
-        .map((entry) =>
-          entry.id === targetWindowId
-            ? {
-                ...entry,
-                fileIds: [...new Set([...entry.fileIds, ...source.fileIds])],
-                activeFileId: source.activeFileId,
-              }
-            : entry,
-        ),
-    );
-    this.forgetEditorWindow(sourceWindowId);
-    this.windowLayout.focusWindow(targetWindowId);
-    if (!this.game.running()) this.game.selectFile(source.activeFileId);
   }
 
   private forgetEditorWindow(id: string): void {

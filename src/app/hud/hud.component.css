@@ -40,6 +40,9 @@ app-scene.world-scene {
 .status-panels:has(.wallet-toggle[aria-expanded='true']) {
   z-index: 40;
 }
+.status-panels:has(.gpu-panel[open]) {
+  z-index: 40;
+}
 .status-panels > app-wallet {
   grid-column: 3;
   grid-row: 1;
@@ -954,7 +957,7 @@ dialog h3 {
 
 .game-shell app-rig-workbench.dual-bench {
   right: 24px;
-  width: min(420px, calc(50vw - 36px));
+  width: min(450px, calc(50vw - 36px));
 }
 
 @media (max-width: 1200px) {
@@ -969,6 +972,6 @@ dialog h3 {
     top: calc(50dvh + 12px);
     right: 24px;
     bottom: 24px;
-    width: min(420px, calc(100vw - 48px));
+    width: min(450px, calc(100vw - 48px));
   }
 }

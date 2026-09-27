@@ -47,7 +47,7 @@ describe('Multi-crypto wallet', () => {
     expect(settleCompletedCryptoBlock(mined, crypto.id)).toBe(mined);
   });
 
-  it('pays parallel chains independently, retains holdings and charges cash for electricity', () => {
+  it('pays parallel chains independently and deducts electricity from crypto holdings', () => {
     let world = assignGpusCrypto(
       {
         ...withUnlockedGpus(createWorld(), 2),
@@ -66,11 +66,11 @@ describe('Multi-crypto wallet', () => {
       CRYPTO_CONFIG.find((coin) => coin.id === 'litecoin')!.coinsPerBlock,
     );
     const billed = billElectricityForDay(world, 1);
-    expect(billed.holdings).toEqual(world.holdings);
-    expect(billed.cashEur).toBeLessThan(0);
+    expect(billed.cashEur).toBe(0);
+    expect(cryptoValueEur(billed.holdings)).toBeLessThan(cryptoValueEur(world.holdings));
     expect(billElectricityForDay(billed, 1)).toBe(billed);
     const next = expandWorld(billed);
-    expect(next.holdings).toEqual(world.holdings);
+    expect(next.holdings).toEqual(billed.holdings);
     expect(getGpu(next, 2).cryptoId).toBe('litecoin');
   });
 

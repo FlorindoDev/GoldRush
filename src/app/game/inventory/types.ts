@@ -20,6 +20,7 @@ export interface StockItem {
   readonly productId: string;
   readonly gpu?: GpuOperatingState;
   readonly rig?: StockRig;
+  readonly used?: boolean;
 }
 
 export interface Inventory {

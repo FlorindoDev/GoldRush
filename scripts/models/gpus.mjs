@@ -83,6 +83,7 @@ function addVariantDetails(root, spec) {
       );
       const port = cylinder(root, 0.085, 0.12, m.steel, [-1.42, 0.85, z]);
       port.rotation.z = Math.PI / 2;
+      root.add(group(z < 0 ? 'coolant-in' : 'coolant-out', [-1.48, 0.85, z]));
     }
   }
   if (spec.style === 'low-profile') {

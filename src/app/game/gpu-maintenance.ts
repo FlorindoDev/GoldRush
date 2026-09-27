@@ -34,7 +34,7 @@ export function maintainGpu(
     case 'clean':
       return { ...gpu, dustPercent: 0 };
     case 'thermal':
-      if (thermalServiceHoursRemaining(gpu) > 0) {
+      if (gpu.wearPercent < 100 && thermalServiceHoursRemaining(gpu) > 0) {
         throw new Error(
           'Pasta e pad ancora recenti. Usa di nuovo questa GPU prima di sostituirli.',
         );
@@ -42,7 +42,13 @@ export function maintainGpu(
       if (gpu.wearPercent <= 0) {
         throw new Error('Nessuna usura da rimuovere.');
       }
-      return { ...gpu, wearPercent: 0, hoursSinceThermalService: 0 };
+      return {
+        ...gpu,
+        wearPercent:
+          gpu.wearPercent * (1 - config.thermalServiceWearReductionPercent / 100),
+        hoursSinceThermalService: 0,
+        ...(gpu.stopReason === 'Usura al 100%' ? { stopped: false, stopReason: '' } : {}),
+      };
     case 'fan':
       if (!Object.hasOwn(GAME_BALANCE.gpu.fanKits, action.kit)) {
         throw new Error('Kit ventole inesistente.');

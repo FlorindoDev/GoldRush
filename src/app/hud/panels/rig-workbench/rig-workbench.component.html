@@ -59,6 +59,10 @@
             ></meter>
           </div>
         </dl>
+        <p class="fan-cooling-note">
+          Ventole frontali: fino a −{{ current.fanCoolingCelsius.toFixed(2) }} °C per GPU
+          installata con codice attivo. Effetto graduale; GPU sul banco esclusa.
+        </p>
 
         <div
           class="interventions"
@@ -229,7 +233,11 @@
             }
             @case ('cooling') {
               <h3>Dissipazione esterna</h3>
-              <p>Moduli aggiuntivi per ridurre temperatura e aumentare flusso.</p>
+              <p>
+                Moduli aggiuntivi per ridurre temperatura e aumentare flusso. GPU Hydro richiede
+                Hydro Tower: senza pompa raggiunge subito temperature critiche e si arresta dopo
+                pochi secondi di mining. Con Hydro Tower, i tubi si collegano automaticamente.
+              </p>
               <div
                 class="component-options"
                 role="group"
@@ -275,8 +283,8 @@
               </div>
             }
           }
-          @if (game.running()) {
-            <p class="locked-note">Ferma il programma per modificare il RIG.</p>
+          @if (rigMining()) {
+            <p class="locked-note">Attendi che le GPU di questo RIG terminino il mining.</p>
           }
         </section>
         <p

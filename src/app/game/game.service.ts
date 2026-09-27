@@ -170,6 +170,15 @@ export class GameService {
   );
   readonly isResearchUnlocked = (id: string) => isResearchUnlocked(this.world(), id);
 
+  isGpuMining(gpuId: number): boolean {
+    return this.activeGpuIds().includes(gpuId);
+  }
+
+  isRigMining(rigId: number): boolean {
+    if (!isRigUnlocked(this.world(), rigId)) return false;
+    return getRig(this.world(), rigId).gpus.some((gpu) => gpu.unlocked && this.isGpuMining(gpu.id));
+  }
+
   unlockResearch(id: string): void {
     this.world.update((world) => unlockResearch(world, id));
   }
@@ -675,7 +684,7 @@ export class GameService {
   }
 
   inspectGpu(id: number): void {
-    if (!this.running() && isGpuUnlocked(this.world(), id)) {
+    if (!this.isGpuMining(id) && isGpuUnlocked(this.world(), id)) {
       if (this.inspectedGpuId() !== id) {
         this.returnInspectedGpuToRig();
         this.world.update((world) => setGpuWorkbenchState(world, id, true));
@@ -686,7 +695,7 @@ export class GameService {
   }
 
   inspectRig(id: number): void {
-    if (this.running() || !isRigUnlocked(this.world(), id)) {
+    if (this.isRigMining(id) || !isRigUnlocked(this.world(), id)) {
       return;
     }
     this.viewedRigId.set(id);
@@ -697,8 +706,8 @@ export class GameService {
 
   configureInspectedRig(update: Partial<RigSetup>): void {
     const rigId = this.inspectedRigId();
-    if (rigId === null || this.running()) {
-      throw new Error('Ferma il programma e seleziona un RIG sul banco.');
+    if (rigId === null || this.isRigMining(rigId)) {
+      throw new Error('Attendi che le GPU di questo RIG terminino mine().');
     }
     if (update.fanId && !this.isResearchUnlocked(update.fanId)) {
       throw new Error('Sblocca la ventola nell’albero della ricerca.');
@@ -737,8 +746,11 @@ export class GameService {
 
   private requireWorkbenchGpu(): number {
     const id = this.inspectedGpuId();
-    if (id === null || this.running()) {
-      throw new Error('Ferma il programma e porta una GPU sul banco.');
+    if (id === null) {
+      throw new Error('Porta una GPU sul banco.');
+    }
+    if (this.isGpuMining(id)) {
+      throw new Error('Attendi che questa GPU termini mine() prima di intervenire.');
     }
     return id;
   }
@@ -1033,14 +1045,31 @@ export class GameService {
     const now = Date.now();
     const world = this.world();
     const gpu = getGpu(world, gpuId);
-    const rigSetup = getRig(world, gpu.rigId).setup;
+    const rig = getRig(world, gpu.rigId);
+    const rigSetup = rig.setup;
     const action = this.miningActions().find((item) => item.gpuId === gpuId);
     if (!action) {
-      return getGpuTelemetry(0, gpu, now, this.running(), this.rigPoweredDownAt, rigSetup);
+      return getGpuTelemetry(
+        0,
+        gpu,
+        now,
+        this.running(),
+        this.rigPoweredDownAt,
+        rigSetup,
+        rig.gpus.length,
+      );
     }
     const fraction = Math.min(1, Math.max(0, (now - action.startedAt) / action.durationMs));
     const projected = applyGpuWork(gpu, fraction, action.startedAt, now, rigSetup);
-    return getGpuTelemetry(1, projected, now, this.running(), this.rigPoweredDownAt, rigSetup);
+    return getGpuTelemetry(
+      1,
+      projected,
+      now,
+      this.running(),
+      this.rigPoweredDownAt,
+      rigSetup,
+      rig.gpus.length,
+    );
   }
 
   setGpuFrequencyGhz(gpuId: number, frequencyGhz: number): void {

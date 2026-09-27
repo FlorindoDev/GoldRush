@@ -15,6 +15,10 @@ export class VectorStackValue implements ScriptObject {
 
   callMethod(name: string, args: Value[], line: number): Value {
     switch (name) {
+      case 'size':
+      case 'length':
+        requireMethodArguments(name, args, 0, line);
+        return this.items.length;
       case 'push':
         requireMethodArguments(name, args, 1, line);
         if (this.items.length >= MAX_COLLECTION_SIZE) {

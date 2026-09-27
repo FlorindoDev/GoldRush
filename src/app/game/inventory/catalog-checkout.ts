@@ -1,8 +1,8 @@
 import { SHOP_MAX_QUANTITY, SHOP_PRODUCTS_BY_ID, type ShopProduct } from '../../config/shop-config';
 import type { GpuModelId } from '../../config/gpu-config';
-import { PURCHASED_RIG_SETUP } from '../../config/rig-config';
+import { purchasedRigSetup, rigSlotCount } from '../../config/rig-model-config';
 import { createGpuOperatingState } from '../gpu-operation';
-import { GPUS_PER_RIG, type MiningWorld } from '../mining-world';
+import { type MiningWorld } from '../mining-world';
 import { isResearchUnlocked } from '../research';
 import { spendEuros } from '../wallet-transactions';
 import type { CartLine, StockRig } from './types';
@@ -39,17 +39,17 @@ export function purchaseCart(world: MiningWorld, cart: readonly CartLine[]): Min
         id: nextId++,
         productId: id,
         ...(product.category === 'gpu' ? { gpu: createGpuOperatingState(id as GpuModelId) } : {}),
-        ...(product.category === 'rig' ? { rig: createEmptyStockRig() } : {}),
+        ...(product.category === 'rig' ? { rig: createEmptyStockRig(id) } : {}),
       });
     }
   }
   return { ...spendEuros(world, total), inventory: { items, nextId } };
 }
 
-function createEmptyStockRig(): StockRig {
+function createEmptyStockRig(productId: string): StockRig {
   return {
-    setup: { ...PURCHASED_RIG_SETUP },
-    gpus: Array.from({ length: GPUS_PER_RIG }, () => null),
+    setup: purchasedRigSetup(productId),
+    gpus: Array.from({ length: rigSlotCount(productId) }, () => null),
     isNew: true,
   };
 }

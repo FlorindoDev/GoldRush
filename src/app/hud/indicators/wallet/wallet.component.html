@@ -38,9 +38,6 @@
     aria-label="Le tue cripto"
   >
     @if (expanded()) {
-      <div class="cash-row">
-        <span>Saldo euro</span><strong>{{ formatEuros(game.world().cashEur) }}</strong>
-      </div>
       @for (asset of assets(); track asset.id) {
         <div class="crypto-row">
           <app-crypto-model [crypto]="asset" />
@@ -53,8 +50,15 @@
       } @empty {
         <p class="wallet-note">Nessuna cripto. Avvia il mining per riempire il portafoglio.</p>
       }
+      @if (game.world().cashEur !== 0) {
+        <div class="cash-row">
+          <span>{{ game.world().cashEur < 0 ? 'Debito non coperto' : 'Euro disponibili' }}</span
+          ><strong>{{ formatEuros(game.world().cashEur) }}</strong>
+        </div>
+      }
       <p class="wallet-note">
-        Valori ai prezzi fissi di gioco. Le bollette sono addebitate al saldo euro.
+        Valori ai prezzi fissi di gioco. Bollette e acquisti riducono prima le criptovalute; le
+        vendite distribuiscono il ricavato nel portafoglio.
       </p>
     }
   </section>

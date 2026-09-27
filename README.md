@@ -62,15 +62,23 @@ La selezione iniziale di filtro e raffreddamento influenza sia il rig caricato s
 Il doppio clic su una GPU apre il pannello officina a destra. Editor e console ricompaiono quando la scheda viene rimontata nel rig.
 
 - **Pulizia:** rimuove lo sporco, che cresce solo durante il lavoro della singola GPU. Più polvere significa riscaldamento più rapido; soglia e danni cambiano in base al profilo `dustDamage` della GPU in `gpu-config.ts` (la GPU iniziale supera la soglia al 60% e arriva a 3 volte l'usura al 100%). La velocità base di accumulo si regola in `GPU_RUNTIME_CONFIG.maintenance.dustPercentPerHour`; il filtro del rig la riduce.
-- **Pasta e pad:** azzerano l'usura. Dopo ogni intervento servono 24 ore simulate di mining sulla stessa scheda prima di ripeterlo. Le azioni interrotte contano in proporzione; attesa, banco e lavoro delle altre GPU non contano.
+- **Pasta e pad:** riducono dello 0,1% l'usura accumulata, senza azzerarla; anche una GPU al 100% conserva quasi tutta la propria usura. Dopo ogni intervento servono 24 ore simulate di mining sulla stessa scheda prima di ripeterlo. Le azioni interrotte contano in proporzione; attesa, banco e lavoro delle altre GPU non contano.
 - **Ventole:** kit originale, alta portata (+12 W, −9 °C), industriale (+24 W, −15 °C) e Server Jet (+40 W, −21 °C). La velocità manuale e il ritorno alla modalità automatica si impostano con MineScript; HUD e banco mostrano la telemetria senza comandi di velocità.
 - **Effetti 3D:** deposito di polvere, particelle durante la pulizia, scie e tinta calda sopra 78 °C, dettagli dei kit ventole. Ogni istanza ha effetti indipendenti, conserva gli interventi tornando nel rig e rispetta la preferenza di movimento ridotto.
 
 Una GPU sul banco non può minare. Mentre è sul banco, la temperatura si raffredda gradualmente fino a 0 °C; la durata si configura in `gpu.benchCoolingMs`. Dopo un arresto per calore o usura va riabilitata, una volta raffreddata o riparata. Regole condivise in `gpu.maintenance`, danni della polvere per modello in `gpu.dustDamage` e kit in `gpu.fanKits` di `game-balance.ts`. Stato della partita mantenuto in memoria, come nel resto del prototipo.
 
+Le GPU con waterblock (Hydro e Hybrid) ricevono il beneficio liquido solo con Hydro Tower nel RIG. Hybrid senza pompa mantiene il raffreddamento della ventola, ma scalda di più. GPU Hydro richiede Hydro Tower nel RIG. Senza pompa supera 82 °C alla prima azione e raggiunge il limite termico dopo circa 3 secondi di mining continuo: lo stop non assegna progresso per l'azione finale. Con Hydro Tower, i raccordi delle GPU montate sono collegati dinamicamente alla pompa, anche nell'anteprima del banco RIG.
+
 Regole pure in `game/gpu-maintenance.ts`, UI in `hud/panels/workbench`, effetti adattati ai limiti del modello in `scene/gpu-condition-effects.ts`. Geometrie e texture restano condivise; ogni GPU possiede e rilascia i propri materiali ed effetti.
 
 Riferimenti visivi: [banco di The Last of Us Part II](https://www.shacknews.com/article/118726/how-to-upgrade-weapons-ndash-the-last-of-us-part-2), [menu del banco di Dead Space](https://vulkk.com/2023/02/04/dead-space-weapons-and-rig-upgrades-and-locations-guide/), [scie di calore su Real Time VFX](https://realtimevfx.com/t/heat-distortion-effect-in-unity-hdrp-urp/16039). Interfaccia e shader realizzati nel progetto, senza importare asset dei giochi.
+
+### Varianti RIG
+
+Catalogo condiviso in `config/rig-model-config.ts`: telai da 4 e 8 slot, filtro solo, aria esterna, liquido esterno, filtro + aria e filtro + liquido. I moduli mostrati sono inclusi nel prezzo; GPU e ventole del telaio si comprano separatamente. Resta disponibile il telaio da 8 con supporto esterno vuoto. Ricerca, shop e generatori GLB leggono lo stesso catalogo.
+
+Il banco aggiorna il modello in base ai componenti montati. I modelli da 8 hanno otto slot utilizzabili anche da MineScript. I salvataggi precedenti conservano gli ID delle prime quattro GPU; quattro slot vuoti vengono aggiunti ai vecchi RIG da 8. Per contare gli slot di un RIG usa `rig.gpus.size()`.
 
 ### Organizzazione
 
@@ -131,19 +139,19 @@ while (progress() < 100) {
 - `print(valore)`: scrive in console.
 - `wait(ms)`: pausa interrompibile entro il limite configurato. La velocità 2× accelera le azioni `mine()`.
 - `repeat(n) { ... }`: intero non negativo entro il limite configurato.
-- `parallel`: lancia insieme comandi semplici su GPU diverse. `mine()` coordina già tutte le GPU sbloccate.
+- `parallel`: lancia insieme comandi semplici e chiamate a funzioni definite con `def`. `mine()` coordina già tutte le GPU sbloccate.
 - `for (let i = 0; i < 5; i++) { ... }`, `while (...) { ... }`, `if (...) { ... } else { ... }`.
-- `def nome(parametri) { ... }` definisce una funzione; `return valore;` restituisce il risultato. Puoi chiamarla con `nome(valori)`.
+- `def nome(parametri) { ... }` definisce una funzione; `return valore;` restituisce il risultato. Puoi chiamarla con `nome(valori)` e passare vettori, pile, code e oggetti della farm. Le strutture dati sono passate per riferimento.
 - `import { nome } from "utilita.mine";` importa le funzioni indicate da un altro file. `import * from "utilita.mine";` e `import "utilita.mine";` importano tutte le sue funzioni. I file importati contengono solo `def` e `import`; avvii un solo file alla volta. La guida nel gioco mostra esempi completi.
 - Variabili `let`, assegnazione, `++`, `--`, numeri, stringhe, booleani, vettori, attributi, metodi, `+ - * / %`, confronti `== != < <= > >=`, `&& || !` e parentesi.
 - Commenti `//`; punto e virgola obbligatorio per istruzioni semplici. Variabili in un unico ambito per esecuzione; vengono azzerate al run successivo. Le dichiarazioni dentro i cicli possono riassegnarle.
 
 ### Vettori e farm
 
-- `vector()` crea un vettore modificabile: `push`, `pop`, `get`, `set`, `insert`, `remove`, `contains`, `indexOf`, `concat`, `slice`, `copy`, `reverse`, `sort`, `clear`, `isEmpty`; attributi `length`, `first` e `last`. Indici da zero; capienza in `scripting.maxCollectionSize`. `sort()` accetta vettori omogenei di numeri o stringhe.
-- `stack()` crea una pila LIFO di vettori, con `push`, `pop`, `peek`, `size`, `isEmpty` e `clear`.
-- `queue()` crea una coda FIFO di vettori, con `enqueue`, `dequeue`, `peek`, `front`, `back`, `size`, `isEmpty` e `clear`.
-- `plots` è il vettore di sola lettura della farm, con capacità definite in `world`. Usa `plots[0].rig(0).gpu(0)` per accedere al primo elemento a ogni livello. Plot espone `id`, `rigs`, `rigCount`, `gpuCount` (sbloccate), `gpuCapacity`; rig espone `id`, `plotId`, `unlocked`, `gpus`, `gpuCount` (sbloccate), `gpuCapacity`.
+- `vector()` crea un vettore modificabile: `push`, `pop`, `set`, `insert`, `remove`, `contains`, `indexOf`, `concat`, `slice`, `copy`, `reverse`, `sort`, `clear`, `isEmpty`; `length` e `size` sono attributi o metodi senza argomenti, `first` e `last` sono attributi. Leggi elementi con `[indice]`; capienza in `scripting.maxCollectionSize`. `sort()` accetta vettori omogenei di numeri o stringhe.
+- `stack()` crea una pila LIFO di vettori, con `push`, `pop`, `peek`, `size`, `length`, `isEmpty` e `clear`.
+- `queue()` crea una coda FIFO di vettori, con `enqueue`, `dequeue`, `peek`, `front`, `back`, `size`, `length`, `isEmpty` e `clear`. Anche qui `size` e `length` funzionano con o senza parentesi.
+- `plots` è il vettore di sola lettura della farm, con capacità definite in `world`. `plots`, `plots[0].rigs` e `plots[0].rigs[0].gpus` espongono `size` e `length` anche come metodi, ad esempio `plots.size()` e `plots[0].rigs[0].gpus.length()`. Usa gli indici per accedere agli elementi. Plot espone `id`, `rigs`, `rigCount`, `gpuCount` (sbloccate), `gpuCapacity`; rig espone `id`, `plotId`, `unlocked`, `gpus`, `gpuCount` (sbloccate), `gpuCapacity`.
 - Tutti gli oggetti espongono `type`.
 - `null` rappresenta un contenitore vuoto quando `pop`, `peek` o `dequeue` non trova elementi. La capienza delle collezioni è configurabile.
 
@@ -201,9 +209,9 @@ print(
 
 I comandi richiedono scheda e rig sbloccati. Imposta la frequenza tra due azioni di mining, anche su una scheda ferma. La frequenza impostata resta memorizzata a riposo; `getFrequencyGhz()` restituisce quella effettiva, `getTargetFrequencyGhz()` quella richiesta. Impostare una frequenza valida non annulla uno stop esistente.
 
-Il progresso per azione cresce linearmente con `GHz / 1,8`. La potenza sotto carico e l'aumento termico di equilibrio crescono con il quadrato di quel rapporto. La temperatura si avvicina all'equilibrio con il lavoro e aumenta le ventole. A 90 °C o usura 100%, scatta uno stop automatico: l'azione che causa il guasto viene conteggiata nei consumi e nell'usura, ma non produce progresso. Dopo uno stop termico, riduci i GHz, attendi il raffreddamento e chiama `clearStop()`. Un limite di frequenza accettato non garantisce stabilità termica.
+Il progresso per azione cresce col quadrato del rapporto tra GHz impostati e frequenza nominale del modello. La potenza sotto carico e l'aumento termico di equilibrio crescono con lo stesso rapporto quadratico. La temperatura si avvicina all'equilibrio con il lavoro e aumenta le ventole. A 90 °C o usura 100%, scatta uno stop automatico: l'azione che causa il guasto viene conteggiata nei consumi e nell'usura, ma non produce progresso. Dopo uno stop termico, riduci i GHz, attendi il raffreddamento e chiama `clearStop()`. Un limite di frequenza accettato non garantisce stabilità termica.
 
-L'usura parte da zero e cresce di base di 0,005 punti percentuali per ora simulata, moltiplicati per il quadrato del rapporto di frequenza, per lo stress termico e per lo sporco oltre soglia. Non si azzera con stop, raffreddamento o nuovo script. Al 100% la GPU richiede sostituzione di pasta e pad al banco e successiva riabilitazione. `gpu.getDustPercent()` (attributo `dustPercent`) espone lo sporco da 0 a 100 per programmare gli interventi.
+L'usura parte da zero e cresce di base di 0,005 punti percentuali per ora simulata, moltiplicati per il quadrato del rapporto di frequenza, per lo stress termico e per lo sporco oltre soglia. Stop, raffreddamento e nuovi script non la azzerano. Sostituire pasta e pad riduce dello 0,1% l'usura accumulata ogni 24 ore simulate; al 100% scende solo a 99,9%, quindi la GPU continua a usurarsi nel tempo. `gpu.getDustPercent()` (attributo `dustPercent`) espone lo sporco da 0 a 100 per programmare gli interventi.
 
 ```js
 let gpu = plots[0].rig(0).gpu(0);
@@ -225,7 +233,7 @@ MineScript è sequenziale: `mine()` attende il completamento di tutte le GPU avv
 
 Il cambio iniziale è **1 BTC = 60.000 €**, statico e configurabile. Il portafoglio mostra il saldo netto a otto decimali BTC e in euro. La tariffa iniziale è **0,30 €/kWh**. Alla fine di ogni giorno di gioco, il consumo accumulato viene pagato alla tariffa corrente; solo dopo viene estratta la tariffa del giorno seguente. Consumi giornalieri maggiori selezionano intervalli di prezzo più alti. La tariffa iniziale, le soglie in kWh e gli intervalli inclusivi in €/kWh sono configurabili in `src/app/config/economy-config.ts`. Anche un giorno senza consumi usa la prima fascia. Un `mine()` completo rappresenta **un'ora simulata**, indipendentemente dalla velocità 1×/2×; un'interruzione ne conta la frazione trascorsa. Il tempo di gioco continua ad avanzare, mentre pause, attese e inattività non aggiungono consumi.
 
-Il consumo include le GPU attive e lo standby delle altre GPU sbloccate e operative. Le schede ferme non consumano. L'oggetto globale `electricity` espone questi getter senza argomenti (risultato numerico) e gli attributi equivalenti di sola lettura:
+Il consumo include le GPU attive e lo standby delle altre GPU sbloccate e operative. Le bollette riducono le cripto possedute; euro disponibili vengono distribuiti fra le cripto ai prezzi fissi. Un debito residuo resta visibile se il saldo non basta. Le schede ferme non consumano. L'oggetto globale `electricity` espone questi getter senza argomenti (risultato numerico) e gli attributi equivalenti di sola lettura:
 
 | Metodo                            | Attributo        | Unità e significato                                                   |
 | --------------------------------- | ---------------- | --------------------------------------------------------------------- |

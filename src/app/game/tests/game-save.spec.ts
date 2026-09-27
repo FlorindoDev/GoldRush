@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { STARTING_CRYPTO_ID } from '../../config/crypto-config';
+import { STARTING_CRYPTO_ID, cryptoValueEur } from '../../config/crypto-config';
 import { EXAMPLES } from '../../language/examples';
 import { purchaseCart } from '../inventory';
 import { GameService } from '../game.service';
@@ -44,8 +44,10 @@ describe('game saves', () => {
     const reloaded = new GameService();
     reloaded.start();
 
-    expect(reloaded.world().cashEur).toBe(bought.cashEur);
-    expect(reloaded.world().holdings[STARTING_CRYPTO_ID]).toBe(25);
+    expect(reloaded.world().cashEur).toBe(0);
+    expect(cryptoValueEur(reloaded.world().holdings)).toBeCloseTo(
+      bought.cashEur + cryptoValueEur(world.holdings),
+    );
     expect(reloaded.world().inventory.items).toHaveLength(1);
     expect(reloaded.world().cryptoChains[STARTING_CRYPTO_ID].blocks[0].progress).toBe(37);
     expect(reloaded.world().blocks).toBe(reloaded.world().cryptoChains[STARTING_CRYPTO_ID].blocks);
@@ -104,10 +106,11 @@ describe('game saves', () => {
       });
 
       expect(await manager.importFile(file)).toBe(true);
-      expect(game.world().cashEur).toBe(123);
-      expect(loadGameSave(storage)?.world.cashEur).toBe(123);
+      expect(game.world().cashEur).toBe(0);
+      expect(cryptoValueEur(game.world().holdings)).toBeCloseTo(123);
+      expect(loadGameSave(storage)?.world.cashEur).toBe(0);
       await expect(manager.importFile(new File(['{bad'], 'rotto.json'))).rejects.toThrow();
-      expect(game.world().cashEur).toBe(123);
+      expect(game.world().cashEur).toBe(0);
     } finally {
       manager.destroy();
     }
@@ -129,12 +132,14 @@ describe('game saves', () => {
       game.world.update((world) => ({ ...world, cashEur: 45 }));
 
       await vi.advanceTimersByTimeAsync(3_000);
-      expect(loadGameSave(storage)?.world.cashEur).toBe(45);
+      expect(loadGameSave(storage)?.world.cashEur).toBe(0);
+      expect(cryptoValueEur(loadGameSave(storage)!.world.holdings)).toBeCloseTo(45);
 
       game.world.update((world) => ({ ...world, cashEur: 90 }));
       await Promise.resolve();
       listeners.get('pagehide')?.(new Event('pagehide'));
-      expect(loadGameSave(storage)?.world.cashEur).toBe(90);
+      expect(loadGameSave(storage)?.world.cashEur).toBe(0);
+      expect(cryptoValueEur(loadGameSave(storage)!.world.holdings)).toBeCloseTo(90);
     } finally {
       manager?.destroy();
       vi.useRealTimers();
@@ -193,7 +198,8 @@ describe('game saves', () => {
       game.running.set(true);
       expect(() => manager.reset()).toThrow('Ferma il programma');
       expect(game.world().cashEur).toBe(100);
-      expect(loadGameSave(storage)?.world.cashEur).toBe(100);
+      expect(loadGameSave(storage)?.world.cashEur).toBe(0);
+      expect(cryptoValueEur(loadGameSave(storage)!.world.holdings)).toBeCloseTo(100);
     } finally {
       game.running.set(false);
       manager.destroy();

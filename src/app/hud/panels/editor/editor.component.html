@@ -76,7 +76,7 @@
             [class.active]="tab.id === fileId()"
             [attr.aria-current]="tab.id === fileId() ? 'page' : null"
             [attr.aria-label]="'Apri ' + tab.name + '. Trascina per spostare in un altro editor'"
-            [title]="tab.name + ' — trascina in un altro editor per unire le finestre'"
+            [title]="tab.name + ' — trascina in un altro editor per spostare la scheda'"
             draggable="true"
             (click)="tabSelected.emit(tab.id)"
             (dragstart)="tabDragStarted.emit({ event: $event, fileId: tab.id })"

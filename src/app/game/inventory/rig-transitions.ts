@@ -1,3 +1,4 @@
+import { rigSlotCount } from '../../config/rig-model-config';
 import { STARTING_CRYPTO_ID } from '../../config/crypto-config';
 import { GAMEPLAY_RIG_SETUP } from '../../config/rig-config';
 import { SHOP_PRODUCTS_BY_ID } from '../../config/shop-config';
@@ -6,12 +7,18 @@ import {
   configureRig,
   getRig,
   GPUS_PER_RIG,
+  gpuIdForRigSlot,
   isRigUnlocked,
   type MiningWorld,
 } from '../mining-world';
 import type { StockItem } from './types';
 
-function storedRigItem(world: MiningWorld, rigId: number, stockId: number): StockItem {
+interface StoredRigParts {
+  readonly rig: StockItem;
+  readonly components: readonly StockItem[];
+}
+
+function storedRigParts(world: MiningWorld, rigId: number, firstStockId: number): StoredRigParts {
   if (!isRigUnlocked(world, rigId)) throw new Error('RIG non disponibile.');
   const rig = getRig(world, rigId);
   if (rig.gpus.some((gpu) => gpu.unlocked && gpu.onWorkbench)) {
@@ -21,18 +28,28 @@ function storedRigItem(world: MiningWorld, rigId: number, stockId: number): Stoc
   if (SHOP_PRODUCTS_BY_ID.get(productId)?.category !== 'rig') {
     throw new Error('Modello RIG non valido.');
   }
+  const components: StockItem[] = [];
+  let nextStockId = firstStockId + 1;
+  for (const gpu of rig.gpus) {
+    if (!gpu.unlocked) continue;
+    const { id, rigId: ownerRigId, plotId, unlocked, cryptoId, ...state } = gpu;
+    components.push({ id: nextStockId++, productId: gpu.modelId, gpu: state });
+  }
+  for (let index = 0; index < rig.setup.fanCount; index++) {
+    components.push({ id: nextStockId++, productId: rig.setup.fanId, used: true });
+  }
+
   return {
-    id: stockId,
-    productId,
     rig: {
-      setup: { ...rig.setup },
-      gpus: rig.gpus.map((gpu) => {
-        if (!gpu.unlocked) return null;
-        const { id, rigId: ownerRigId, plotId, unlocked, cryptoId, ...state } = gpu;
-        return { state, cryptoId };
-      }),
-      isNew: false,
+      id: firstStockId,
+      productId,
+      rig: {
+        setup: { ...rig.setup, fanCount: 0 },
+        gpus: rig.gpus.map(() => null),
+        isNew: false,
+      },
     },
+    components,
   };
 }
 
@@ -48,12 +65,12 @@ function emptyGpuSlot(gpu: ReturnType<typeof getRig>['gpus'][number], now: numbe
 }
 
 export function storeRig(world: MiningWorld, rigId: number, now = Date.now()): MiningWorld {
-  const item = storedRigItem(world, rigId, world.inventory.nextId);
+  const { rig: item, components } = storedRigParts(world, rigId, world.inventory.nextId);
   return {
     ...world,
     inventory: {
-      nextId: world.inventory.nextId + 1,
-      items: [...world.inventory.items, item],
+      nextId: world.inventory.nextId + 1 + components.length,
+      items: [...world.inventory.items, item, ...components],
     },
     plots: world.plots.map((plot) => ({
       ...plot,
@@ -64,7 +81,7 @@ export function storeRig(world: MiningWorld, rigId: number, now = Date.now()): M
               unlocked: false,
               rigProductId: undefined,
               setup: { ...GAMEPLAY_RIG_SETUP },
-              gpus: entry.gpus.map((gpu) => emptyGpuSlot(gpu, now)),
+              gpus: entry.gpus.slice(0, GPUS_PER_RIG).map((gpu) => emptyGpuSlot(gpu, now)),
             }
           : entry,
       ),
@@ -77,7 +94,10 @@ function requireStockRig(world: MiningWorld, stockId: number): StockItem {
   if (!item || !item.rig || SHOP_PRODUCTS_BY_ID.get(item.productId)?.category !== 'rig') {
     throw new Error('Serve un RIG in magazzino.');
   }
-  if (item.rig.gpus.length !== GPUS_PER_RIG) {
+  if (
+    item.rig.gpus.length !== GPUS_PER_RIG &&
+    item.rig.gpus.length !== rigSlotCount(item.productId)
+  ) {
     throw new Error('Configurazione del RIG in magazzino non valida.');
   }
   return item;
@@ -109,7 +129,8 @@ function installRigData(
           unlocked: true,
           rigProductId: stock.productId,
           setup: { ...setup },
-          gpus: entry.gpus.map((slot, index) => {
+          gpus: Array.from({ length: rigSlotCount(stock.productId) }, (_, index) => {
+            const slot = { ...entry.gpus[0], id: gpuIdForRigSlot(rigId, index) };
             const stored = stock.rig!.gpus[index];
             if (!stored) return emptyGpuSlot(slot, now);
             return {
@@ -158,13 +179,13 @@ export function replaceRig(
   now = Date.now(),
 ): MiningWorld {
   const stock = requireStockRig(world, stockId);
-  const oldItem = storedRigItem(world, rigId, world.inventory.nextId);
+  const { rig: oldItem, components } = storedRigParts(world, rigId, world.inventory.nextId);
   const installed = installRigData(world, rigId, stock, now);
   return {
     ...installed,
     inventory: {
-      nextId: world.inventory.nextId + 1,
-      items: [...world.inventory.items.filter((item) => item.id !== stockId), oldItem],
+      nextId: world.inventory.nextId + 1 + components.length,
+      items: [...world.inventory.items.filter((item) => item.id !== stockId), oldItem, ...components],
     },
   };
 }

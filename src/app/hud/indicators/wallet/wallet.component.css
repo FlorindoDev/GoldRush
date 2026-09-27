@@ -66,7 +66,6 @@
 .wallet-assets[hidden] {
   display: none;
 }
-.cash-row,
 .crypto-row {
   display: flex;
   align-items: center;
@@ -74,9 +73,6 @@
   padding: 8px 0;
   font: 11px var(--mono);
   color: #d4dfcc;
-}
-.cash-row {
-  justify-content: space-between;
 }
 .crypto-row {
   border-top: 1px solid #34413480;
@@ -99,6 +95,18 @@
 .crypto-value {
   margin-left: auto;
   color: #c4f28e;
+}
+.cash-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid #34413480;
+  font: 10px var(--mono);
+  color: #a7b49e;
+}
+.cash-row strong {
+  color: #efb35a;
 }
 .wallet-note {
   font: 10px/1.6 var(--mono);

@@ -22,7 +22,7 @@
   @if (game.inspectedRigId() !== null) {
     <app-rig-workbench
       [class.dual-bench]="game.inspectedGpuId() !== null"
-      [style.width]="game.inspectedGpuId() !== null ? 'min(420px, calc(50vw - 36px))' : null"
+      [style.width]="game.inspectedGpuId() !== null ? 'min(450px, calc(50vw - 36px))' : null"
       (closeBench)="
         scene.setSelectedToolStationId(game.inspectedGpuId() !== null ? 'workbench' : null)
       "
@@ -86,7 +86,7 @@
       [style.zIndex]="windowLayout.activeWindow() === editorWindow.id ? 32 : 31"
       (pointerdown)="onEditorPointerDown($event, editorWindow.id, editorWindow.activeFileId)"
       (pointermove)="windowLayout.moveWindow($event)"
-      (pointerup)="finishEditorPointer($event, editorWindow.id)"
+      (pointerup)="windowLayout.stopWindowInteraction($event)"
       (pointercancel)="windowLayout.stopWindowInteraction($event)"
       (lostpointercapture)="windowLayout.stopWindowInteraction($event)"
       (dragover)="dragOverEditor($event, editorWindow.id)"
@@ -493,7 +493,10 @@
                 <dl class="guide-definition-list">
                   <div>
                     <dt><code>length</code> / <code>size</code></dt>
-                    <dd>Numero di elementi. Sono attributi, senza parentesi.</dd>
+                    <dd>
+                      Numero di elementi. Usa <code>size</code> o <code>size()</code>; vale anche
+                      per <code>length</code>.
+                    </dd>
                   </div>
                   <div>
                     <dt><code>first</code> / <code>last</code></dt>
@@ -616,7 +619,10 @@
                   </div>
                   <div>
                     <dt><code>size</code> / <code>length</code></dt>
-                    <dd>Numero di vettori presenti. Sono attributi, senza parentesi.</dd>
+                    <dd>
+                      Numero di vettori presenti. Disponibili anche come <code>size()</code> e
+                      <code>length()</code>.
+                    </dd>
                   </div>
                   <div>
                     <dt><code>isEmpty()</code> / <code>clear()</code></dt>
@@ -661,7 +667,10 @@
                   </div>
                   <div>
                     <dt><code>size</code> / <code>length</code></dt>
-                    <dd>Numero di vettori presenti. Sono attributi, senza parentesi.</dd>
+                    <dd>
+                      Numero di vettori presenti. Disponibili anche come <code>size()</code> e
+                      <code>length()</code>.
+                    </dd>
                   </div>
                   <div>
                     <dt><code>isEmpty()</code> / <code>clear()</code></dt>
@@ -760,8 +769,7 @@
           <p>
             La farm è divisa in <strong>{{ plotCapacity }} plot</strong>, cioè aree. Ogni area
             contiene <strong>{{ rigsPerPlot }} RIG</strong>, le strutture che ospitano le schede.
-            Ogni RIG ha <strong>{{ gpusPerRig }} slot GPU</strong>, per un totale di
-            {{ gpuCapacity }} posti.
+            Ogni RIG ha <strong>4 oppure 8 slot GPU</strong>, fino a {{ gpuCapacity }} posti.
           </p>
           <app-guide-code [source]="guideCode.gpuLocation" />
           <ol class="guide-steps">
@@ -775,12 +783,14 @@
             </li>
             <li>
               <code>gpus[0]</code> sceglie il primo slot di quel RIG. Indici validi: da 0 a
-              {{ gpusPerRig - 1 }}.
+              <code>gpus.size() - 1</code>.
             </li>
           </ol>
           <p>
             Gli indici partono da zero; gli identificativi <code>id</code> partono da uno. Tutti i
-            vettori usano la stessa sintassi con parentesi quadre.
+            vettori usano la stessa sintassi con parentesi quadre. Per contarli usa
+            <code>plots.size()</code>, <code>plots[0].rigs.size()</code> o
+            <code>plots[0].rigs[0].gpus.size()</code>.
           </p>
           <aside
             class="guide-callout"
@@ -806,10 +816,10 @@
           <p>
             Parti con una GPU passiva e Dogecoin (DOGE), la valuta meno redditizia. Compra altre
             schede, ricerca hardware e nuove crypto, poi adatta frequenza e raffreddamento. La
-            potenza nominale dipende dal modello: moltiplicala per il rapporto tra frequenza
-            effettiva e nominale e per {{ balance.mining.baseProgressPerAction }}%, poi dividi per
-            la difficoltà della crypto. Calore e polvere riducono la frequenza effettiva; aumentare
-            i GHz fa crescere il consumo più rapidamente del lavoro.
+            potenza nominale dipende dal modello. Il progresso per azione scala col quadrato del
+            rapporto tra frequenza effettiva e nominale, poi si divide per la difficoltà della
+            crypto. Calore e polvere riducono la frequenza effettiva; il consumo cresce col
+            quadrato dello stesso rapporto.
           </p>
           <p>
             Ogni catena aumenta la difficoltà dopo ciascun blocco, fino al proprio massimo. Cambiare
@@ -882,6 +892,13 @@
             mina; temperatura e usura crescono con il lavoro. A riposo la scheda raffredda in
             {{ balance.gpu.cooldownMs }} ms, ma l'usura resta. Non misurano l'hardware del tuo
             computer. I valori sotto descrivono il profilo base: l'overclock li modifica.
+          </p>
+          <p>
+            GPU Hydro richiede Hydro Tower nel RIG. Senza dissipazione a liquido supera
+            {{ balance.gpu.liquidWithoutPump.criticalTemperatureCelsius }} °C al primo lavoro e va
+            in protezione dopo circa 3 secondi di mining continuo. Con Hydro Tower, i tubi della
+            scheda si collegano alla pompa. Anche Hybrid richiede Hydro Tower per il beneficio
+            liquido: senza pompa resta attiva la ventola, ma la scheda scalda di più.
           </p>
           <p>
             Puoi leggere ogni dato con un metodo, che usa le parentesi, oppure con il relativo
@@ -1026,8 +1043,8 @@
                 usa tra due chiamate a <code>mine()</code>, anche su una GPU ferma.
               </p>
               <p>
-                Più GHz aumentano il progresso in proporzione e la potenza al quadrato del rapporto
-                con la frequenza base. Oltre il massimo del modello aumenta il rischio di
+                Più GHz aumentano progresso e potenza col quadrato del rapporto con la frequenza
+                base. Oltre il massimo del modello aumenta il rischio di
                 surriscaldamento. A {{ balance.gpu.limits.temperatureCelsius }} °C la GPU va in
                 stop: l'azione che causa il guasto consuma corrente e usura, senza assegnare
                 progresso.
@@ -1087,10 +1104,12 @@
               <p>
                 Numero da 0 (nuova) a 100 (esaurita), attributo <code>wearPercent</code>. Il lavoro
                 aumenta l'usura; overclock e temperature alte la accelerano. Raffreddamento, stop e
-                nuova esecuzione non la azzerano. Al 100% la scheda non può minare: portala al banco
-                con un doppio clic, sostituisci pasta e pad, poi riabilitala. Dopo ogni sostituzione
-                servono {{ balance.gpu.maintenance.thermalServiceIntervalHours }} ore simulate di
-                utilizzo della stessa GPU prima di ripetere l'intervento.
+                nuova esecuzione non la azzerano. Al 100% portala al banco e sostituisci pasta e pad:
+                l'intervento riduce l'usura accumulata dello
+                {{ balance.gpu.maintenance.thermalServiceWearReductionPercent }}%, lasciando la GPU
+                ancora usurata; se era ferma per usura, può ripartire subito. Normalmente puoi
+                ripetere l'intervento ogni {{ balance.gpu.maintenance.thermalServiceIntervalHours }}
+                ore simulate di utilizzo.
               </p>
             </article>
             <article>
@@ -1162,9 +1181,8 @@
                   Plot: <code>rigCount</code>, <code>gpuCount</code>, <code>gpuCapacity</code>
                 </dt>
                 <dd>
-                  Numero totale di RIG ({{ rigsPerPlot }}), GPU utilizzabili e slot totali ({{
-                    gpusPerPlot
-                  }}).
+                  Numero totale di RIG ({{ rigsPerPlot }}), GPU utilizzabili e slot totali dei RIG
+                  presenti.
                 </dd>
               </div>
               <div>
@@ -1184,7 +1202,7 @@
               </div>
               <div>
                 <dt>RIG: <code>gpuCount</code>, <code>gpuCapacity</code></dt>
-                <dd>Numero di GPU utilizzabili e slot totali ({{ gpusPerRig }}).</dd>
+                <dd>Numero di GPU utilizzabili e slot totali (4 oppure 8, secondo il modello).</dd>
               </div>
             </dl>
           </details>
@@ -1209,7 +1227,8 @@
           <p class="dialog-intro">
             Controlla la potenza della farm. Il consumo si accumula durante il mining e la bolletta
             viene addebitata ogni 24 ore di gioco. Il portafoglio mostra il totale in euro: cliccalo
-            per vedere saldo euro, quantità e valore di ogni cripto posseduta.
+            per vedere quantità e valore in euro di ogni cripto posseduta. Gli acquisti usano prima
+            le cripto e ne riducono la quantità mostrata.
           </p>
           <nav
             class="guide-toc"
@@ -1409,8 +1428,9 @@
           </h3>
           <p>
             Al 100% il gioco accredita il premio del blocco una sola volta. Ogni 24 ore di gioco
-            addebita la corrente accumulata al saldo euro, senza vendere le cripto possedute. Il
-            portafoglio mostra i movimenti; la console riporta la bolletta e poi la nuova tariffa.
+            addebita la corrente accumulata alle cripto possedute. Euro disponibili vengono
+            distribuiti fra le cripto ai prezzi fissi; euro insufficienti lasciano debito visibile.
+            La console riporta la bolletta e poi la nuova tariffa.
           </p>
           <p>
             Fermare il codice o lasciare un blocco incompleto conserva la bolletta. In caso di
@@ -1530,16 +1550,20 @@
                 Definisci una funzione con <code>def nome(parametri) &lbrace; ... &rbrace;</code> e
                 richiamala con <code>nome(valori)</code>. I parametri sono locali alla chiamata;
                 <code>return</code> restituisce un valore. Senza <code>return</code> il risultato è
-                <code>null</code>. Scrivi <code>def</code> al livello principale del file.
+                <code>null</code>. Puoi passare anche vettori, pile, code e oggetti della farm: la
+                funzione riceve lo stesso oggetto. Scrivi <code>def</code> al livello principale del
+                file.
               </p>
               <p><strong>Esempio in un file: stampa 6.</strong></p>
               <app-guide-code [source]="guideCode.functionDefinition" />
+              <p><strong>Esempio con vettore: stampa 1 e 8.</strong></p>
+              <app-guide-code [source]="guideCode.collectionParameters" />
               <p>
                 Il pulsante <code>&lt;/&gt;</code> in alto a destra gestisce i file. Il
                 <code>+</code> aggiunge una scheda all'editor. Trascina la scheda su un altro editor
-                per spostarla, oppure fuori dagli editor per aprire una finestra. Trascina l'intera
-                finestra su un altro editor per unirne tutte le schede. La X della scheda la chiude
-                senza eliminare il file. Puoi avviare un solo file alla volta. Scrivi gli import al
+                per spostarla, oppure fuori dagli editor per aprire una finestra. Spostare o
+                sovrapporre finestre non unisce le schede. La X della scheda la chiude senza
+                eliminare il file. Puoi avviare un solo file alla volta. Scrivi gli import al
                 livello principale del file avviato.
                 <code>import &lbrace; nome &rbrace; from "file.mine";</code> importa una o più
                 funzioni per nome; <code>import * from "file.mine";</code> le importa tutte. Anche
@@ -1667,8 +1691,9 @@
                 <code>parallel</code>: avviare più comandi insieme
               </h3>
               <p>
-                Prepara una variabile per ogni GPU, poi metti un comando per riga. Partono tutti
-                nello stesso momento; il programma aspetta che abbiano finito prima di continuare.
+                Prepara una variabile per ogni GPU, poi metti una chiamata per riga. Puoi chiamare
+                anche funzioni definite con <code>def</code>. Partono insieme; il programma aspetta
+                che abbiano finito prima di continuare.
               </p>
               <app-guide-code [source]="guideCode.parallel" />
               <p>

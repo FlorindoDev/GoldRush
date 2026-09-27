@@ -441,7 +441,7 @@
               @if (entry.gpuId !== undefined) {
                 <button
                   class="primary"
-                  [disabled]="game.running()"
+                  [disabled]="game.isGpuMining(entry.gpuId)"
                   (click)="inspect(entry)"
                 >
                   <app-icon name="tool" />Esamina sul banco

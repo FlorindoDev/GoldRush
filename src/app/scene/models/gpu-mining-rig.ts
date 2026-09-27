@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { GPUS_PER_RIG } from '../../game/mining-world';
 import { createLabelTexture } from '../geometry/mesh-primitives';
 import { fitRigInSlot, RIG_PLOT_DEPTH } from '../environment/scene-layout';
 
@@ -12,9 +11,12 @@ export interface RigSlot {
 }
 export interface GpuMiningRig {
   readonly root: THREE.Group;
+  readonly model: THREE.Group;
   readonly slots: readonly RigSlot[];
   readonly fans: readonly THREE.Object3D[];
   readonly setupKey: string;
+  liquidHoses?: THREE.Group;
+  liquidHoseKey?: string;
 }
 
 export function createGpuMiningRig(id: number, model: THREE.Group, setupKey = ''): GpuMiningRig {
@@ -30,7 +32,11 @@ export function createGpuMiningRig(id: number, model: THREE.Group, setupKey = ''
       fans.push(object);
     }
   });
-  const slots = Array.from({ length: GPUS_PER_RIG }, (_, index): RigSlot => {
+  let slotCount = 0;
+  model.traverse((object) => {
+    if (/^gpu-slot-\d+$/.test(object.name)) slotCount++;
+  });
+  const slots = Array.from({ length: slotCount }, (_, index): RigSlot => {
     const socket = model.getObjectByName(`gpu-slot-${String(index + 1).padStart(2, '0')}`);
     const indicatorGroup = model.getObjectByName(`slot-indicator-${index + 1}`);
     const indicator = indicatorGroup?.getObjectByProperty('isMesh', true) as RigSlot['indicator'];
@@ -52,7 +58,7 @@ export function createGpuMiningRig(id: number, model: THREE.Group, setupKey = ''
     root.add(outline);
     return { position, orientation, outline, indicator, cable };
   });
-  return { root, slots, fans, setupKey };
+  return { root, model, slots, fans, setupKey };
 }
 
 export function createRigPlot(id: number, model: THREE.Group): THREE.Group {

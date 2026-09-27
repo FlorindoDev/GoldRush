@@ -11,5 +11,6 @@ export const MINING_CONFIG = {
   actionDurationMs: 850,
   // Percentuale per azione a difficoltà 1 e potenza nominale 1, indipendente dalla capienza farm.
   baseProgressPerAction: 0.8,
-  frequencyPowerExponent: 1,
+  // Il clock influisce in modo visibile sull'hashrate; aumento del calore applica throttling.
+  frequencyPowerExponent: 2,
 } as const;

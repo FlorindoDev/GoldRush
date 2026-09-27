@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GAME_BALANCE } from '../../config/game-balance';
+import { createWorld, GPUS_PER_RIG, PLOT_COUNT, RIGS_PER_PLOT } from '../../game/mining-world';
+import { PlotScriptObject } from '../../game/script-api/plot-script-object';
+import type { GpuScriptControls } from '../../game/script-api/gpu-script-object';
+import { VectorValue } from '../collections/vector';
 import { GUIDE_CODE } from '../guide-code';
 import { delay, execute, ScriptHost } from '../interpreter';
 import { parse } from '../parser';
@@ -44,6 +48,93 @@ describe('MineScript', () => {
     const f = fixture();
     await f.run('def doppio(numero) { return numero * 2; } print(doppio(3));');
     expect(f.output).toEqual(['6']);
+  });
+
+  it('passes vectors, stacks and queues into functions by reference', async () => {
+    const f = fixture();
+    await f.run(`
+def aggiungi(vettore) { vettore.push(8); return vettore; }
+def sposta(pila, coda) { coda.enqueue(pila.pop()); }
+let valori = vector();
+let pila = stack();
+let coda = queue();
+pila.push(aggiungi(valori));
+sposta(pila, coda);
+print(valori[0]);
+print(pila.size());
+print(coda.length());
+print(coda.peek()[0]);
+`);
+    expect(f.output).toEqual(['8', '0', '1', '8']);
+    f.output.length = 0;
+    await f.run(GUIDE_CODE.collectionParameters);
+    expect(f.output).toEqual(['1', '8']);
+  });
+
+  it('reads plot, rig and GPU vector sizes inside user functions', async () => {
+    const f = fixture();
+    const world = createWorld();
+    const controls = {
+      getGpu: (id: number) =>
+        world.plots
+          .flatMap((plot) => plot.rigs)
+          .flatMap((rig) => rig.gpus)
+          .find((gpu) => gpu.id === id)!,
+    } as GpuScriptControls;
+    f.host.globals = {
+      plots: new VectorValue(
+        world.plots.map((plot) => new PlotScriptObject(plot, controls)),
+        true,
+      ),
+    };
+    await f.run(`
+def misura(elementi) { return elementi.size(); }
+def leggiId(oggetto) { return oggetto.id; }
+print(misura(plots));
+print(misura(plots[0].rigs));
+print(misura(plots[0].rigs[0].gpus));
+print(leggiId(plots[0]));
+print(leggiId(plots[0].rigs[0]));
+print(leggiId(plots[0].rigs[0].gpus[0]));
+print(plots.length());
+print(plots[0].rigs.length);
+print(plots[0].rigs[0].gpus.size);
+`);
+    expect(f.output).toEqual([
+      String(PLOT_COUNT),
+      String(RIGS_PER_PLOT),
+      String(GPUS_PER_RIG),
+      '1',
+      '1',
+      '1',
+      String(PLOT_COUNT),
+      String(RIGS_PER_PLOT),
+      String(GPUS_PER_RIG),
+    ]);
+    await expect(f.run('plots.size(1);')).rejects.toThrow('size richiede 0 argomenti');
+  });
+
+  it('runs user functions concurrently inside parallel', async () => {
+    const f = fixture();
+    let active = 0;
+    let peak = 0;
+    f.host.mine = vi.fn(async () => {
+      active++;
+      peak = Math.max(peak, active);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      active--;
+    });
+    await f.run(`
+def lavora(gruppo) { mine(gruppo); }
+let primo = vector();
+let secondo = vector();
+parallel { lavora(primo); lavora(secondo); }
+`);
+    expect(f.host.mine).toHaveBeenCalledTimes(2);
+    expect(peak).toBe(2);
+    const calls = vi.mocked(f.host.mine!).mock.calls;
+    expect(calls[0][0]).not.toBe(calls[1][0]);
+    expect(calls[0][3]).toBe(calls[1][3]);
   });
 
   it('imports and runs every function from the guide example', async () => {

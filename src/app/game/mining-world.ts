@@ -13,6 +13,7 @@ import { FAN_MODELS_BY_ID, gpuFanResearchId, type GpuFanModelId } from '../confi
 import { RIG_COOLING_METHODS } from '../config/cooling-config';
 import { RIG_DUST_SYSTEMS } from '../config/dust-filter-config';
 import { maintainGpu, type GpuMaintenanceAction } from './gpu-maintenance';
+import { chargeEuros, reconcileWallet } from './wallet-transactions';
 import {
   applyGpuWork,
   clearGpuStop,
@@ -90,7 +91,17 @@ export const PLOT_COUNT = GAME_BALANCE.world.plotCount;
 export const RIGS_PER_PLOT = GAME_BALANCE.world.rigsPerPlot;
 export const GPUS_PER_RIG = GAME_BALANCE.world.gpusPerRig;
 export const RIG_COUNT = PLOT_COUNT * RIGS_PER_PLOT;
-export const GPU_COUNT = RIG_COUNT * GPUS_PER_RIG;
+// I primi quattro ID di ogni RIG restano compatibili con salvataggi e script esistenti.
+const BASE_GPU_COUNT = RIG_COUNT * GPUS_PER_RIG;
+export const GPU_COUNT = BASE_GPU_COUNT * 2;
+export function gpuIdForRigSlot(rigId: number, slotIndex: number): number {
+  return slotIndex < GPUS_PER_RIG
+    ? (rigId - 1) * GPUS_PER_RIG + slotIndex + 1
+    : BASE_GPU_COUNT + (rigId - 1) * GPUS_PER_RIG + slotIndex - GPUS_PER_RIG + 1;
+}
+export function gpuSlotIndex(gpuId: number): number {
+  return ((gpuId - 1) % GPUS_PER_RIG) + (gpuId > BASE_GPU_COUNT ? GPUS_PER_RIG : 0);
+}
 export const STARTING_RIG_COUNT = GAME_BALANCE.world.startingRigCount;
 export const STARTING_GPU_COUNT = GAME_BALANCE.world.startingGpuCount;
 export const MINE_PROGRESS_PER_GPU = GAME_BALANCE.mining.baseProgressPerAction;
@@ -259,30 +270,27 @@ export function settleCompletedCryptoBlock(world: MiningWorld, cryptoId: CryptoI
   const holdings = { ...world.holdings };
   holdings[cryptoId] = (holdings[cryptoId] ?? 0) + crypto.coinsPerBlock;
   const balanceAfterEur = world.cashEur + cryptoValueEur(holdings);
-  return withCryptoChain(
-    {
-      ...world,
-      holdings,
-      satoshis: balanceAfterSatoshis,
-      lastSettlement: {
-        cryptoId,
-        blockId: block.id,
-        coins: crypto.coinsPerBlock,
-        energyKwh: 0,
-        rewardSatoshis,
-        electricitySatoshis: 0,
-        balanceBeforeSatoshis: world.satoshis,
-        balanceAfterSatoshis,
-        balanceBeforeEur,
-        balanceAfterEur,
-      },
+  const rewarded = reconcileWallet({
+    ...world,
+    holdings,
+    satoshis: balanceAfterSatoshis,
+    lastSettlement: {
+      cryptoId,
+      blockId: block.id,
+      coins: crypto.coinsPerBlock,
+      energyKwh: 0,
+      rewardSatoshis,
+      electricitySatoshis: 0,
+      balanceBeforeSatoshis: world.satoshis,
+      balanceAfterSatoshis,
+      balanceBeforeEur,
+      balanceAfterEur,
     },
-    cryptoId,
-    {
-      ...chain,
-      settledBlockIds: [...chain.settledBlockIds, block.id],
-    },
-  );
+  });
+  return withCryptoChain(rewarded, cryptoId, {
+    ...chain,
+    settledBlockIds: [...chain.settledBlockIds, block.id],
+  });
 }
 
 /** Liquida tutti i blocchi completati da GPU parallele. */
@@ -313,14 +321,15 @@ export function billElectricityForDay(
   const electricitySatoshis = electricityCostSatoshis(energyKwh, priceEurPerKwh);
   const balanceAfterSatoshis = world.satoshis - electricitySatoshis;
   const balanceBeforeEur = world.cashEur + cryptoValueEur(world.holdings);
-  const cashEur = world.cashEur - satoshisToEuros(electricitySatoshis);
-  const balanceAfterEur = cashEur + cryptoValueEur(world.holdings);
+  const charged = chargeEuros(world, satoshisToEuros(electricitySatoshis));
+  const balanceAfterEur = charged.cashEur + cryptoValueEur(charged.holdings);
   // Prima si paga alla tariffa corrente; solo dopo si sceglie quella del giorno seguente.
   const nextPriceEurPerKwh = nextElectricityPriceEurPerKwh(energyKwh, priceEurPerKwh, random);
   return {
     ...world,
     satoshis: balanceAfterSatoshis,
-    cashEur,
+    cashEur: charged.cashEur,
+    holdings: charged.holdings,
     electricity: {
       ...world.electricity,
       pendingKwh: 0,
@@ -349,9 +358,9 @@ export function getGpu(world: MiningWorld, gpuId: number): MiningGpu {
     throw new Error('GPU inesistente.');
   }
   const rigId = rigIdForGpu(gpuId);
-  return world.plots[plotIdForRig(rigId) - 1].rigs[(rigId - 1) % RIGS_PER_PLOT].gpus[
-    (gpuId - 1) % GPUS_PER_RIG
-  ];
+  const gpu = getRig(world, rigId).gpus[gpuSlotIndex(gpuId)];
+  if (!gpu) throw new Error('GPU inesistente.');
+  return gpu;
 }
 
 /** Valida l'intero vettore prima di assegnare: nessuna modifica parziale. */
@@ -571,8 +580,8 @@ export function farmPowerWatts(
           (activeIds.has(gpu.id) || (!gpu.onWorkbench && isGpuOperational(gpu)))
         ) {
           watts += activeIds.has(gpu.id)
-            ? gpuMiningPowerWatts(gpu, rig.setup)
-            : gpuIdlePowerWatts(rig.setup, gpu.modelId);
+            ? gpuMiningPowerWatts(gpu, rig.setup, gpu.temperatureCelsius, rig.gpus.length)
+            : gpuIdlePowerWatts(rig.setup, gpu.modelId, rig.gpus.length);
         }
       }
     }
@@ -585,7 +594,7 @@ export function canExpand(world: MiningWorld): boolean {
 }
 
 export function rigIdForGpu(gpuId: number): number {
-  return Math.floor((gpuId - 1) / GPUS_PER_RIG) + 1;
+  return Math.floor(((gpuId - 1) % BASE_GPU_COUNT) / GPUS_PER_RIG) + 1;
 }
 
 export function rigCount(world: MiningWorld): number {
@@ -619,7 +628,7 @@ export function isGpuUnlocked(world: MiningWorld, gpuId: number): boolean {
   const rigId = rigIdForGpu(gpuId);
   const plot = world.plots[plotIdForRig(rigId) - 1];
   const rig = plot?.rigs[(rigId - 1) % RIGS_PER_PLOT];
-  return Boolean(rig?.unlocked && rig.gpus[(gpuId - 1) % GPUS_PER_RIG]?.unlocked);
+  return Boolean(rig?.unlocked && rig.gpus[gpuSlotIndex(gpuId)]?.unlocked);
 }
 
 export function isRigUnlocked(world: MiningWorld, rigId: number): boolean {

@@ -40,7 +40,7 @@ describe('Mining world', () => {
     expect(
       world.plots.every((plot) => plot.rigs.every((rig) => rig.gpus.length === GPUS_PER_RIG)),
     ).toBe(true);
-    expect(GPU_COUNT).toBe(PLOT_COUNT * RIGS_PER_PLOT * GPUS_PER_RIG);
+    expect(GPU_COUNT).toBe(PLOT_COUNT * RIGS_PER_PLOT * 8);
     expect(countUnlockedGpus(world)).toBe(STARTING_GPU_COUNT);
     expect(isGpuUnlocked(world, 1)).toBe(true);
     if (STARTING_GPU_COUNT < GPU_COUNT) {

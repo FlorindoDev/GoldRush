@@ -1,6 +1,19 @@
+import { RIG_COOLING_METHODS } from '../../config/cooling-config';
+import { GPU_MODELS_BY_ID } from '../../config/gpu-config';
+import { RIG_MODELS } from '../../config/rig-model-config';
+import { cryptoValueEur } from '../../config/crypto-config';
+import { parseGameSave } from '../game-save';
 import { PURCHASED_RIG_SETUP, STARTING_RIG_FAN_COUNT } from '../../config/rig-config';
 import { describe, expect, it } from 'vitest';
-import { createWorld, getGpu, getRig, type MiningWorld } from '../mining-world';
+import {
+  createWorld,
+  getGpu,
+  getRig,
+  recordGpuWork,
+  farmPowerWatts,
+  rigIdForGpu,
+  type MiningWorld,
+} from '../mining-world';
 import { GameService } from '../game.service';
 import { inventoryEntries, purchaseCart, resaleValue } from '../inventory';
 
@@ -57,6 +70,10 @@ describe('RIG inventory domain', () => {
       8,
       null,
       null,
+      null,
+      null,
+      null,
+      null,
     ]);
     expect(stored.rig?.gpus[0]?.state.dustPercent).toBe(23);
     expect(stored.rig?.gpus[1]?.state.dustPercent).toBe(41);
@@ -74,6 +91,94 @@ describe('RIG inventory domain', () => {
     expect(getGpu(game.world(), 34).dustPercent).toBe(41);
     expect(game.stockQuantity('rig-8-frame-none')).toBe(0);
     expect(inventoryEntries(game.world()).some((entry) => entry.rigId === 9)).toBe(true);
+  });
+
+  it.each(RIG_MODELS)('ships $id with the advertised capacity and included modules', (model) => {
+    const world = purchaseCart(fundedWorld(createWorld(), [model.id]), [
+      { productId: model.id, quantity: 1 },
+    ]);
+    const rig = world.inventory.items[0].rig!;
+    expect(rig.gpus).toHaveLength(model.slots);
+    expect(rig.setup.dustSystemId).toBe(model.filter);
+    expect(rig.setup.coolingMethodId).toBe(model.cooling === 'bracket' ? 'none' : model.cooling);
+    expect(rig.setup.fanCount).toBe(0);
+    expect(world.cashEur).toBe(2000 - model.priceEur);
+  });
+
+  it('mines on all eight slots and preserves them across save, storage and replacement', () => {
+    const game = new GameService();
+    game.world.set(
+      purchaseCart(fundedWorld(createWorld(), ['rig-8-frame-liquid']), [
+        { productId: 'rig-8-frame-liquid', quantity: 1 },
+        { productId: 'gpu-passive', quantity: 8 },
+      ]),
+    );
+    game.mountStockRig(1, 2);
+    for (let id = 2; id <= 9; id++) game.mountStockGpu(id, 2);
+    const rig = getRig(game.world(), 2);
+    expect(rig.gpus).toHaveLength(8);
+    expect(rig.gpus.every((gpu) => gpu.unlocked)).toBe(true);
+    expect(
+      new Set(
+        game
+          .world()
+          .plots.flatMap((plot) => plot.rigs.flatMap((entry) => entry.gpus.map((gpu) => gpu.id))),
+      ).size,
+    ).toBe(148);
+    const idlePower = GPU_MODELS_BY_ID['gpu-passive'].specifications.idle.powerWatts;
+    // Include anche il RIG iniziale: la pompa del RIG da otto si conta una sola volta.
+    expect(farmPowerWatts(game.world()) - farmPowerWatts(createWorld())).toBeCloseTo(
+      8 * idlePower + RIG_COOLING_METHODS.liquid.extraPowerWatts,
+    );
+    const last = rig.gpus[7];
+    expect(rigIdForGpu(last.id)).toBe(2);
+    game.world.set(recordGpuWork(game.world(), last.id, 1, 0, 850));
+    expect(getGpu(game.world(), last.id).dustPercent).toBeGreaterThan(0);
+    const save = parseGameSave(JSON.stringify(game.createSave()));
+    expect(getRig(save.world, 2).gpus).toEqual(getRig(game.world(), 2).gpus);
+    game.moveRigToStock(2);
+    const stored = game.world().inventory.items.find((item) => item.rig)!;
+    expect(stored.rig!.gpus[7]!.state.dustPercent).toBeGreaterThan(0);
+    game.mountStockRig(stored.id, 3);
+    expect(getRig(game.world(), 3).gpus[7].dustPercent).toBeGreaterThan(0);
+    expect(getRig(game.world(), 3).gpus[7].id).not.toBe(last.id);
+    game.buyCart([{ productId: 'rig-gameplay', quantity: 1 }]);
+    const replacement = game
+      .world()
+      .inventory.items.find((item) => item.productId === 'rig-gameplay')!;
+    game.replaceRigFromStock(3, replacement.id);
+    expect(getRig(game.world(), 3).gpus).toHaveLength(4);
+    expect(
+      game
+        .world()
+        .inventory.items.find((item) => item.rig)!
+        .rig!.gpus.filter(Boolean),
+    ).toHaveLength(8);
+    expect(() => parseGameSave(JSON.stringify(game.createSave()))).not.toThrow();
+  });
+
+  it('upgrades old eight-slot saves without changing the original GPU IDs or setup', () => {
+    const game = new GameService();
+    game.world.set(
+      purchaseCart(fundedWorld(createWorld(), ['rig-8-frame-none']), [
+        { productId: 'rig-8-frame-none', quantity: 1 },
+      ]),
+    );
+    game.mountStockRig(1, 2);
+    const legacy = JSON.parse(JSON.stringify(game.createSave()));
+    legacy.world.plots[0].rigs[1].gpus.length = 4;
+    const restored = parseGameSave(JSON.stringify(legacy));
+    expect(getRig(restored.world, 2).gpus).toHaveLength(8);
+    expect(
+      getRig(restored.world, 2)
+        .gpus.slice(0, 4)
+        .map((gpu) => gpu.id),
+    ).toEqual([5, 6, 7, 8]);
+    expect(
+      getRig(restored.world, 2)
+        .gpus.slice(4)
+        .every((gpu) => !gpu.unlocked),
+    ).toBe(true);
   });
 
   it('replaces a mounted RIG atomically, returning its configured RIG and GPUs to stock', () => {
@@ -94,7 +199,7 @@ describe('RIG inventory domain', () => {
     expect(oldRig.rig?.gpus[1]).toBeNull();
     expect(inventoryEntries(game.world()).some((entry) => entry.stockId === oldRig.id)).toBe(true);
 
-    const cashBeforeSale = game.world().cashEur;
+    const balanceBeforeSale = game.world().cashEur + cryptoValueEur(game.world().holdings);
     const expectedSale = resaleValue(oldRig);
     const gpuValue = oldRig.rig!.gpus.reduce(
       (total, gpu) =>
@@ -104,7 +209,8 @@ describe('RIG inventory domain', () => {
     expect(expectedSale).toBeGreaterThan(gpuValue);
     game.sellStock(oldRig.id);
     expect(game.world().inventory.items).toHaveLength(0);
-    expect(game.world().cashEur).toBeCloseTo(cashBeforeSale + expectedSale);
+    expect(game.world().cashEur).toBe(0);
+    expect(cryptoValueEur(game.world().holdings)).toBeCloseTo(balanceBeforeSale + expectedSale);
   });
 
   it('rejects running and workbench transitions without changing the world', () => {
@@ -135,7 +241,7 @@ describe('RIG inventory domain', () => {
   it('requires stock for rig upgrades and returns removed catalog components', () => {
     const game = new GameService();
     game.world.set(
-      fundedWorld(createWorld(), ['fan-pressure-140', 'filter-mesh', 'rig-8-frame-bracket']),
+      fundedWorld(createWorld(), ['fan-pressure-140', 'filter-mesh', 'rig-4-frame-air']),
     );
     game.inspectRig(1);
     game.buyCart([{ productId: 'fan-pressure-140', quantity: 4 }]);

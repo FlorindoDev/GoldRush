@@ -55,7 +55,7 @@
             [class.warning]="stats.temperatureCelsius >= config.heatEffectStartCelsius"
           >
             <dt>Temperatura</dt>
-            <dd>{{ stats.temperatureCelsius.toFixed(0) }}<small>°C</small></dd>
+            <dd>{{ stats.temperatureCelsius.toFixed(1) }}<small>°C</small></dd>
             <meter
               min="0"
               [max]="stats.maxTemperatureCelsius"
@@ -89,18 +89,22 @@
             [attr.aria-valuetext]="
               (pendingFrequencyGhz() ?? stats.targetFrequencyGhz).toFixed(2) + ' GHz'
             "
-            [disabled]="game.running()"
+            [disabled]="gpuMining()"
             (input)="chooseFrequency($event)"
           />
           <div class="frequency-limits">
             <span>Minimo {{ stats.minFrequencyGhz }} GHz</span>
             <span>Massimo assoluto {{ stats.absoluteMaxFrequencyGhz }} GHz</span>
           </div>
+          <p class="detail-note">
+            Progresso stimato per azione: <strong>{{ stats.progressPerAction.toFixed(2) }}%</strong>
+            a difficoltà 1. Clock più alto aumenta il progresso; il calore può ridurlo.
+          </p>
           <button
             type="button"
             class="service-button"
             [disabled]="
-              game.running() ||
+              gpuMining() ||
               pendingFrequencyGhz() === null ||
               pendingFrequencyGhz() === stats.targetFrequencyGhz
             "
@@ -116,7 +120,7 @@
             ><button
               type="button"
               [disabled]="
-                game.running() ||
+                gpuMining() ||
                 card.wearPercent >= 100 ||
                 stats.temperatureCelsius >= stats.maxTemperatureCelsius
               "
@@ -189,7 +193,7 @@
               <button
                 type="button"
                 class="service-button"
-                [disabled]="game.running() || card.dustPercent === 0"
+                [disabled]="gpuMining() || card.dustPercent === 0"
                 (click)="service({ kind: 'clean' })"
               >
                 <span>{{ card.dustPercent === 0 ? 'Scheda pulita' : 'Pulisci scheda' }}</span
@@ -199,13 +203,22 @@
             @case ('thermal') {
               <h3>Pasta e pad termici</h3>
               <p>
-                Azzera l’usura della scheda. Puoi ripetere l’intervento ogni
-                {{ config.thermalServiceIntervalHours }} ore simulate di mining.
+                Riduce l’usura accumulata dello {{ config.thermalServiceWearReductionPercent }}% e
+                ripara un arresto causato dall’usura. Intervento disponibile ogni
+                {{ config.thermalServiceIntervalHours }} ore simulate; se GPU arriva al 100%, puoi
+                ripararla subito.
               </p>
               <dl class="effect-list">
                 <div>
                   <dt>Usura dopo intervento</dt>
-                  <dd>0%</dd>
+                  <dd>
+                    {{
+                      (
+                        card.wearPercent *
+                        (1 - config.thermalServiceWearReductionPercent / 100)
+                      ).toFixed(2)
+                    }}%
+                  </dd>
                 </div>
                 <div>
                   <dt>Prossimo cambio tra</dt>
@@ -223,11 +236,11 @@
               <button
                 type="button"
                 class="service-button"
-                [disabled]="game.running() || !thermalReady()"
+                [disabled]="gpuMining() || !thermalReady()"
                 (click)="service({ kind: 'thermal' })"
               >
                 <span>{{
-                  remainingHours() > 0
+                  remainingHours() > 0 && card.wearPercent < 100
                     ? 'In attesa di utilizzo'
                     : card.wearPercent === 0
                       ? 'Nessuna usura'

@@ -11,6 +11,7 @@ import { FAN_MODELS, FAN_MODELS_BY_ID, type FanModelId } from '../../../config/f
 import { RIG_DUST_SYSTEMS, type RigDustSystemId } from '../../../config/dust-filter-config';
 import { MAX_RIG_FANS, type RigSetup } from '../../../config/rig-config';
 import { GameService } from '../../../game/game.service';
+import { rigFanCoolingCelsius } from '../../../game/gpu-operation';
 import { getRig } from '../../../game/mining-world';
 import { IconComponent } from '../../icons/icon.component';
 
@@ -48,6 +49,10 @@ export class RigWorkbenchComponent {
     const id = this.game.inspectedRigId();
     return id === null ? null : getRig(this.game.world(), id);
   });
+  readonly rigMining = computed(() => {
+    const rig = this.rig();
+    return rig !== null && this.game.isRigMining(rig.id);
+  });
   readonly setup = computed(() => {
     const rig = this.rig();
     if (!rig) {
@@ -61,6 +66,7 @@ export class RigWorkbenchComponent {
       fan,
       filter,
       cooling,
+      fanCoolingCelsius: rigFanCoolingCelsius(rig.setup),
       airflowCfm: fan.airflowCfm * rig.setup.fanCount + cooling.airflowCfm,
       powerWatts: fan.powerWatts * rig.setup.fanCount + cooling.extraPowerWatts,
     };
@@ -93,7 +99,7 @@ export class RigWorkbenchComponent {
 
   canChooseFanCount(count: number): boolean {
     const current = this.setup();
-    if (this.game.running() || !current) {
+    if (this.rigMining() || !current) {
       return false;
     }
     const required = this.fanCountRequired(count);
@@ -102,8 +108,8 @@ export class RigWorkbenchComponent {
 
   fanCountUnavailableReason(count: number): string {
     const current = this.setup();
-    if (this.game.running()) {
-      return 'Ferma il programma per modificare il RIG';
+    if (this.rigMining()) {
+      return 'Attendi che le GPU di questo RIG terminino mine()';
     }
     if (current && !this.canChooseFanCount(count)) {
       return `Servono ${this.fanCountRequired(count)} ventole ${FAN_MODELS_BY_ID[current.fanId].name} in magazzino`;
@@ -119,15 +125,15 @@ export class RigWorkbenchComponent {
   canChooseFanModel(fanId: FanModelId): boolean {
     const required = this.fanModelRequired(fanId);
     return (
-      !this.game.running() &&
+      !this.rigMining() &&
       this.game.isResearchUnlocked(fanId) &&
       (required === 0 || this.game.stockQuantity(fanId) >= required)
     );
   }
 
   fanModelUnavailableReason(fanId: FanModelId): string {
-    if (this.game.running()) {
-      return 'Ferma il programma per modificare il RIG';
+    if (this.rigMining()) {
+      return 'Attendi che le GPU di questo RIG terminino mine()';
     }
     if (!this.game.isResearchUnlocked(fanId)) {
       return 'Sblocca nell’albero della ricerca';
@@ -140,7 +146,7 @@ export class RigWorkbenchComponent {
 
   canChooseFilter(id: RigDustSystemId): boolean {
     return (
-      !this.game.running() &&
+      !this.rigMining() &&
       (id === 'none' || this.game.isResearchUnlocked(`filter-${id}`)) &&
       (id === 'none' ||
         this.setup()?.dustSystemId === id ||
@@ -149,8 +155,8 @@ export class RigWorkbenchComponent {
   }
 
   filterUnavailableReason(id: RigDustSystemId): string {
-    if (this.game.running()) {
-      return 'Ferma il programma per modificare il RIG';
+    if (this.rigMining()) {
+      return 'Attendi che le GPU di questo RIG terminino mine()';
     }
     if (id !== 'none' && !this.game.isResearchUnlocked(`filter-${id}`)) {
       return 'Sblocca nell’albero della ricerca';
@@ -171,14 +177,14 @@ export class RigWorkbenchComponent {
 
   canChooseCooling(id: RigCoolingMethodId): boolean {
     return (
-      !this.game.running() &&
+      !this.rigMining() &&
       (id === 'none' || this.setup()?.coolingMethodId === id || this.coolingStockQuantity(id) >= 1)
     );
   }
 
   coolingUnavailableReason(id: RigCoolingMethodId): string {
-    if (this.game.running()) {
-      return 'Ferma il programma per modificare il RIG';
+    if (this.rigMining()) {
+      return 'Attendi che le GPU di questo RIG terminino mine()';
     }
     if (
       id !== 'none' &&

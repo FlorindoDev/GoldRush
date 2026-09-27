@@ -34,6 +34,61 @@ function withCompactGpu(world: MiningWorld): MiningWorld {
 }
 
 describe('GPU maintenance', () => {
+  it('heats liquid GPU to critical temperature without a pump, then protects it after seconds of work', () => {
+    const model = GPU_MODELS_BY_ID['gpu-liquid'];
+    const noPump = { ...GAMEPLAY_RIG_SETUP, coolingMethodId: 'none' as const };
+    const air = { ...GAMEPLAY_RIG_SETUP, coolingMethodId: 'air' as const };
+    const liquid = { ...GAMEPLAY_RIG_SETUP, coolingMethodId: 'liquid' as const };
+    const initial = createGpuOperatingState(model.id);
+    const first = applyGpuWork(initial, 1, 0, 850, noPump);
+    expect(first.temperatureCelsius).toBeGreaterThanOrEqual(
+      GAME_BALANCE.gpu.liquidWithoutPump.criticalTemperatureCelsius,
+    );
+    expect(first.temperatureCelsius).toBeLessThan(model.specifications.limits.temperatureCelsius);
+    expect(applyGpuWork(initial, 1, 0, 850, air).temperatureCelsius).toBeCloseTo(
+      first.temperatureCelsius,
+    );
+
+    let uncooled = first;
+    let cooled = applyGpuWork(initial, 1, 0, 850, liquid);
+    for (let action = 1; action < 4; action++) {
+      uncooled = applyGpuWork(uncooled, 1, action * 850, (action + 1) * 850, noPump);
+      cooled = applyGpuWork(cooled, 1, action * 850, (action + 1) * 850, liquid);
+    }
+    expect(uncooled.temperatureCelsius).toBe(model.specifications.limits.temperatureCelsius);
+    expect(uncooled.stopReason).toBe('Surriscaldamento');
+    expect(cooled.stopped).toBe(false);
+    expect(cooled.temperatureCelsius).toBeLessThan(
+      GAME_BALANCE.gpu.liquidWithoutPump.criticalTemperatureCelsius,
+    );
+  });
+
+  it('enables hybrid waterblock cooling only with an external liquid loop', () => {
+    const initial = createGpuOperatingState('gpu-hybrid');
+    const without = applyGpuWork(initial, 1, 0, 850, GAMEPLAY_RIG_SETUP);
+    const air = applyGpuWork(initial, 1, 0, 850, { ...GAMEPLAY_RIG_SETUP, coolingMethodId: 'air' });
+    const liquid = applyGpuWork(initial, 1, 0, 850, {
+      ...GAMEPLAY_RIG_SETUP,
+      coolingMethodId: 'liquid',
+    });
+    expect(without.temperatureCelsius).toBeGreaterThan(air.temperatureCelsius);
+    expect(air.temperatureCelsius - liquid.temperatureCelsius).toBeGreaterThan(6);
+    const fanOff = applyGpuWork(
+      { ...initial, targetFanSpeedPercent: 0 },
+      1,
+      0,
+      850,
+      GAMEPLAY_RIG_SETUP,
+    );
+    expect(fanOff.temperatureCelsius).toBeGreaterThan(without.temperatureCelsius);
+    const disconnected = applyGpuWork(liquid, 1, 850, 1700, GAMEPLAY_RIG_SETUP);
+    const connected = applyGpuWork(liquid, 1, 850, 1700, {
+      ...GAMEPLAY_RIG_SETUP,
+      coolingMethodId: 'liquid',
+    });
+    expect(disconnected.temperatureCelsius).toBeGreaterThan(connected.temperatureCelsius);
+  });
+
   it('accumulates dirt and service hours only from actual work, including partial actions', () => {
     const gpu = { ...createGpuOperatingState(), hoursSinceThermalService: 0 };
     const partial = applyGpuWork(gpu, 0.25, 0, 1000);
@@ -139,10 +194,10 @@ describe('GPU maintenance', () => {
     expect(maintainGpu(gpu, { kind: 'clean' })).toEqual({ ...gpu, dustPercent: 0 });
   });
 
-  it('thermal service repairs wear, blocks repeated use, and unlocks exactly after sufficient GPU work', () => {
+  it('thermal service reduces wear slightly, blocks repeated use, and unlocks after sufficient GPU work', () => {
     const worn = { ...createGpuOperatingState(), wearPercent: 100, dustPercent: 35, stopped: true };
     let serviced = maintainGpu(worn, { kind: 'thermal' });
-    expect(serviced.wearPercent).toBe(0);
+    expect(serviced.wearPercent).toBeCloseTo(99.9);
     expect(serviced.stopped).toBe(true);
     expect(serviced.dustPercent).toBe(35);
     expect(thermalServiceHoursRemaining(serviced)).toBe(config.thermalServiceIntervalHours);
@@ -156,7 +211,12 @@ describe('GPU maintenance', () => {
     expect(() => maintainGpu(serviced, { kind: 'thermal' })).toThrow();
     serviced = applyGpuWork(serviced, 0.5, 2e6, 2e6);
     expect(thermalServiceHoursRemaining(serviced)).toBe(0);
-    expect(maintainGpu(serviced, { kind: 'thermal' }).wearPercent).toBe(0);
+    const servicedAgain = maintainGpu(serviced, { kind: 'thermal' });
+    expect(servicedAgain.wearPercent).toBeCloseTo(
+      serviced.wearPercent * (1 - config.thermalServiceWearReductionPercent / 100),
+    );
+    expect(servicedAgain.wearPercent).toBeGreaterThan(0);
+    expect(servicedAgain.wearPercent).toBeLessThan(serviced.wearPercent);
     expect(() => maintainGpu(createGpuOperatingState(), { kind: 'thermal' })).toThrow(
       'Nessuna usura',
     );

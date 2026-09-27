@@ -1,4 +1,6 @@
+import { RIG_MODELS_BY_ID } from '../../config/rig-model-config';
 import { SHOP_PRODUCTS_BY_ID } from '../../config/shop-config';
+import { reconcileWallet } from '../wallet-transactions';
 import type { GpuOperatingState } from '../gpu-operation';
 import type { MiningWorld } from '../mining-world';
 import type { InventoryEntry, InventoryGroup, StockItem } from './types';
@@ -29,6 +31,12 @@ function condition(gpu?: GpuOperatingState): InventoryEntry['condition'] {
       : 'new';
 }
 
+function stockCondition(item: StockItem): InventoryEntry['condition'] {
+  if (item.rig) return item.rig.isNew ? 'new' : 'used';
+  if (item.used) return 'used';
+  return condition(item.gpu);
+}
+
 /** Lo stato dei componenti montati viene letto dalla farm, mai duplicato in magazzino. */
 export function inventoryEntries(world: MiningWorld): InventoryEntry[] {
   const entries: InventoryEntry[] = [];
@@ -41,7 +49,7 @@ export function inventoryEntries(world: MiningWorld): InventoryEntry[] {
       key: `stock-${item.id}`,
       quantity: 1,
       stockId: item.id,
-      condition: item.rig ? (item.rig.isNew ? 'new' : 'used') : condition(item.gpu),
+      condition: stockCondition(item),
       gpu: item.gpu,
       rig: item.rig,
       location: 'In magazzino',
@@ -99,7 +107,20 @@ export function inventoryEntries(world: MiningWorld): InventoryEntry[] {
 }
 
 export function resaleValue(item: StockItem): number {
-  const price = SHOP_PRODUCTS_BY_ID.get(item.productId)?.priceEur ?? 0;
+  let price = SHOP_PRODUCTS_BY_ID.get(item.productId)?.priceEur ?? 0;
+  if (item.rig) {
+    const model = RIG_MODELS_BY_ID.get(item.productId);
+    // Valuta telaio e componenti attuali: i moduli inclusi possono essere stati rimossi.
+    price -= SHOP_PRODUCTS_BY_ID.get(`filter-${model?.filter}`)?.priceEur ?? 0;
+    price -=
+      model?.cooling === 'bracket'
+        ? 0
+        : (SHOP_PRODUCTS_BY_ID.get(`cooling-${model?.cooling}`)?.priceEur ?? 0);
+    price += SHOP_PRODUCTS_BY_ID.get(`filter-${item.rig.setup.dustSystemId}`)?.priceEur ?? 0;
+    price += SHOP_PRODUCTS_BY_ID.get(`cooling-${item.rig.setup.coolingMethodId}`)?.priceEur ?? 0;
+    price +=
+      (SHOP_PRODUCTS_BY_ID.get(item.rig.setup.fanId)?.priceEur ?? 0) * item.rig.setup.fanCount;
+  }
   const rate =
     condition(item.gpu) === 'broken' ? 0.1 : 0.6 * (1 - (item.gpu?.wearPercent ?? 0) / 100);
   const gpuValue =
@@ -115,9 +136,9 @@ export function resaleValue(item: StockItem): number {
 export function sellStockItem(world: MiningWorld, id: number): MiningWorld {
   const item = world.inventory.items.find((entry) => entry.id === id);
   if (!item) throw new Error('Articolo non più presente in magazzino.');
+  const wallet = reconcileWallet({ ...world, cashEur: world.cashEur + resaleValue(item) });
   return {
-    ...world,
-    cashEur: world.cashEur + resaleValue(item),
+    ...wallet,
     inventory: {
       ...world.inventory,
       items: world.inventory.items.filter((entry) => entry.id !== id),

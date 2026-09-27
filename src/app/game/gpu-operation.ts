@@ -71,12 +71,13 @@ export function gpuTemperatureWhilePoweredDown(
   return gpuTemperature(gpu, poweredDownAt, rigSetup) * (1 - cooling);
 }
 
-export function rigAuxiliaryPowerWattsPerGpu(rigSetup: RigSetup = GAMEPLAY_RIG_SETUP): number {
+export function rigAuxiliaryPowerWattsPerGpu(
+  rigSetup: RigSetup = GAMEPLAY_RIG_SETUP,
+  slotCount: number = GAME_BALANCE.world.gpusPerRig,
+): number {
   const fan = FAN_MODELS_BY_ID[rigSetup.fanId];
   const cooling = RIG_COOLING_METHODS[rigSetup.coolingMethodId];
-  return (
-    (fan.powerWatts * rigSetup.fanCount + cooling.extraPowerWatts) / GAME_BALANCE.world.gpusPerRig
-  );
+  return (fan.powerWatts * rigSetup.fanCount + cooling.extraPowerWatts) / slotCount;
 }
 
 export function rigFanCoolingCelsius(rigSetup: RigSetup): number {
@@ -91,6 +92,7 @@ export function gpuMiningPowerWatts(
   gpu: GpuOperatingState,
   rigSetup: RigSetup = GAMEPLAY_RIG_SETUP,
   temperatureCelsius = gpu.temperatureCelsius,
+  slotCount: number = GAME_BALANCE.world.gpusPerRig,
 ): number {
   const { idle, mining } = GPU_MODELS_BY_ID[gpu.modelId].specifications;
   const frequencyGhz = gpuEffectiveFrequencyGhz(gpu, temperatureCelsius);
@@ -98,7 +100,7 @@ export function gpuMiningPowerWatts(
     idle.powerWatts +
     (mining.powerWatts - idle.powerWatts) * (frequencyGhz / mining.frequencyGhz) ** 2 +
     config.fanKits[gpu.fanKit].extraPowerWatts +
-    rigAuxiliaryPowerWattsPerGpu(rigSetup)
+    rigAuxiliaryPowerWattsPerGpu(rigSetup, slotCount)
   );
 }
 
@@ -120,10 +122,11 @@ export function gpuMiningProgress(
 export function gpuIdlePowerWatts(
   rigSetup: RigSetup = GAMEPLAY_RIG_SETUP,
   modelId: GpuModelId = GPU_DEFAULT_MODEL_ID,
+  slotCount: number = GAME_BALANCE.world.gpusPerRig,
 ): number {
   return (
     GPU_MODELS_BY_ID[modelId].specifications.idle.powerWatts +
-    rigAuxiliaryPowerWattsPerGpu(rigSetup)
+    rigAuxiliaryPowerWattsPerGpu(rigSetup, slotCount)
   );
 }
 
@@ -286,10 +289,15 @@ export function applyGpuWork(
   const fanSpeedRatio = gpuFanSpeedRatio(fanSpeedPercent, gpu.fanKit, gpu.modelId);
   const rigDustSystem = RIG_DUST_SYSTEMS[rigSetup.dustSystemId];
   const rigCoolingMethod = RIG_COOLING_METHODS[rigSetup.coolingMethodId];
+  const missingHybridCooling =
+    GPU_MODELS_BY_ID[gpu.modelId].style === 'hybrid' && rigSetup.coolingMethodId !== 'liquid'
+      ? config.hybridWithoutPumpExtraHeatCelsius
+      : 0;
   const equilibrium =
     specifications.idle.temperatureCelsius +
     (specifications.mining.temperatureCelsius - specifications.idle.temperatureCelsius) *
       ratio ** 2 +
+    missingHybridCooling * ratio ** 2 +
     fanCooling +
     rigDustSystem.airflowResistanceCelsius +
     dustLoad * specifications.dustDamage.maxExtraHeatCelsius -
@@ -301,7 +309,22 @@ export function applyGpuWork(
     (1 + dustLoad * specifications.dustDamage.maxHeatingResponseBonus);
   const response =
     1 - (1 - specifications.thermalResponsePerAction) ** (fraction * heatingSpeedMultiplier);
-  const temperatureCelsius = initialTemperature + (equilibrium - initialTemperature) * response;
+  const liquidWithoutPump =
+    GPU_MODELS_BY_ID[gpu.modelId].style === 'liquid' && rigSetup.coolingMethodId !== 'liquid';
+  const criticalTemperature = Math.min(
+    specifications.limits.temperatureCelsius,
+    config.liquidWithoutPump.criticalTemperatureCelsius,
+  );
+  const temperatureCelsius =
+    liquidWithoutPump && fraction > 0
+      ? Math.min(
+          specifications.limits.temperatureCelsius,
+          Math.max(initialTemperature, criticalTemperature) +
+            ((specifications.limits.temperatureCelsius - criticalTemperature) *
+              Math.max(0, endedAt - startedAt)) /
+              config.liquidWithoutPump.protectionAfterMs,
+        )
+      : initialTemperature + (equilibrium - initialTemperature) * response;
   const heatStress = Math.max(1, temperatureCelsius / specifications.mining.temperatureCelsius);
   const wearFormula = config.wearFormula;
   const fanWearIncrease = (fanSpeedPercent / 100) * wearFormula.fanWearIncreaseAtFullSpeed;

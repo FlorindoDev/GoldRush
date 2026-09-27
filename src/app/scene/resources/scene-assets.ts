@@ -40,11 +40,15 @@ export class SceneAssets {
     if (this.templates.has('rig-workbench')) {
       return;
     }
-    const rigVariants = Object.keys(RIG_DUST_SYSTEMS).flatMap((filterId) =>
-      Object.keys(RIG_COOLING_METHODS).map((coolingId) => ({
-        id: rigVariantId(filterId, coolingId),
-        path: `assets/models/rigs/rig-gameplay-${filterId}-${coolingId}.glb`,
-      })),
+    const rigVariants = [4, 8].flatMap((slots) =>
+      Object.keys(RIG_DUST_SYSTEMS).flatMap((filterId) =>
+        [...Object.keys(RIG_COOLING_METHODS), ...(slots === 8 ? ['bracket'] : [])].map(
+          (coolingId) => ({
+            id: rigVariantId(filterId, coolingId, slots),
+            path: rigVariantPath(filterId, coolingId, slots),
+          }),
+        ),
+      ),
     );
     const fans = FAN_MODELS.map((fan) => ({
       id: fanAssetId(fan.id),
@@ -72,12 +76,13 @@ export class SceneAssets {
     });
   }
 
-  instantiateRig(setup: RigSetup): THREE.Group {
+  instantiateRig(setup: RigSetup, slots = 4, externalSupport = false): THREE.Group {
     const filterId = setup.dustSystemId;
-    const coolingId = setup.coolingMethodId;
+    const coolingId =
+      setup.coolingMethodId === 'none' && externalSupport ? 'bracket' : setup.coolingMethodId;
     const model = this.instantiateTemplate(
-      rigVariantId(filterId, coolingId),
-      `assets/models/rigs/rig-gameplay-${filterId}-${coolingId}.glb`,
+      rigVariantId(filterId, coolingId, slots),
+      rigVariantPath(filterId, coolingId, slots),
     );
     const fan = this.instantiateTemplate(
       fanAssetId(setup.fanId),
@@ -166,10 +171,14 @@ export class SceneAssets {
   }
 }
 
-function rigVariantId(filterId: string, coolingId: string): string {
-  return `rig-variant:${filterId}:${coolingId}`;
+function rigVariantId(filterId: string, coolingId: string, slots: number): string {
+  return `rig-variant:${slots}:${filterId}:${coolingId}`;
 }
 
 function fanAssetId(fanId: string): string {
   return `fan:${fanId}`;
+}
+
+function rigVariantPath(filterId: string, coolingId: string, slots: number): string {
+  return `assets/models/rigs/${slots === 8 ? 'rig-runtime-8' : 'rig-gameplay'}-${filterId}-${coolingId}.glb`;
 }

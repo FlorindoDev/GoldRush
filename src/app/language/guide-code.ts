@@ -47,6 +47,14 @@ let i = 0; i++;`,
   return numero * 2;
 }
 print(doppio(3));`,
+  collectionParameters: `def aggiungi(vettore, valore) {
+  vettore.push(valore);
+  return vettore.size();
+}
+
+let numeri = vector();
+print(aggiungi(numeri, 8));
+print(numeri[0]);`,
   fileImport: `import * from "utilita.mine";
 print(doppio(3));
 print(triplo(3));`,
@@ -59,12 +67,16 @@ print(doppio(3));`,
 def triplo(numero) {
   return numero * 3;
 }`,
-  parallel: `let gpuUno = plots[0].rigs[0].gpus[0];
+  parallel: `def impostaFrequenza(gpu) {
+  gpu.setFrequencyGhz(gpu.getMaxFrequencyGhz());
+}
+
+let gpuUno = plots[0].rigs[0].gpus[0];
 let gpuDue = plots[0].rigs[0].gpus[1];
 
 parallel {
-  gpuUno.setFrequencyGhz(gpuUno.getMaxFrequencyGhz());
-  gpuDue.setFrequencyGhz(gpuDue.getMaxFrequencyGhz());
+  impostaFrequenza(gpuUno);
+  impostaFrequenza(gpuDue);
 }`,
   condition: `if (progress() == 100) {
   print("Blocco completato");

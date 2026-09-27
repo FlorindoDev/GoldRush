@@ -3,11 +3,12 @@ import { GPU_MODELS_BY_ID } from '../../config/gpu-config';
 import { describe, expect, it } from 'vitest';
 import { GAME_BALANCE } from '../../config/game-balance';
 import { satoshisToEuros } from '../electricity';
-import { gpuTemperature } from '../gpu-operation';
+import { createGpuOperatingState, gpuTemperature } from '../gpu-operation';
 import { getGpuTelemetry } from '../gpu-telemetry';
 import {
   billElectricityForDay,
   BLOCK_REWARD,
+  configureRig,
   createWorld,
   expandWorld,
   farmPowerWatts,
@@ -21,6 +22,34 @@ import {
 } from '../mining-world';
 
 describe('GPU operation and electricity', () => {
+  it('stops an unpumped liquid GPU after several seconds without awarding final mining progress', () => {
+    const base = createWorld();
+    const liquidGpuWorld = {
+      ...base,
+      plots: base.plots.map((plot) => ({
+        ...plot,
+        rigs: plot.rigs.map((rig) => ({
+          ...rig,
+          gpus: rig.gpus.map((gpu) =>
+            gpu.id === 1 ? { ...gpu, ...createGpuOperatingState('gpu-liquid') } : gpu,
+          ),
+        })),
+      })),
+    };
+    let uncooled = liquidGpuWorld;
+    let cooled = configureRig(liquidGpuWorld, 1, { coolingMethodId: 'liquid' });
+    let previousProgress = 0;
+    for (let action = 0; action < 4; action++) {
+      previousProgress = uncooled.blocks[0].progress;
+      uncooled = mineGpu(uncooled, 1, action * 850, (action + 1) * 850);
+      cooled = mineGpu(cooled, 1, action * 850, (action + 1) * 850);
+    }
+    expect(getGpu(uncooled, 1).stopReason).toBe('Surriscaldamento');
+    expect(uncooled.blocks[0].progress).toBe(previousProgress);
+    expect(getGpu(cooled, 1).stopped).toBe(false);
+    expect(cooled.blocks[0].progress).toBeGreaterThan(uncooled.blocks[0].progress);
+  });
+
   it('accumulates energy without charging before the game day ends', () => {
     const world = mineGpu(createDualGpuWorld(), 1, 0);
     expect(world.satoshis).toBe(0);

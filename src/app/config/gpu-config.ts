@@ -347,6 +347,12 @@ export const GPU_MODELS_BY_ID = Object.fromEntries(
   GPU_MODELS.map((model) => [model.id, model]),
 ) as Record<GpuModelId, GpuModelConfig>;
 
+/** Waterblock presente anche sulle GPU ibride con ventola. */
+export function gpuHasLiquidCooling(modelId: GpuModelId): boolean {
+  const style = GPU_MODELS_BY_ID[modelId].style;
+  return style === 'liquid' || style === 'hybrid';
+}
+
 export const GPU_DEFAULT_MODEL_ID: GpuModelId = 'gpu-passive';
 export const GPU_FALLBACK_MODEL_ID: GpuModelId = 'gpu-passive';
 
@@ -364,6 +370,11 @@ export const GPU_RUNTIME_CONFIG = {
   heatingResponse: {
     frequencyExponent: 1,
   },
+  hybridWithoutPumpExtraHeatCelsius: 18,
+  liquidWithoutPump: {
+    criticalTemperatureCelsius: 82,
+    protectionAfterMs: 3_200,
+  },
   wearFormula: {
     frequencyExponent: 2,
     heatStressExponent: 2,
@@ -371,6 +382,7 @@ export const GPU_RUNTIME_CONFIG = {
   },
   maintenance: {
     thermalServiceIntervalHours: 24,
+    thermalServiceWearReductionPercent: 8,
     dustPercentPerHour: 0.08,
     heatEffectStartCelsius: 78,
   },

@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { GAME_BALANCE } from '../config/game-balance';
+import { gpuHasLiquidCooling } from '../config/gpu-config';
 import {
-  GPUS_PER_RIG,
+  gpuIdForRigSlot,
+  gpuSlotIndex,
   getGpu,
   getRig,
   isGpuUnlocked,
@@ -13,6 +15,7 @@ import {
 } from '../game/mining-world';
 import { BITCOIN_MODEL_PATH } from '../assets/models/bitcoin/bitcoin-model-path';
 import { createGpuMiningRig, createRigPlot, type GpuMiningRig } from './models/gpu-mining-rig';
+import { createRigLiquidHoses, type LiquidGpuConnection } from './models/rig-liquid-hoses';
 import { createRigSlotTile, RigSlotTile } from './models/rig-slot-tile';
 import { SceneCameraController } from './camera/scene-camera-controller';
 import { resolveCameraFocus, rigCameraFocus } from './camera/camera-focus';
@@ -181,8 +184,9 @@ export class MiningScene {
     this.syncPlots(world);
     this.syncRigSlotTiles(world);
     this.syncRigs(world);
-    this.syncRigWorkbench(world, selectedToolStationId, rigInspection);
     this.gpuVisuals.sync(world, inspection);
+    this.syncRigWorkbench(world, selectedToolStationId, rigInspection);
+    this.syncLiquidHoses(world);
     this.updateAppearance(world);
     if (
       inspectionChanged ||
@@ -302,7 +306,7 @@ export class MiningScene {
           continue;
         }
         unlockedRigIds.add(rig.id);
-        const setupKey = rigSetupKey(rig.setup);
+        const setupKey = `${rigSetupKey(rig.setup)}:${rig.gpus.length}:${rig.rigProductId}`;
         const current = this.rigs.get(rig.id);
         if (current?.setupKey === setupKey) {
           continue;
@@ -314,7 +318,11 @@ export class MiningScene {
 
         const miningRig = createGpuMiningRig(
           rig.id,
-          this.assets.instantiateRig(rig.setup),
+          this.assets.instantiateRig(
+            rig.setup,
+            rig.gpus.length,
+            rig.rigProductId === 'rig-8-frame-bracket',
+          ),
           setupKey,
         );
         miningRig.root.position.copy(rigPosition(rig.id));
@@ -344,16 +352,19 @@ export class MiningScene {
       return;
     }
     const rig = getRig(world, inspectedRigId);
-    const gpuMountKey = Array.from({ length: GPUS_PER_RIG }, (_, index) => {
-      const gpuId = (rig.id - 1) * GPUS_PER_RIG + index + 1;
-      return isGpuUnlocked(world, gpuId) && !getGpu(world, gpuId).onWorkbench ? '1' : '0';
-    }).join('');
-    const setupKey = `${rigSetupKey(rig.setup)}:${gpuMountKey}`;
+    const gpuMountKey = rig.gpus
+      .map((gpu) => (isGpuUnlocked(world, gpu.id) && !gpu.onWorkbench ? gpu.modelId : 'empty'))
+      .join(':');
+    const setupKey = `${rigSetupKey(rig.setup)}:${gpuMountKey}:${this.gpuVisuals.modelRevision}`;
     if (this.previewRigId === rig.id && this.previewRigSetupKey === setupKey) {
       return;
     }
     this.clearRigPreview();
-    const model = this.assets.instantiateRig(rig.setup);
+    const model = this.assets.instantiateRig(
+      rig.setup,
+      rig.gpus.length,
+      rig.rigProductId === 'rig-8-frame-bracket',
+    );
     model.userData['rigId'] = rig.id;
     fitRigOnWorkbench(model);
     this.attachWorkbenchGpus(model, world, rig.id);
@@ -374,8 +385,9 @@ export class MiningScene {
   private attachWorkbenchGpus(model: THREE.Group, world: MiningWorld, rigId: number): void {
     model.updateMatrixWorld(true);
     const modelRotation = model.getWorldQuaternion(new THREE.Quaternion()).invert();
-    for (let index = 0; index < GPUS_PER_RIG; index++) {
-      const gpuId = (rigId - 1) * GPUS_PER_RIG + index + 1;
+    const connections: LiquidGpuConnection[] = [];
+    for (let index = 0; index < getRig(world, rigId).gpus.length; index++) {
+      const gpuId = gpuIdForRigSlot(rigId, index);
       const unlocked = isGpuUnlocked(world, gpuId);
       const mounted = unlocked && !getGpu(world, gpuId).onWorkbench;
       const socket = model.getObjectByName(`gpu-slot-${String(index + 1).padStart(2, '0')}`);
@@ -408,12 +420,46 @@ export class MiningScene {
       gpu.position.copy(position);
       gpu.quaternion.copy(rotation);
       model.add(gpu);
+      if (gpuHasLiquidCooling(getGpu(world, gpuId).modelId)) {
+        connections.push({ slotIndex: index, gpu });
+      }
+    }
+    const hoses = createRigLiquidHoses(model, connections);
+    if (hoses) model.add(hoses);
+  }
+
+  private syncLiquidHoses(world: MiningWorld): void {
+    for (const [rigId, rig] of this.rigs) {
+      const state = getRig(world, rigId);
+      const connections: LiquidGpuConnection[] = [];
+      if (state.setup.coolingMethodId === 'liquid') {
+        for (const [slotIndex, gpu] of state.gpus.entries()) {
+          if (!isGpuUnlocked(world, gpu.id) || !gpuHasLiquidCooling(gpu.modelId)) {
+            continue;
+          }
+          const mounted = this.gpuVisuals.getMountedGpuObject(gpu.id);
+          if (mounted) connections.push({ slotIndex, gpu: mounted });
+        }
+      }
+      const key = `${this.gpuVisuals.modelRevision}:${connections.map(({ slotIndex }) => slotIndex).join(',')}`;
+      if (rig.liquidHoseKey === key) continue;
+      rig.liquidHoseKey = key;
+      if (rig.liquidHoses) {
+        rig.model.remove(rig.liquidHoses);
+        disposeObject(rig.liquidHoses);
+        rig.liquidHoses = undefined;
+      }
+      const hoses = createRigLiquidHoses(rig.model, connections);
+      if (hoses) {
+        rig.model.add(hoses);
+        rig.liquidHoses = hoses;
+      }
     }
   }
 
   private gpuHomePose(id: number): GpuPose {
     const rig = this.rigs.get(rigIdForGpu(id))!;
-    const slot = rig.slots[(id - 1) % GPUS_PER_RIG]!;
+    const slot = rig.slots[gpuSlotIndex(id)]!;
     return {
       position: rig.root.localToWorld(slot.position.clone()),
       rotation: rig.root.getWorldQuaternion(new THREE.Quaternion()).multiply(slot.orientation),
@@ -423,7 +469,7 @@ export class MiningScene {
   private updateAppearance(world: MiningWorld): void {
     for (const [rigId, rig] of this.rigs) {
       for (const [index, slot] of rig.slots.entries()) {
-        const gpuId = (rigId - 1) * GPUS_PER_RIG + index + 1;
+        const gpuId = gpuIdForRigSlot(rigId, index);
         const unlocked = isGpuUnlocked(world, gpuId);
         const inspecting = gpuId === this.inspectedGpuId;
         const selected = gpuId === this.selectedGpuId;
@@ -489,6 +535,12 @@ export class MiningScene {
     const delta = Math.min((time - this.lastFrame) / 1000, 0.05);
     this.lastFrame = time;
     this.gpuVisuals.update(delta, this.isMining, this.reducedMotion.matches, this.activeGpuIds);
+    if (this.currentWorld) {
+      if (this.previewRigId !== null) {
+        this.syncRigWorkbench(this.currentWorld, this.selectedToolStationId, this.previewRigId);
+      }
+      this.syncLiquidHoses(this.currentWorld);
+    }
     this.cameraController.update(delta);
     this.particles.visible = this.isMining;
     if (this.isMining) {

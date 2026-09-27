@@ -59,6 +59,7 @@ export class GpuVisuals {
   private template: THREE.Group;
   private clips: THREE.AnimationClip[] = [];
   private inspectedGpuId: number | null = null;
+  private revision = 0;
   private disposed = false;
 
   constructor(
@@ -75,6 +76,17 @@ export class GpuVisuals {
   /** Snapshot for picking and particle placement; instance lifecycle stays in this class. */
   get objects(): readonly THREE.Group[] {
     return Array.from(this.gpus.values(), (gpu) => gpu.root);
+  }
+
+  get modelRevision(): number {
+    return this.revision;
+  }
+
+  getMountedGpuObject(id: number): THREE.Group | undefined {
+    const gpu = this.gpus.get(id);
+    return gpu && !gpu.state.onWorkbench && !gpu.transfer && id !== this.inspectedGpuId
+      ? gpu.root
+      : undefined;
   }
 
   createWorkbenchPreview(gpuId: number): THREE.Group {
@@ -111,6 +123,10 @@ export class GpuVisuals {
 
   sync(world: MiningWorld, inspectedGpuId: number | null): void {
     for (const [id, gpu] of this.gpus) {
+      if (!isGpuUnlocked(world, id)) {
+        this.removeGpu(id, gpu);
+        continue;
+      }
       const state = getGpu(world, id);
       const modelChanged = gpu.state.modelId !== state.modelId;
       gpu.state = state;
@@ -263,6 +279,7 @@ export class GpuVisuals {
     clone.userData['sharedGpu'] = true;
     gpu.effects = new GpuConditionEffects(clone);
     gpu.root.add(clone, gpu.effects.root);
+    this.revision++;
     gpu.fans = [];
     gpu.installedFanKit = 'stock';
     clone.traverse((object) => {

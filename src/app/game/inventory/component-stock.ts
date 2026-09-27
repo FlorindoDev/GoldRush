@@ -43,7 +43,7 @@ function applyStockDeltas(world: MiningWorld, deltas: ReadonlyMap<string, number
   let nextId = world.inventory.nextId;
   for (const [productId, delta] of deltas) {
     for (let index = 0; index < -delta; index++) {
-      remainingItems.push({ id: nextId++, productId });
+      remainingItems.push({ id: nextId++, productId, used: true });
     }
   }
   return {

@@ -1,3 +1,4 @@
+import { createGpuOperatingState } from './gpu-operation';
 import { signal } from '@angular/core';
 import { CRYPTO_CONFIG, STARTING_CRYPTO_ID } from '../config/crypto-config';
 import { FAN_MODELS_BY_ID, GPU_FAN_KITS } from '../config/fan-config';
@@ -5,9 +6,17 @@ import { GPU_MODELS_BY_ID } from '../config/gpu-config';
 import { RIG_COOLING_METHODS } from '../config/cooling-config';
 import { RIG_DUST_SYSTEMS } from '../config/dust-filter-config';
 import { MAX_RIG_FANS } from '../config/rig-config';
+import { rigSlotCount } from '../config/rig-model-config';
 import { SHOP_PRODUCTS_BY_ID } from '../config/shop-config';
+import { reconcileWallet } from './wallet-transactions';
 import type { GameService } from './game.service';
-import { GPUS_PER_RIG, PLOT_COUNT, RIGS_PER_PLOT, type MiningWorld } from './mining-world';
+import {
+  GPUS_PER_RIG,
+  gpuIdForRigSlot,
+  PLOT_COUNT,
+  RIGS_PER_PLOT,
+  type MiningWorld,
+} from './mining-world';
 import { clearStoredScriptFiles, type ScriptFile } from './script-storage';
 
 const STORAGE_KEY = 'goldrush-game-save-v1';
@@ -120,6 +129,7 @@ function isInventory(value: unknown): boolean {
       ids.has(item['id']) ||
       typeof item['productId'] !== 'string' ||
       !SHOP_PRODUCTS_BY_ID.has(item['productId']) ||
+      (item['used'] !== undefined && typeof item['used'] !== 'boolean') ||
       (item['gpu'] !== undefined && !isGpuState(item['gpu']))
     ) {
       return false;
@@ -132,7 +142,8 @@ function isInventory(value: unknown): boolean {
         !isRecord(rig) ||
         !isRigSetup(rig['setup']) ||
         !Array.isArray(rig['gpus']) ||
-        rig['gpus'].length !== GPUS_PER_RIG ||
+        (rig['gpus'].length !== GPUS_PER_RIG &&
+          rig['gpus'].length !== rigSlotCount(item['productId'])) ||
         (rig['isNew'] !== undefined && typeof rig['isNew'] !== 'boolean') ||
         !rig['gpus'].every(
           (gpu) =>
@@ -209,15 +220,16 @@ function isWorld(value: unknown): value is MiningWorld {
               !SHOP_PRODUCTS_BY_ID.has(rig['rigProductId'])))) ||
         !isRigSetup(rig['setup']) ||
         !Array.isArray(rig['gpus']) ||
-        rig['gpus'].length !== GPUS_PER_RIG
+        (rig['gpus'].length !== GPUS_PER_RIG &&
+          rig['gpus'].length !== rigSlotCount(rig['rigProductId'] as string | undefined))
       ) {
         return false;
       }
-      for (let slot = 0; slot < GPUS_PER_RIG; slot++) {
+      for (let slot = 0; slot < rig['gpus'].length; slot++) {
         const gpu = rig['gpus'][slot];
         if (
           !isGpuState(gpu) ||
-          gpu['id'] !== (rigId - 1) * GPUS_PER_RIG + slot + 1 ||
+          gpu['id'] !== gpuIdForRigSlot(rigId, slot) ||
           gpu['rigId'] !== rigId ||
           gpu['plotId'] !== plot['id'] ||
           typeof gpu['unlocked'] !== 'boolean' ||
@@ -274,16 +286,44 @@ function isScriptFiles(value: unknown): value is ScriptFile[] {
 }
 
 function restoredWorld(world: MiningWorld): MiningWorld {
+  const wallet = reconcileWallet(world);
   const initialChain = world.cryptoChains[STARTING_CRYPTO_ID];
   return {
-    ...world,
+    ...wallet,
     blocks: initialChain.blocks,
     selectedId: initialChain.selectedId,
+    inventory: {
+      ...world.inventory,
+      items: world.inventory.items.map((item) =>
+        item.rig
+          ? {
+              ...item,
+              rig: {
+                ...item.rig,
+                gpus: Array.from(
+                  { length: rigSlotCount(item.productId) },
+                  (_, index) => item.rig!.gpus[index] ?? null,
+                ),
+              },
+            }
+          : item,
+      ),
+    },
     plots: world.plots.map((plot) => ({
       ...plot,
       rigs: plot.rigs.map((rig) => ({
         ...rig,
-        gpus: rig.gpus.map((gpu) => ({ ...gpu, onWorkbench: false })),
+        gpus: Array.from({ length: rigSlotCount(rig.rigProductId) }, (_, index) => ({
+          ...(rig.gpus[index] ?? {
+            ...createGpuOperatingState(),
+            id: gpuIdForRigSlot(rig.id, index),
+            rigId: rig.id,
+            plotId: rig.plotId,
+            cryptoId: STARTING_CRYPTO_ID,
+            unlocked: false,
+          }),
+          onWorkbench: false,
+        })),
       })),
     })),
   };

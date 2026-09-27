@@ -209,6 +209,20 @@ describe('GPU visuals', () => {
     expect(second.quaternion.angleTo(homePose(2).rotation)).toBeLessThan(1e-7);
   });
 
+  it('exposes hose ports only while the GPU is mounted and transfer has finished', () => {
+    const { visuals } = setup();
+    const world = worldWithGpus(1);
+    visuals.sync(world, null);
+    expect(visuals.getMountedGpuObject(1)).toBe(visuals.objects[0]);
+    visuals.sync(world, 1);
+    expect(visuals.getMountedGpuObject(1)).toBeUndefined();
+    visuals.update(duration, false, false);
+    visuals.sync(world, null);
+    expect(visuals.getMountedGpuObject(1)).toBeUndefined();
+    visuals.update(duration, false, false);
+    expect(visuals.getMountedGpuObject(1)).toBe(visuals.objects[0]);
+  });
+
   it('finishes transfers immediately with reduced motion and spins fans only while mining', () => {
     const { visuals, mount } = setup();
     visuals.sync(worldWithGpus(1), 1);

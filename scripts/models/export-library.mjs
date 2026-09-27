@@ -1,3 +1,4 @@
+import { RIG_MODELS } from '../../src/app/config/rig-model-config.ts';
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { batchMeshes } from './primitives.mjs';
@@ -132,36 +133,37 @@ export async function exportLibrary(save, onlyIds = []) {
       );
     }
   }
-  for (const cooling of ['none', 'bracket']) {
+  for (const rig of RIG_MODELS) {
     await add(
-      `rig-8-frame-${cooling}`,
-      cooling === 'none' ? 'Rig 8 · Telaio base' : 'Rig 8 · Telaio con supporto esterno',
+      rig.id,
+      rig.name,
       'rigs',
-      createRig({ cooling, populated: false }),
+      createRig({
+        slotCount: rig.slots,
+        filter: rig.filter,
+        cooling: rig.cooling,
+        populated: false,
+      }),
       {
-        description:
-          'Telaio vuoto con otto riser, scheda madre, due PSU e attacchi per ventole e filtri.',
-        slots: 8,
-        cooling,
-        filter: 'none',
+        description: rig.description,
+        slots: rig.slots,
+        filter: rig.filter,
+        cooling: rig.cooling,
         populated: false,
       },
     );
   }
-  await add(
-    'rig-8-frame-filtered',
-    'Rig 8 · Telaio filtrato con supporto',
-    'rigs',
-    createRig({ filter: 'mesh', cooling: 'bracket', populated: false }),
-    {
-      description:
-        'Telaio da otto GPU con filtro magnetico e staffe laterali per raffreddamento esterno.',
-      slots: 8,
-      filter: 'mesh',
-      cooling: 'bracket',
-      populated: false,
-    },
-  );
+  for (const cooling of [...Object.keys(RIG_COOLING_METHODS), 'bracket']) {
+    for (const filter of Object.keys(RIG_DUST_SYSTEMS)) {
+      await add(
+        `rig-runtime-8-${filter}-${cooling}`,
+        `Rig 8 · ${filter} / ${cooling}`,
+        'rigs',
+        createRig({ slotCount: 8, filter, cooling, populated: false, installedFans: true }),
+        { slots: 8, filter, cooling, populated: false },
+      );
+    }
+  }
   for (const spec of FAN_MODELS) {
     await add(spec.id, spec.name, 'fans', createFan(spec), {
       description: `Livello ${spec.tier}/${FAN_MODELS.length}. Rotore indipendente, supporti antivibrazione${spec.tier >= 3 ? ' e griglia protettiva' : ''}. Valori nominali di gioco.`,
@@ -221,23 +223,6 @@ export async function exportLibrary(save, onlyIds = []) {
       ...(spec.specifications ?? {}),
     });
   }
-  await add(
-    'rig-gameplay',
-    `Rig ${GAME_BALANCE.world.gpusPerRig} · Modular`,
-    'rigs',
-    createRig({
-      slotCount: GAME_BALANCE.world.gpusPerRig,
-      populated: false,
-      installedFans: true,
-      fanId: GAMEPLAY_RIG_SETUP.fanId,
-    }),
-    {
-      description:
-        'Rig della partita: telaio modulare nello stesso stile della famiglia da otto GPU.',
-      slots: GAME_BALANCE.world.gpusPerRig,
-      populated: false,
-    },
-  );
   for (const cooling of Object.keys(RIG_COOLING_METHODS)) {
     for (const filter of Object.keys(RIG_DUST_SYSTEMS)) {
       const id = `rig-gameplay-${filter}-${cooling}`;

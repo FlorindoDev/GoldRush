@@ -4,6 +4,7 @@ import { GAMEPLAY_RIG_SETUP, type RigSetup } from '../config/rig-config';
 import type { GpuFanKit } from './gpu-maintenance';
 import {
   gpuMiningPowerWatts,
+  gpuMiningProgress,
   gpuIdlePowerWatts,
   gpuCurrentFanSpeedPercent,
   gpuEffectiveFrequencyGhz,
@@ -19,6 +20,7 @@ export interface GpuTelemetry {
   readonly model: string;
   readonly frequencyGhz: number;
   readonly powerWatts: number;
+  readonly progressPerAction: number;
   readonly temperatureCelsius: number;
   readonly fanSpeed: number;
   readonly targetFanSpeedPercent: number | null;
@@ -41,6 +43,7 @@ export function getGpuTelemetry(
   rigRunning = true,
   rigPoweredDownAt = now,
   rigSetup: RigSetup = GAMEPLAY_RIG_SETUP,
+  slotCount: number = GAME_BALANCE.world.gpusPerRig,
 ): GpuTelemetry {
   const model = GPU_MODELS_BY_ID[gpu?.modelId ?? GAME_BALANCE.models.startingGpuId];
   const { idle, mining, limits } = model.specifications;
@@ -82,15 +85,16 @@ export function getGpuTelemetry(
       powered && operational
         ? round(
             interpolate(
-              gpuIdlePowerWatts(rigSetup, gpu?.modelId),
+              gpuIdlePowerWatts(rigSetup, gpu?.modelId, slotCount),
               gpu
-                ? gpuMiningPowerWatts(gpu, rigSetup, temperatureCelsius)
-                : mining.powerWatts + rigAuxiliaryPowerWattsPerGpu(rigSetup),
+                ? gpuMiningPowerWatts(gpu, rigSetup, temperatureCelsius, slotCount)
+                : mining.powerWatts + rigAuxiliaryPowerWattsPerGpu(rigSetup, slotCount),
               load,
             ),
             2,
           )
         : 0,
+    progressPerAction: gpu && operational ? gpuMiningProgress(gpu, temperatureCelsius) : 0,
     temperatureCelsius: round(temperatureCelsius, 2),
     fanSpeed,
     targetFanSpeedPercent: gpu?.targetFanSpeedPercent ?? null,

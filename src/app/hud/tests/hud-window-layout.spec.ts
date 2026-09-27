@@ -19,6 +19,7 @@ describe('HudWindowLayout', () => {
     const element = {
       style: { height: '' },
       getBoundingClientRect: () => ({ width: 300, height: 180, left: 0, top: 0 }),
+      closest: () => null,
     };
     const preventDefault = vi.fn();
     layout.resizeWindowWithKeyboard(

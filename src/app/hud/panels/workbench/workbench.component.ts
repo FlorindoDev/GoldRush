@@ -47,6 +47,10 @@ export class WorkbenchComponent implements OnDestroy {
     const id = this.game.inspectedGpuId();
     return id === null ? null : getGpu(this.game.world(), id);
   });
+  readonly gpuMining = computed(() => {
+    const gpu = this.gpu();
+    return gpu === null || this.game.isGpuMining(gpu.id);
+  });
   readonly gpuSupportsFanKits = computed(() => {
     const gpu = this.gpu();
     return gpu !== null && GPU_MODELS_BY_ID[gpu.modelId].supportsFanKits;
@@ -60,7 +64,7 @@ export class WorkbenchComponent implements OnDestroy {
     const kit = this.fanKits.find((option) => option.id === kitId);
     const current = this.gpu();
     return (
-      !this.game.running() &&
+      !this.gpuMining() &&
       this.gpuSupportsFanKits() &&
       kit !== undefined &&
       (kit.researchId === null || this.game.isResearchUnlocked(kit.researchId)) &&
@@ -69,8 +73,8 @@ export class WorkbenchComponent implements OnDestroy {
   }
 
   fanKitUnavailableReason(kitId: GpuFanKit): string {
-    if (this.game.running()) {
-      return 'Ferma il programma per intervenire sulla GPU';
+    if (this.gpuMining()) {
+      return 'Attendi che questa GPU termini mine()';
     }
     if (!this.gpuSupportsFanKits()) {
       return 'Questa GPU non supporta kit ventole';
@@ -96,9 +100,12 @@ export class WorkbenchComponent implements OnDestroy {
     this.gpu() ? thermalServiceHoursRemaining(this.gpu()!) : 0,
   );
   readonly wearMultiplier = computed(() => dustWearMultiplier(this.gpu()?.dustPercent ?? 0));
-  readonly thermalReady = computed(
-    () => this.remainingHours() === 0 && (this.gpu()?.wearPercent ?? 0) > 0,
-  );
+  readonly thermalReady = computed(() => {
+    const gpu = this.gpu();
+    return Boolean(
+      gpu && gpu.wearPercent > 0 && (gpu.wearPercent >= 100 || this.remainingHours() === 0),
+    );
+  });
 
   select(intervention: Intervention): void {
     this.selected.set(intervention);
@@ -111,7 +118,7 @@ export class WorkbenchComponent implements OnDestroy {
       action.kind === 'clean'
         ? 'Pulizia completata.'
         : action.kind === 'thermal'
-          ? 'Pasta e pad sostituiti. Usura azzerata.'
+          ? `Pasta e pad sostituiti. Usura ridotta dello ${this.config.thermalServiceWearReductionPercent}%.`
           : `Ventole ${GAME_BALANCE.gpu.fanKits[action.kit].label.toLowerCase()} installate.`,
     );
   }

@@ -1,3 +1,4 @@
+import { RIG_MODELS } from './rig-model-config';
 import { GPU_MODELS } from './gpu-config';
 import { FAN_MODELS, GPU_FAN_MODELS, GPU_FAN_KITS } from './fan-config';
 import { FILTER_MODELS } from './dust-filter-config';
@@ -98,28 +99,36 @@ export const SHOP_PRODUCTS: readonly ShopProduct[] = [
       spec('Resistenza termica', `+${filter.airflowResistanceCelsius} °C`),
     ],
   })),
-  ...research
-    .filter((node) => node.category === 'rig' && node.id !== 'rig')
-    .map((node, index): ShopProduct => ({
-      id: node.id,
-      name: node.name,
-      category: 'rig',
-      model: node.model,
-      priceEur: [95, 210, 300, 340][index],
-      researchId: node.id,
-      description: node.description,
-      specs: [
-        spec('Formato', node.id === 'rig-gameplay' ? '4 GPU' : '8 GPU'),
-        spec('GPU incluse', 'Nessuna'),
-      ],
-    })),
+  ...RIG_MODELS.map((rig): ShopProduct => ({
+    id: rig.id,
+    name: rig.name,
+    category: 'rig',
+    model: `assets/models/rigs/${rig.id}.glb`,
+    priceEur: rig.priceEur,
+    researchId: rig.id,
+    description: rig.description,
+    specs: [
+      spec('Formato', `${rig.slots} GPU`),
+      spec('GPU incluse', 'Nessuna'),
+      spec('Filtro incluso', rig.filter === 'mesh' ? 'Rete' : 'Nessuno'),
+      spec(
+        'Raffreddamento',
+        rig.cooling === 'liquid' ? 'Liquido' : rig.cooling === 'air' ? 'Aria' : 'Nessuno',
+      ),
+    ],
+  })),
   ...COOLING_MODELS.map((cooling, index): ShopProduct => ({
     id: cooling.id,
     name: cooling.name,
     category: 'cooling',
     model: `assets/models/cooling/${cooling.id}.glb`,
     priceEur: [25, 110, 220][index],
-    researchId: 'rig-8-frame-bracket',
+    researchId:
+      cooling.style === 'liquid'
+        ? 'rig-4-frame-liquid'
+        : cooling.style === 'air'
+          ? 'rig-4-frame-air'
+          : 'rig-8-frame-bracket',
     description: 'Modulo esterno per il raffreddamento del RIG.',
     specs: [
       spec(

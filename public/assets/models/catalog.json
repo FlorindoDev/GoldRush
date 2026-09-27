@@ -295,57 +295,6 @@
       "populated": true
     },
     {
-      "id": "rig-8-frame-none",
-      "name": "Rig 8 · Telaio base",
-      "category": "rigs",
-      "path": "assets/models/rigs/rig-8-frame-none.glb",
-      "dimensions": [
-        6.06,
-        3.24,
-        3.66
-      ],
-      "bytes": 177568,
-      "description": "Telaio vuoto con otto riser, scheda madre, due PSU e attacchi per ventole e filtri.",
-      "slots": 8,
-      "cooling": "none",
-      "filter": "none",
-      "populated": false
-    },
-    {
-      "id": "rig-8-frame-bracket",
-      "name": "Rig 8 · Telaio con supporto esterno",
-      "category": "rigs",
-      "path": "assets/models/rigs/rig-8-frame-bracket.glb",
-      "dimensions": [
-        8.02,
-        3.315,
-        3.66
-      ],
-      "bytes": 192256,
-      "description": "Telaio vuoto con otto riser, scheda madre, due PSU e attacchi per ventole e filtri.",
-      "slots": 8,
-      "cooling": "bracket",
-      "filter": "none",
-      "populated": false
-    },
-    {
-      "id": "rig-8-frame-filtered",
-      "name": "Rig 8 · Telaio filtrato con supporto",
-      "category": "rigs",
-      "path": "assets/models/rigs/rig-8-frame-filtered.glb",
-      "dimensions": [
-        8.02,
-        3.315,
-        3.935
-      ],
-      "bytes": 251836,
-      "description": "Telaio da otto GPU con filtro magnetico e staffe laterali per raffreddamento esterno.",
-      "slots": 8,
-      "filter": "mesh",
-      "cooling": "bracket",
-      "populated": false
-    },
-    {
       "id": "fan-airflow-120",
       "name": "Flow 120",
       "category": "fans",
@@ -1032,51 +981,6 @@
       }
     },
     {
-      "id": "gpu-hybrid",
-      "name": "Miner H1 · Hybrid",
-      "category": "gpus",
-      "path": "assets/models/gpus/gpu-hybrid.glb",
-      "dimensions": [
-        2.903,
-        0.921,
-        1.396
-      ],
-      "bytes": 152628,
-      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
-      "fanCount": 1,
-      "cooling": "hybrid",
-      "specifications": {
-        "idle": {
-          "frequencyGhz": 0.5,
-          "powerWatts": 32,
-          "temperatureCelsius": 32,
-          "fanSpeedPercent": 15
-        },
-        "mining": {
-          "frequencyGhz": 1.8,
-          "powerWatts": 200,
-          "temperatureCelsius": 67,
-          "fanSpeedPercent": 65
-        },
-        "limits": {
-          "minFrequencyGhz": 0.5,
-          "frequencyGhz": 2,
-          "absoluteFrequencyGhz": 2.6,
-          "fanSpeedRpm": 4200,
-          "temperatureCelsius": 90
-        },
-        "thermalResponsePerAction": 0.5,
-        "wearPercentPerHour": 0.0045,
-        "dustDamage": {
-          "dustBuildUpMultiplier": 0.95,
-          "maxExtraHeatCelsius": 18,
-          "maxHeatingResponseBonus": 0.65,
-          "wearThresholdPercent": 65,
-          "maxWearMultiplier": 2.6
-        }
-      }
-    },
-    {
       "id": "filter-mesh",
       "name": "Filtro magnetico a rete",
       "category": "filters",
@@ -1195,21 +1099,6 @@
           2.57
         ]
       }
-    },
-    {
-      "id": "rig-gameplay",
-      "name": "Rig 4 · Modular",
-      "category": "rigs",
-      "path": "assets/models/rigs/rig-gameplay.glb",
-      "dimensions": [
-        6.06,
-        3.24,
-        3.66
-      ],
-      "bytes": 592636,
-      "description": "Rig della partita: telaio modulare nello stesso stile della famiglia da otto GPU.",
-      "slots": 4,
-      "populated": false
     },
     {
       "id": "rig-gameplay-none-none",
@@ -1718,6 +1607,528 @@
       ],
       "bytes": 411304,
       "description": "Pavimento e postazioni officina."
+    },
+    {
+      "id": "gpu-hybrid",
+      "name": "Miner H1 · Hybrid",
+      "category": "gpus",
+      "path": "assets/models/gpus/gpu-hybrid.glb",
+      "dimensions": [
+        2.903,
+        0.921,
+        1.396
+      ],
+      "bytes": 152784,
+      "description": "PCB, contatti PCIe, uscite video, backplate e connettori di alimentazione. Geometria originale.",
+      "fanCount": 1,
+      "cooling": "hybrid",
+      "specifications": {
+        "idle": {
+          "frequencyGhz": 0.5,
+          "powerWatts": 32,
+          "temperatureCelsius": 32,
+          "fanSpeedPercent": 15
+        },
+        "mining": {
+          "frequencyGhz": 1.8,
+          "powerWatts": 200,
+          "temperatureCelsius": 67,
+          "fanSpeedPercent": 65
+        },
+        "limits": {
+          "minFrequencyGhz": 0.5,
+          "frequencyGhz": 2,
+          "absoluteFrequencyGhz": 2.6,
+          "fanSpeedRpm": 4200,
+          "temperatureCelsius": 90
+        },
+        "thermalResponsePerAction": 0.5,
+        "wearPercentPerHour": 0.0045,
+        "dustDamage": {
+          "dustBuildUpMultiplier": 0.95,
+          "maxExtraHeatCelsius": 18,
+          "maxHeatingResponseBonus": 0.65,
+          "wearThresholdPercent": 65,
+          "maxWearMultiplier": 2.6
+        }
+      }
+    },
+    {
+      "id": "rig-gameplay",
+      "name": "RIG 4 · Telaio base",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-gameplay.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        3.66
+      ],
+      "bytes": 133804,
+      "description": "Telaio da 4 GPU. Senza filtro. Senza supporto esterno. GPU e ventole del telaio acquistabili separatamente.",
+      "slots": 4,
+      "filter": "none",
+      "cooling": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-4-frame-filtered",
+      "name": "RIG 4 · Solo filtro",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-4-frame-filtered.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        3.935
+      ],
+      "bytes": 193348,
+      "description": "Telaio da 4 GPU. Filtro a rete incluso. Senza supporto esterno. GPU e ventole del telaio acquistabili separatamente.",
+      "slots": 4,
+      "filter": "mesh",
+      "cooling": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-4-frame-air",
+      "name": "RIG 4 · Aria esterna",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-4-frame-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.66
+      ],
+      "bytes": 424796,
+      "description": "Telaio da 4 GPU. Senza filtro. Modulo esterno a ventole incluso. GPU e ventole del telaio acquistabili separatamente.",
+      "slots": 4,
+      "filter": "none",
+      "cooling": "air",
+      "populated": false
+    },
+    {
+      "id": "rig-4-frame-liquid",
+      "name": "RIG 4 · Liquido esterno",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-4-frame-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        3.66
+      ],
+      "bytes": 395140,
+      "description": "Telaio da 4 GPU. Senza filtro. Pompa e radiatore esterni inclusi. GPU e ventole del telaio acquistabili separatamente.",
+      "slots": 4,
+      "filter": "none",
+      "cooling": "liquid",
+      "populated": false
+    },
+    {
+      "id": "rig-4-frame-filtered-air",
+      "name": "RIG 4 · Filtro + aria",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-4-frame-filtered-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.935
+      ],
+      "bytes": 484200,
+      "description": "Telaio da 4 GPU. Filtro a rete incluso. Modulo esterno a ventole incluso. GPU e ventole del telaio acquistabili separatamente.",
+      "slots": 4,
+      "filter": "mesh",
+      "cooling": "air",
+      "populated": false
+    },
+    {
+      "id": "rig-4-frame-filtered-liquid",
+      "name": "RIG 4 · Filtro + liquido",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-4-frame-filtered-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        3.935
+      ],
+      "bytes": 454724,
+      "description": "Telaio da 4 GPU. Filtro a rete incluso. Pompa e radiatore esterni inclusi. GPU e ventole del telaio acquistabili separatamente.",
+      "slots": 4,
+      "filter": "mesh",
+      "cooling": "liquid",
+      "populated": false
+    },
+    {
+      "id": "rig-8-frame-none",
+      "name": "RIG 8 · Telaio base",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-frame-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        3.66
+      ],
+      "bytes": 177568,
+      "description": "Telaio da 8 GPU. Senza filtro. Senza supporto esterno. GPU e ventole del telaio acquistabili separatamente.",
+      "slots": 8,
+      "filter": "none",
+      "cooling": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-8-frame-filtered",
+      "name": "RIG 8 · Solo filtro",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-frame-filtered.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        3.935
+      ],
+      "bytes": 237124,
+      "description": "Telaio da 8 GPU. Filtro a rete incluso. Senza supporto esterno. GPU e ventole del telaio acquistabili separatamente.",
+      "slots": 8,
+      "filter": "mesh",
+      "cooling": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-8-frame-air",
+      "name": "RIG 8 · Aria esterna",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-frame-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.66
+      ],
+      "bytes": 468616,
+      "description": "Telaio da 8 GPU. Senza filtro. Modulo esterno a ventole incluso. GPU e ventole del telaio acquistabili separatamente.",
+      "slots": 8,
+      "filter": "none",
+      "cooling": "air",
+      "populated": false
+    },
+    {
+      "id": "rig-8-frame-liquid",
+      "name": "RIG 8 · Liquido esterno",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-frame-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        3.66
+      ],
+      "bytes": 438960,
+      "description": "Telaio da 8 GPU. Senza filtro. Pompa e radiatore esterni inclusi. GPU e ventole del telaio acquistabili separatamente.",
+      "slots": 8,
+      "filter": "none",
+      "cooling": "liquid",
+      "populated": false
+    },
+    {
+      "id": "rig-8-frame-filtered-air",
+      "name": "RIG 8 · Filtro + aria",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-frame-filtered-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.935
+      ],
+      "bytes": 528040,
+      "description": "Telaio da 8 GPU. Filtro a rete incluso. Modulo esterno a ventole incluso. GPU e ventole del telaio acquistabili separatamente.",
+      "slots": 8,
+      "filter": "mesh",
+      "cooling": "air",
+      "populated": false
+    },
+    {
+      "id": "rig-8-frame-filtered-liquid",
+      "name": "RIG 8 · Filtro + liquido",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-frame-filtered-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        3.935
+      ],
+      "bytes": 498564,
+      "description": "Telaio da 8 GPU. Filtro a rete incluso. Pompa e radiatore esterni inclusi. GPU e ventole del telaio acquistabili separatamente.",
+      "slots": 8,
+      "filter": "mesh",
+      "cooling": "liquid",
+      "populated": false
+    },
+    {
+      "id": "rig-8-frame-bracket",
+      "name": "RIG 8 · Supporto esterno",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-8-frame-bracket.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.66
+      ],
+      "bytes": 192256,
+      "description": "Telaio da otto GPU con supporto esterno vuoto. Senza filtro, pompa o radiatore.",
+      "slots": 8,
+      "filter": "none",
+      "cooling": "bracket",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-none-none",
+      "name": "Rig 8 · none / none",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-none-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        3.66
+      ],
+      "bytes": 269336,
+      "slots": 8,
+      "filter": "none",
+      "cooling": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-mesh-none",
+      "name": "Rig 8 · mesh / none",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-mesh-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        3.935
+      ],
+      "bytes": 328904,
+      "slots": 8,
+      "filter": "mesh",
+      "cooling": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-pleated-none",
+      "name": "Rig 8 · pleated / none",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-pleated-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        4.005
+      ],
+      "bytes": 320572,
+      "slots": 8,
+      "filter": "pleated",
+      "cooling": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-carbon-none",
+      "name": "Rig 8 · carbon / none",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-carbon-none.glb",
+      "dimensions": [
+        6.06,
+        3.24,
+        4.005
+      ],
+      "bytes": 330692,
+      "slots": 8,
+      "filter": "carbon",
+      "cooling": "none",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-none-air",
+      "name": "Rig 8 · none / air",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-none-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.724
+      ],
+      "bytes": 600520,
+      "slots": 8,
+      "filter": "none",
+      "cooling": "air",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-mesh-air",
+      "name": "Rig 8 · mesh / air",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-mesh-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.935
+      ],
+      "bytes": 659912,
+      "slots": 8,
+      "filter": "mesh",
+      "cooling": "air",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-pleated-air",
+      "name": "Rig 8 · pleated / air",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-pleated-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        4.005
+      ],
+      "bytes": 651580,
+      "slots": 8,
+      "filter": "pleated",
+      "cooling": "air",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-carbon-air",
+      "name": "Rig 8 · carbon / air",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-carbon-air.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        4.005
+      ],
+      "bytes": 661700,
+      "slots": 8,
+      "filter": "carbon",
+      "cooling": "air",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-none-liquid",
+      "name": "Rig 8 · none / liquid",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-none-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        3.66
+      ],
+      "bytes": 530884,
+      "slots": 8,
+      "filter": "none",
+      "cooling": "liquid",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-mesh-liquid",
+      "name": "Rig 8 · mesh / liquid",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-mesh-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        3.935
+      ],
+      "bytes": 590456,
+      "slots": 8,
+      "filter": "mesh",
+      "cooling": "liquid",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-pleated-liquid",
+      "name": "Rig 8 · pleated / liquid",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-pleated-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        4.005
+      ],
+      "bytes": 582120,
+      "slots": 8,
+      "filter": "pleated",
+      "cooling": "liquid",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-carbon-liquid",
+      "name": "Rig 8 · carbon / liquid",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-carbon-liquid.glb",
+      "dimensions": [
+        8.43,
+        3.315,
+        4.005
+      ],
+      "bytes": 592244,
+      "slots": 8,
+      "filter": "carbon",
+      "cooling": "liquid",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-none-bracket",
+      "name": "Rig 8 · none / bracket",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-none-bracket.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.66
+      ],
+      "bytes": 284056,
+      "slots": 8,
+      "filter": "none",
+      "cooling": "bracket",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-mesh-bracket",
+      "name": "Rig 8 · mesh / bracket",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-mesh-bracket.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        3.935
+      ],
+      "bytes": 343624,
+      "slots": 8,
+      "filter": "mesh",
+      "cooling": "bracket",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-pleated-bracket",
+      "name": "Rig 8 · pleated / bracket",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-pleated-bracket.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        4.005
+      ],
+      "bytes": 335292,
+      "slots": 8,
+      "filter": "pleated",
+      "cooling": "bracket",
+      "populated": false
+    },
+    {
+      "id": "rig-runtime-8-carbon-bracket",
+      "name": "Rig 8 · carbon / bracket",
+      "category": "rigs",
+      "path": "assets/models/rigs/rig-runtime-8-carbon-bracket.glb",
+      "dimensions": [
+        8.02,
+        3.315,
+        4.005
+      ],
+      "bytes": 345412,
+      "slots": 8,
+      "filter": "carbon",
+      "cooling": "bracket",
+      "populated": false
     }
   ]
 }

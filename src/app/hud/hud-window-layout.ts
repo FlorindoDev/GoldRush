@@ -6,9 +6,6 @@ type WindowPosition = { x: number; y: number };
 type WindowDrag = {
   name: WindowName;
   pointerId: number;
-  startX: number;
-  startY: number;
-  moved: boolean;
   offsetX: number;
   offsetY: number;
   element: HTMLElement;
@@ -102,9 +99,6 @@ export class HudWindowLayout {
     this.windowDrag = {
       name,
       pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      moved: false,
       offsetX: event.clientX - bounds.left,
       offsetY: event.clientY - bounds.top,
       element,
@@ -173,9 +167,6 @@ export class HudWindowLayout {
   moveWindow(event: PointerEvent): void {
     const drag = this.windowDrag;
     if (drag && event.pointerId === drag.pointerId) {
-      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) >= 12) {
-        drag.moved = true;
-      }
       const maxX = Math.max(8, window.innerWidth - drag.element.offsetWidth - 8);
       const maxY = Math.max(8, window.innerHeight - drag.element.offsetHeight - 8);
       this.setWindowPosition(drag.name, {
@@ -200,16 +191,13 @@ export class HudWindowLayout {
     );
   }
 
-  stopWindowInteraction(event: PointerEvent): { name: WindowName; moved: boolean } | null {
-    let finishedDrag: { name: WindowName; moved: boolean } | null = null;
+  stopWindowInteraction(event: PointerEvent): void {
     if (this.windowDrag?.pointerId === event.pointerId) {
-      finishedDrag = { name: this.windowDrag.name, moved: this.windowDrag.moved };
       this.windowDrag = undefined;
     }
     if (this.windowResize?.pointerId === event.pointerId) {
       this.windowResize = undefined;
     }
-    return finishedDrag;
   }
 
   private focusResizeTarget(target: ResizeTarget, element: HTMLElement): void {

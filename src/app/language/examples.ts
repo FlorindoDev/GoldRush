@@ -69,14 +69,7 @@ print("Mining completato!");`,
   {
     name: 'Controlli GPU in parallelo',
     code: `// mine() avvia già tutte le GPU sbloccate insieme.
-let gpuUno = plots[0].rigs[0].gpus[0];
-let gpuDue = plots[0].rigs[0].gpus[1];
-
-parallel {
-  gpuUno.setFrequencyGhz(gpuUno.getMaxFrequencyGhz());
-  gpuDue.setFrequencyGhz(gpuDue.getMaxFrequencyGhz());
-}
-
+${GUIDE_CODE.parallel}
 print("Frequenze aggiornate insieme.");`,
   },
   {

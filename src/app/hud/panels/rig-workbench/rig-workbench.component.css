@@ -8,7 +8,7 @@
   top: 80px;
   right: 24px;
   bottom: 24px;
-  width: 420px;
+  width: 450px;
   max-width: calc(100vw - 32px);
   color: var(--bench-text);
   font-family: 'Segoe UI', sans-serif;
@@ -116,6 +116,11 @@ h2 {
   font-size: 14px;
   font-weight: 400;
 }
+.fan-cooling-note {
+  margin-top: -12px;
+  color: var(--bench-muted);
+  font-size: 13px;
+}
 meter {
   display: block;
   width: 100%;
@@ -187,8 +192,8 @@ h3 {
 }
 .fan-counts {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
   margin: 10px 0 24px;
 }
 .count-choice {
@@ -196,7 +201,7 @@ h3 {
   justify-items: center;
   align-content: center;
   gap: 2px;
-  min-height: 44px;
+  min-height: 40px;
   min-width: 0;
   border: 1px solid var(--bench-line);
   background: #273027;
@@ -314,7 +319,7 @@ footer {
     right: 10px;
     bottom: 10px;
     width: calc(100vw - 20px);
-    max-width: 420px;
+    max-width: 450px;
   }
   .bench-heading {
     min-height: 56px;
@@ -332,6 +337,9 @@ footer {
   }
   .intervention {
     font-size: 14px;
+  }
+  .fan-counts {
+    gap: 4px;
   }
   footer {
     padding: 12px 20px;

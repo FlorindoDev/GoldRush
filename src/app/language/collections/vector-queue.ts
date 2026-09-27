@@ -16,6 +16,10 @@ export class VectorQueueValue implements ScriptObject {
 
   callMethod(name: string, args: Value[], line: number): Value {
     switch (name) {
+      case 'size':
+      case 'length':
+        requireMethodArguments(name, args, 0, line);
+        return this.items.length - this.head;
       case 'enqueue':
         requireMethodArguments(name, args, 1, line);
         if (this.items.length - this.head >= MAX_COLLECTION_SIZE) {

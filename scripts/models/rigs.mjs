@@ -3,7 +3,7 @@ import { createFan, FAN_MODELS } from './fans.mjs';
 import { createGpu, GPU_MODELS } from './gpus.mjs';
 import { COOLING_MODELS, RIG_COOLING_METHODS } from '../../src/app/config/cooling-config.ts';
 import { FILTER_MODELS, RIG_DUST_SYSTEMS } from '../../src/app/config/dust-filter-config.ts';
-import { GAMEPLAY_RIG_SETUP } from '../../src/app/config/rig-config.ts';
+import { GAMEPLAY_RIG_SETUP, MAX_RIG_FANS } from '../../src/app/config/rig-config.ts';
 export { COOLING_MODELS, FILTER_MODELS };
 
 export function createFilter(style) {
@@ -155,11 +155,16 @@ export function createRig({
   if (!fanSpec) {
     throw new Error(`Unknown rig fan: ${fanId}`);
   }
-  for (let i = 0; i < fanCount; i++) {
-    const fanOffset = (i - (fanCount - 1) / 2) * 1.09;
+  const activeMounts = new Set(
+    Array.from({ length: MAX_RIG_FANS }, (_, i) => i)
+      .sort((a, b) => Math.abs(a - 2) - Math.abs(b - 2))
+      .slice(0, fanCount),
+  );
+  for (let i = 0; i < MAX_RIG_FANS; i++) {
+    const fanOffset = (i - (MAX_RIG_FANS - 1) / 2) * 1.09;
     const mount = group(`fan-mount-${i + 1}`, [fanOffset, 0.94, 1.65]);
     mount.userData = { accepts: 'fan', animationAxis: 'z' };
-    if (installedFans) {
+    if (installedFans && activeMounts.has(i)) {
       const fan = createFan(fanSpec);
       fan.scale.setScalar(1 / fanSpec.size);
       mount.add(fan);

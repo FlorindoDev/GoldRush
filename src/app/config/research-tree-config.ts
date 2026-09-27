@@ -1,3 +1,4 @@
+import { RIG_MODELS } from './rig-model-config';
 import { CRYPTO_CONFIG } from './crypto-config';
 
 /** Albero della ricerca. `children` crea i collegamenti; `requirements` aggiunge vincoli extra. */
@@ -21,6 +22,26 @@ export interface ResearchNode {
 }
 
 const model = (folder: string, id: string) => `assets/models/${folder}/${id}.glb`;
+
+function rigResearchBranch(id: string): ResearchNode {
+  const rig = RIG_MODELS.find((entry) => entry.id === id)!;
+  return {
+    id: rig.id,
+    name: rig.name,
+    category: 'rig',
+    model: model('rigs', rig.id),
+    description: rig.description,
+    costEur: rig.researchCostEur,
+    initiallyUnlocked: id === 'rig-gameplay',
+    requirements: [
+      ...rig.requiredNodeIds.map((id): ResearchRequirement => ({ kind: 'node', id })),
+      ...(id === 'rig-8-frame-none' ? [{ kind: 'rigs' as const, count: 2 }] : []),
+    ],
+    children: RIG_MODELS.filter((entry) => entry.parentId === id).map((entry) =>
+      rigResearchBranch(entry.id),
+    ),
+  };
+}
 
 /** Ogni valuta richiede la precedente; configurazione economica unica in crypto-config. */
 function cryptoResearchBranch(index: number): ResearchNode {
@@ -148,9 +169,10 @@ export const RESEARCH_TREE: ResearchNode = {
               name: 'Miner L0 · Hydro',
               category: 'gpu',
               model: model('gpus', 'gpu-liquid'),
-              description: 'Il circuito a liquido mantiene basse le temperature durante il mining.',
+              description:
+                'Waterblock senza ventole: richiede Hydro Tower nel RIG per evitare il surriscaldamento.',
               costEur: 400,
-              requirements: [{ kind: 'node', id: 'rig-8-frame-bracket' }],
+              requirements: [{ kind: 'node', id: 'rig-4-frame-liquid' }],
             },
             {
               id: 'gpu-hybrid',
@@ -328,49 +350,7 @@ export const RESEARCH_TREE: ResearchNode = {
       description: 'Telai aperti, supporti esterni e varianti filtrate.',
       costEur: 0,
       initiallyUnlocked: true,
-      children: [
-        {
-          id: 'rig-gameplay',
-          name: 'RIG 4 · Modular',
-          category: 'rig',
-          model: model('rigs', 'rig-gameplay'),
-          description: 'Telaio aperto a quattro posti. In dotazione all’inizio della partita.',
-          costEur: 0,
-          initiallyUnlocked: true,
-          children: [
-            {
-              id: 'rig-8-frame-none',
-              name: 'RIG 8 · Telaio base',
-              category: 'rig',
-              model: model('rigs', 'rig-8-frame-none'),
-              description: 'Progetto di un telaio aperto a otto posti.',
-              costEur: 350,
-              requirements: [{ kind: 'rigs', count: 2 }],
-              children: [
-                {
-                  id: 'rig-8-frame-bracket',
-                  name: 'RIG 8 · Supporto esterno',
-                  category: 'rig',
-                  model: model('rigs', 'rig-8-frame-bracket'),
-                  description:
-                    'Telaio a otto posti con supporto laterale per il raffreddamento esterno.',
-                  costEur: 520,
-                  requirements: [{ kind: 'node', id: 'fan-pressure-140' }],
-                },
-                {
-                  id: 'rig-8-frame-filtered',
-                  name: 'RIG 8 · Telaio filtrato',
-                  category: 'rig',
-                  model: model('rigs', 'rig-8-frame-filtered'),
-                  description: 'Variante a otto posti con pannello filtrante frontale.',
-                  costEur: 500,
-                  requirements: [{ kind: 'node', id: 'filter-mesh' }],
-                },
-              ],
-            },
-          ],
-        },
-      ],
+      children: [rigResearchBranch('rig-gameplay')],
     },
     {
       id: 'filter',
@@ -387,7 +367,7 @@ export const RESEARCH_TREE: ResearchNode = {
           category: 'filter',
           model: model('filters', 'filter-mesh'),
           description: 'Riduce la polvere sulle GPU con una piccola penalità al raffreddamento.',
-          costEur: 20,
+          costEur: 80,
           children: [
             {
               id: 'filter-pleated',
@@ -396,7 +376,7 @@ export const RESEARCH_TREE: ResearchNode = {
               model: model('filters', 'filter-pleated'),
               description:
                 'Trattiene più polvere della rete magnetica, ma fa salire la temperatura.',
-              costEur: 80,
+              costEur: 300,
               children: [
                 {
                   id: 'filter-carbon',
@@ -405,7 +385,7 @@ export const RESEARCH_TREE: ResearchNode = {
                   model: model('filters', 'filter-carbon'),
                   description:
                     'La protezione più efficace contro la polvere. Oppone anche più resistenza all’aria.',
-                  costEur: 180,
+                  costEur: 600,
                   requirements: [{ kind: 'blocks', count: 4 }],
                 },
               ],

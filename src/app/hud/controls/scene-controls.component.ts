@@ -10,7 +10,7 @@ import {
 import { GameService } from '../../game/game.service';
 import {
   GPU_COUNT,
-  GPUS_PER_RIG,
+  getRig,
   isGpuUnlocked,
   isRigUnlocked,
   RIG_COUNT,
@@ -55,8 +55,8 @@ export class SceneControlsComponent {
     return Array.from({ length: rigsInPlot }, (_, index) => firstRigId + index);
   });
   readonly slots = computed(() =>
-    Array.from({ length: GPUS_PER_RIG }, (_, index) => ({
-      id: (this.game.viewedRigId() - 1) * GPUS_PER_RIG + index + 1,
+    getRig(this.game.world(), this.game.viewedRigId()).gpus.map((gpu, index) => ({
+      id: gpu.id,
       label: String(index + 1).padStart(2, '0'),
     })),
   );
@@ -144,16 +144,21 @@ export class SceneControlsComponent {
   }
 
   openRigWorkbench(id: number): void {
-    if (this.game.running() || !this.isRigUnlocked(id)) {
+    if (this.game.isRigMining(id) || !this.isRigUnlocked(id)) {
       return;
     }
-    this.selectedToolStationIdChange.emit('rigWorkbench');
     this.game.inspectRig(id);
+    if (this.game.inspectedRigId() === id) {
+      this.selectedToolStationIdChange.emit('rigWorkbench');
+    }
   }
 
   inspectGpu(id: number): void {
-    this.selectedToolStationIdChange.emit(null);
+    if (this.game.isGpuMining(id)) return;
     this.game.inspectGpu(id);
+    if (this.game.inspectedGpuId() === id) {
+      this.selectedToolStationIdChange.emit(null);
+    }
   }
 
   returnToRig(): void {
