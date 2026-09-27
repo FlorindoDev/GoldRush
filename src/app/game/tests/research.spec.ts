@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { RESEARCH_TREE, flattenResearchTree } from '../../config/research-tree-config';
+import { RIG_MODELS } from '../../config/rig-model-config';
 import { GameService } from '../game.service';
 import { createWorld } from '../mining-world';
 import {
@@ -49,6 +50,35 @@ describe('Albero della ricerca', () => {
       cryptoChains: { ...dual.cryptoChains, bitcoin: { ...chain, settledBlockIds: [1, 2] } },
     };
     expect(isResearchUnlocked(unlockResearch(progressed, 'gpu-triple'), 'gpu-triple')).toBe(true);
+  });
+
+  it('contains every purchasable RIG and requires its included filter and cooling method', () => {
+    const nodes = new Map(flattenResearchTree().map((node) => [node.id, node]));
+    for (const model of RIG_MODELS.filter((rig) => rig.cooling !== 'bracket')) {
+      const node = nodes.get(model.id);
+      expect(node, model.id).toBeDefined();
+      if (model.filter === 'mesh') {
+        expect(node?.requirements).toContainEqual({ kind: 'node', id: 'filter-mesh' });
+      }
+      if (model.cooling === 'air' || model.cooling === 'liquid') {
+        expect(node?.requirements).toContainEqual({ kind: 'node', id: `cooling-${model.cooling}` });
+      }
+    }
+
+    const initial = {
+      ...createWorld(),
+      cashEur: 10000,
+      unlockedResearchIds: ['fan-pressure-140', 'rig-8-frame-none'],
+    };
+    expect(canUnlockResearch(initial, nodes.get('rig-8-frame-air')!)).toBe(false);
+    const air = unlockResearch(initial, 'cooling-air');
+    expect(canUnlockResearch(air, nodes.get('rig-8-frame-air')!)).toBe(true);
+    expect(canUnlockResearch(air, nodes.get('rig-8-frame-filtered-air')!)).toBe(false);
+    const filtered = unlockResearch(air, 'filter-mesh');
+    expect(canUnlockResearch(filtered, nodes.get('rig-8-frame-filtered-air')!)).toBe(true);
+    expect(canUnlockResearch(filtered, nodes.get('rig-8-frame-filtered-liquid')!)).toBe(false);
+    const liquid = unlockResearch(filtered, 'cooling-liquid');
+    expect(canUnlockResearch(liquid, nodes.get('rig-8-frame-filtered-liquid')!)).toBe(true);
   });
 
   it('gates equipment and crypto through GameService', () => {

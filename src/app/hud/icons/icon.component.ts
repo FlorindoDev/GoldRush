@@ -14,6 +14,7 @@ const PATHS: Record<string, string | readonly string[]> = {
   terminal: 'm4 6 6 6-6 6m9 0h7',
   clock: 'M12 8v4l3 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
   play: 'm8 4 12 8-12 8V4Z',
+  pause: 'M7 5h3v14H7V5Zm7 0h3v14h-3V5Z',
   start: 'M7 4.5a1 1 0 0 1 1.5-.86l11 6.36a2.3 2.3 0 0 1 0 4l-11 6.36a1 1 0 0 1-1.5-.86v-15Z',
   step: ['M5 5l10 7-10 7V5Z', 'M19 5v14'],
   resize: 'M7 20 20 7M13 20l7-7M19 20l1-1',

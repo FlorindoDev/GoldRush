@@ -67,6 +67,10 @@ const SHORTCUT_GROUPS = [
       { action: 'Ridimensiona di 48 px', keys: ['Maiusc', 'Frecce'], separator: '+' },
     ],
   },
+  {
+    name: 'Gioco',
+    shortcuts: [{ action: 'Riprendi dalla pausa', keys: ['Esc'], separator: '' }],
+  },
 ] as const;
 
 @Component({
@@ -89,7 +93,7 @@ const SHORTCUT_GROUPS = [
   templateUrl: './hud.component.html',
   styleUrl: './hud.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'hoveredGpu.set(null)' },
+  host: { '(document:keydown.escape)': 'handleEscape($event)' },
 })
 export class HudComponent implements OnDestroy {
   readonly game = inject(GameService);
@@ -150,6 +154,18 @@ export class HudComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.gameSave.destroy();
+  }
+
+  togglePause(): void {
+    this.game.setPaused(!this.game.paused());
+  }
+
+  handleEscape(event: Event): void {
+    this.hoveredGpu.set(null);
+    if (this.game.paused()) {
+      event.preventDefault();
+      this.game.setPaused(false);
+    }
   }
 
   openFile(id: string): void {

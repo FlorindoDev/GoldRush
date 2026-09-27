@@ -74,6 +74,7 @@ export class ResearchTreeComponent implements OnDestroy {
     fan: 'Ventole',
     rig: 'Telai',
     filter: 'Filtri',
+    cooling: 'Dissipazione',
     crypto: 'Criptovalute',
   };
   readonly branchLabels: Record<string, string> = {
@@ -81,6 +82,7 @@ export class ResearchTreeComponent implements OnDestroy {
     fan: 'Ventole',
     rig: 'RIG',
     filter: 'Filtri',
+    cooling: 'Dissip.',
     crypto: 'Cripto',
   };
   readonly selectionStatus = computed(() => {

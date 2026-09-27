@@ -54,7 +54,9 @@
                         ? 'wallet'
                         : branch.id === 'fan'
                           ? 'rotate'
-                          : 'layers'
+                          : branch.id === 'cooling'
+                            ? 'cooling'
+                            : 'layers'
                 "
               />
             }

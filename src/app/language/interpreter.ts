@@ -27,6 +27,7 @@ export interface ScriptHost {
   modules?: Readonly<Record<string, string>>;
   entryFileName?: string;
   print(message: string): void;
+  wait?(milliseconds: number, signal: AbortSignal): Promise<void>;
   mine?(
     gpus: Value | null,
     message: string | false | null,
@@ -539,7 +540,7 @@ class Interpreter {
         if (time < 0 || time > MAX_WAIT_MS) {
           throw new ScriptError(`wait richiede millisecondi tra 0 e ${MAX_WAIT_MS}.`, line);
         }
-        await delay(time, this.signal);
+        await (this.host.wait?.(time, this.signal) ?? delay(time, this.signal));
         return 0;
       }
       default:

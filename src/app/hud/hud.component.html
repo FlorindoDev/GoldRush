@@ -73,7 +73,30 @@
     >
       <app-icon name="settings" />
     </button>
+    <button
+      class="icon-button utility-button pause-button"
+      [attr.aria-label]="game.paused() ? 'Riprendi il gioco' : 'Metti in pausa il gioco'"
+      [attr.title]="game.paused() ? 'Riprendi (Esc)' : 'Metti in pausa'"
+      [attr.aria-pressed]="game.paused()"
+      (click)="togglePause()"
+    >
+      <app-icon [name]="game.paused() ? 'play' : 'pause'" />
+    </button>
   </div>
+
+  @if (game.paused()) {
+    <div
+      class="pause-overlay"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="pause-card">
+        <app-icon name="pause" />
+        <strong>Gioco in pausa</strong>
+        <span>Premi Esc o Riprendi per continuare</span>
+      </div>
+    </div>
+  }
 
   @for (editorWindow of editorWindows(); track editorWindow.id) {
     <div
@@ -818,8 +841,8 @@
             schede, ricerca hardware e nuove crypto, poi adatta frequenza e raffreddamento. La
             potenza nominale dipende dal modello. Il progresso per azione scala col quadrato del
             rapporto tra frequenza effettiva e nominale, poi si divide per la difficoltà della
-            crypto. Calore e polvere riducono la frequenza effettiva; il consumo cresce col
-            quadrato dello stesso rapporto.
+            crypto. Calore e polvere riducono la frequenza effettiva; il consumo cresce col quadrato
+            dello stesso rapporto.
           </p>
           <p>
             Ogni catena aumenta la difficoltà dopo ciascun blocco, fino al proprio massimo. Cambiare
@@ -1044,10 +1067,9 @@
               </p>
               <p>
                 Più GHz aumentano progresso e potenza col quadrato del rapporto con la frequenza
-                base. Oltre il massimo del modello aumenta il rischio di
-                surriscaldamento. A {{ balance.gpu.limits.temperatureCelsius }} °C la GPU va in
-                stop: l'azione che causa il guasto consuma corrente e usura, senza assegnare
-                progresso.
+                base. Oltre il massimo del modello aumenta il rischio di surriscaldamento. A
+                {{ balance.gpu.limits.temperatureCelsius }} °C la GPU va in stop: l'azione che causa
+                il guasto consuma corrente e usura, senza assegnare progresso.
               </p>
             </article>
             <article>
@@ -1104,8 +1126,8 @@
               <p>
                 Numero da 0 (nuova) a 100 (esaurita), attributo <code>wearPercent</code>. Il lavoro
                 aumenta l'usura; overclock e temperature alte la accelerano. Raffreddamento, stop e
-                nuova esecuzione non la azzerano. Al 100% portala al banco e sostituisci pasta e pad:
-                l'intervento riduce l'usura accumulata dello
+                nuova esecuzione non la azzerano. Al 100% portala al banco e sostituisci pasta e
+                pad: l'intervento riduce l'usura accumulata dello
                 {{ balance.gpu.maintenance.thermalServiceWearReductionPercent }}%, lasciando la GPU
                 ancora usurata; se era ferma per usura, può ripartire subito. Normalmente puoi
                 ripetere l'intervento ogni {{ balance.gpu.maintenance.thermalServiceIntervalHours }}

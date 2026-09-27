@@ -43,7 +43,7 @@ const GPU_PRICES: Record<string, number> = {
 const research = flattenResearchTree();
 const spec = (label: string, value: string) => ({ label, value });
 
-export const SHOP_PRODUCTS: readonly ShopProduct[] = [
+const ALL_SHOP_PRODUCTS: readonly ShopProduct[] = [
   ...GPU_MODELS.map((gpu): ShopProduct => ({
     id: gpu.id,
     name: gpu.name,
@@ -105,7 +105,7 @@ export const SHOP_PRODUCTS: readonly ShopProduct[] = [
     category: 'rig',
     model: `assets/models/rigs/${rig.id}.glb`,
     priceEur: rig.priceEur,
-    researchId: rig.id,
+    researchId: rig.cooling === 'bracket' ? undefined : rig.id,
     description: rig.description,
     specs: [
       spec('Formato', `${rig.slots} GPU`),
@@ -123,13 +123,8 @@ export const SHOP_PRODUCTS: readonly ShopProduct[] = [
     category: 'cooling',
     model: `assets/models/cooling/${cooling.id}.glb`,
     priceEur: [25, 110, 220][index],
-    researchId:
-      cooling.style === 'liquid'
-        ? 'rig-4-frame-liquid'
-        : cooling.style === 'air'
-          ? 'rig-4-frame-air'
-          : 'rig-8-frame-bracket',
-    description: 'Modulo esterno per il raffreddamento del RIG.',
+    researchId: cooling.style === 'bracket' ? undefined : cooling.id,
+    description: 'Supporto esterno con sistema di dissipazione incluso.',
     specs: [
       spec(
         'Tipo',
@@ -139,5 +134,13 @@ export const SHOP_PRODUCTS: readonly ShopProduct[] = [
   })),
 ].sort((a, b) => a.priceEur - b.priceEur);
 
-export const SHOP_PRODUCTS_BY_ID = new Map(SHOP_PRODUCTS.map((product) => [product.id, product]));
+// I vecchi supporti restano riconoscibili nei salvataggi, ma non sono più acquistabili.
+const RETIRED_PRODUCT_IDS = new Set(['rig-8-frame-bracket', 'cooling-bracket']);
+export const SHOP_PRODUCTS: readonly ShopProduct[] = ALL_SHOP_PRODUCTS.filter(
+  (product) => !RETIRED_PRODUCT_IDS.has(product.id),
+);
+export const SHOP_PURCHASABLE_IDS = new Set(SHOP_PRODUCTS.map((product) => product.id));
+export const SHOP_PRODUCTS_BY_ID = new Map(
+  ALL_SHOP_PRODUCTS.map((product) => [product.id, product]),
+);
 export const SHOP_MAX_QUANTITY = 99;

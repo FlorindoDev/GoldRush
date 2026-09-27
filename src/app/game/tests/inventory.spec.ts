@@ -28,7 +28,7 @@ const buy = (world: MiningWorld, quantity = 1) =>
 
 describe('Shop e magazzino', () => {
   it('has unique products, valid prices, research and model paths', () => {
-    expect(SHOP_PRODUCTS_BY_ID.size).toBe(SHOP_PRODUCTS.length);
+    expect(new Set(SHOP_PRODUCTS.map((product) => product.id)).size).toBe(SHOP_PRODUCTS.length);
     for (const product of SHOP_PRODUCTS) {
       expect(product.priceEur).toBeGreaterThan(0);
       expect(Number.isFinite(product.priceEur)).toBe(true);
@@ -36,6 +36,23 @@ describe('Shop e magazzino', () => {
       if (product.researchId)
         expect(researchNode(product.researchId), product.researchId).toBeDefined();
     }
+  });
+  it('sells cooling with its support and excludes standalone supports from checkout', () => {
+    expect(SHOP_PRODUCTS.some((product) => product.id === 'cooling-bracket')).toBe(false);
+    expect(SHOP_PRODUCTS.some((product) => product.id === 'rig-8-frame-bracket')).toBe(false);
+    expect(SHOP_PRODUCTS_BY_ID.has('cooling-bracket')).toBe(true);
+    expect(SHOP_PRODUCTS_BY_ID.has('rig-8-frame-bracket')).toBe(true);
+    expect(() => purchaseCart(funded(), [{ productId: 'cooling-bracket', quantity: 1 }])).toThrow(
+      'Articolo',
+    );
+    expect(() =>
+      purchaseCart(funded(), [{ productId: 'rig-8-frame-bracket', quantity: 1 }]),
+    ).toThrow('Articolo');
+
+    const cooled = purchaseCart({ ...funded(), unlockedResearchIds: ['cooling-air'] }, [
+      { productId: 'cooling-air', quantity: 1 },
+    ]);
+    expect(cooled.inventory.items[0].productId).toBe('cooling-air');
   });
   it('purchases multiple categories atomically without unlocking or changing installed hardware', () => {
     const before = funded();

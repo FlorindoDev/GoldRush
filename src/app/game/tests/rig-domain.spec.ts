@@ -93,17 +93,20 @@ describe('RIG inventory domain', () => {
     expect(inventoryEntries(game.world()).some((entry) => entry.rigId === 9)).toBe(true);
   });
 
-  it.each(RIG_MODELS)('ships $id with the advertised capacity and included modules', (model) => {
-    const world = purchaseCart(fundedWorld(createWorld(), [model.id]), [
-      { productId: model.id, quantity: 1 },
-    ]);
-    const rig = world.inventory.items[0].rig!;
-    expect(rig.gpus).toHaveLength(model.slots);
-    expect(rig.setup.dustSystemId).toBe(model.filter);
-    expect(rig.setup.coolingMethodId).toBe(model.cooling === 'bracket' ? 'none' : model.cooling);
-    expect(rig.setup.fanCount).toBe(0);
-    expect(world.cashEur).toBe(2000 - model.priceEur);
-  });
+  it.each(RIG_MODELS.filter((model) => model.cooling !== 'bracket'))(
+    'ships $id with the advertised capacity and included modules',
+    (model) => {
+      const world = purchaseCart(fundedWorld(createWorld(), [model.id]), [
+        { productId: model.id, quantity: 1 },
+      ]);
+      const rig = world.inventory.items[0].rig!;
+      expect(rig.gpus).toHaveLength(model.slots);
+      expect(rig.setup.dustSystemId).toBe(model.filter);
+      expect(rig.setup.coolingMethodId).toBe(model.cooling);
+      expect(rig.setup.fanCount).toBe(0);
+      expect(world.cashEur).toBe(2000 - model.priceEur);
+    },
+  );
 
   it('mines on all eight slots and preserves them across save, storage and replacement', () => {
     const game = new GameService();
@@ -240,9 +243,7 @@ describe('RIG inventory domain', () => {
 
   it('requires stock for rig upgrades and returns removed catalog components', () => {
     const game = new GameService();
-    game.world.set(
-      fundedWorld(createWorld(), ['fan-pressure-140', 'filter-mesh', 'rig-4-frame-air']),
-    );
+    game.world.set(fundedWorld(createWorld(), ['fan-pressure-140', 'filter-mesh', 'cooling-air']));
     game.inspectRig(1);
     game.buyCart([{ productId: 'fan-pressure-140', quantity: 4 }]);
     const insufficientStock = game.world();

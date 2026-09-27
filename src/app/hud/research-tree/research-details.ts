@@ -1,4 +1,5 @@
 import { CRYPTO_CONFIG } from '../../config/crypto-config';
+import { COOLING_MODELS } from '../../config/cooling-config';
 import { FILTER_MODELS } from '../../config/dust-filter-config';
 import { FAN_MODELS, GPU_FAN_KITS, GPU_FAN_MODELS } from '../../config/fan-config';
 import { GPU_MODELS } from '../../config/gpu-config';
@@ -53,6 +54,14 @@ export function researchStats(node: ResearchNode): readonly ResearchStat[] {
         label: 'Calore aggiuntivo',
         value: `+${number.format(filter.airflowResistanceCelsius)} °C`,
       },
+    ];
+  }
+  const cooling = COOLING_MODELS.find((item) => item.id === node.id);
+  if (cooling && 'specifications' in cooling) {
+    return [
+      { label: 'Raffreddamento', value: `-${cooling.specifications.coolingCelsius} °C` },
+      { label: 'Portata', value: `${cooling.specifications.airflowCfm} CFM` },
+      { label: 'Consumo', value: `${cooling.specifications.extraPowerWatts} W` },
     ];
   }
   const crypto = CRYPTO_CONFIG.find((item) => item.id === node.id);

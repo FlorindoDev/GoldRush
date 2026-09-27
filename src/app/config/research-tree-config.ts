@@ -1,7 +1,8 @@
 import { CRYPTO_CONFIG } from './crypto-config';
+import { RIG_MODELS_BY_ID } from './rig-model-config';
 
 /** Albero della ricerca. `children` crea i collegamenti; `requirements` aggiunge vincoli extra. */
-export type ResearchCategory = 'gpu' | 'fan' | 'rig' | 'filter' | 'crypto';
+export type ResearchCategory = 'gpu' | 'fan' | 'rig' | 'filter' | 'cooling' | 'crypto';
 
 export type ResearchRequirement =
   | { readonly kind: 'node'; readonly id: string }
@@ -21,6 +22,38 @@ export interface ResearchNode {
 }
 
 const model = (folder: string, id: string) => `assets/models/${folder}/${id}.glb`;
+
+const rigResearchCosts: Record<string, number> = {
+  'rig-4-frame-filtered': 80,
+  'rig-4-frame-air': 170,
+  'rig-4-frame-liquid': 250,
+  'rig-4-frame-filtered-air': 220,
+  'rig-4-frame-filtered-liquid': 320,
+  'rig-8-frame-none': 350,
+  'rig-8-frame-filtered': 180,
+  'rig-8-frame-air': 290,
+  'rig-8-frame-liquid': 400,
+  'rig-8-frame-filtered-air': 360,
+  'rig-8-frame-filtered-liquid': 470,
+};
+
+function rigResearchNode(id: string): ResearchNode {
+  const rig = RIG_MODELS_BY_ID.get(id)!;
+  return {
+    id,
+    name: rig.name,
+    category: 'rig',
+    model: model('rigs', id),
+    description: rig.description,
+    costEur: rigResearchCosts[id],
+    requirements: [
+      ...(rig.filter === 'mesh' ? [{ kind: 'node' as const, id: 'filter-mesh' }] : []),
+      ...(rig.cooling === 'air' || rig.cooling === 'liquid'
+        ? [{ kind: 'node' as const, id: `cooling-${rig.cooling}` }]
+        : []),
+    ],
+  };
+}
 
 /** Ogni valuta richiede la precedente; configurazione economica unica in crypto-config. */
 function cryptoResearchBranch(index: number): ResearchNode {
@@ -329,7 +362,7 @@ export const RESEARCH_TREE: ResearchNode = {
       name: 'RIG',
       category: 'rig',
       model: model('rigs', 'rig-gameplay'),
-      description: 'Telai aperti, supporti esterni e varianti filtrate.',
+      description: 'Telai da quattro e otto GPU, con varianti filtrate e raffreddate.',
       costEur: 0,
       initiallyUnlocked: true,
       children: [
@@ -342,64 +375,20 @@ export const RESEARCH_TREE: ResearchNode = {
           costEur: 0,
           initiallyUnlocked: true,
           children: [
+            rigResearchNode('rig-4-frame-filtered'),
+            rigResearchNode('rig-4-frame-air'),
+            rigResearchNode('rig-4-frame-liquid'),
+            rigResearchNode('rig-4-frame-filtered-air'),
+            rigResearchNode('rig-4-frame-filtered-liquid'),
             {
-              id: 'rig-4-frame-filtered',
-              name: 'RIG 4 · Solo filtro',
-              category: 'rig',
-              model: model('rigs', 'rig-4-frame-filtered'),
-              description: 'Telaio da quattro GPU con filtro a rete incluso e senza raffreddamento esterno.',
-              costEur: 80,
-              requirements: [{ kind: 'node', id: 'filter-mesh' }],
-            },
-            {
-              id: 'rig-4-frame-liquid',
-              name: 'RIG 4 · Liquido esterno',
-              category: 'rig',
-              model: model('rigs', 'rig-4-frame-liquid'),
-              description: 'Telaio da otto GPU con pompa e radiatore esterni.',
-              costEur: 250,
-              requirements: [{ kind: 'node', id: 'rig-4-frame-air' }],
-              children: [],
-            },
-            {
-              id: 'rig-4-frame-air',
-              name: 'RIG 4 · Aria esterna',
-              category: 'rig',
-              model: model('rigs', 'rig-4-frame-air'),
-              description: 'Telaio da quattro GPU con modulo di raffreddamento ad aria esterno.',
-              costEur: 170,
-              requirements: [{ kind: 'node', id: 'fan-pressure-140' }],
-              children: [],
-            },
-            {
-              id: 'rig-8-frame-none',
-              name: 'RIG 8 · Telaio base',
-              category: 'rig',
-              model: model('rigs', 'rig-8-frame-none'),
-              description: 'Telaio aperto da otto GPU.',
-              costEur: 350,
+              ...rigResearchNode('rig-8-frame-none'),
               requirements: [{ kind: 'rigs', count: 2 }],
               children: [
-                {
-                  id: 'rig-8-frame-air',
-                  name: 'RIG 8 · Aria esterna',
-                  category: 'rig',
-                  model: model('rigs', 'rig-8-frame-air'),
-                  description: 'Telaio da otto GPU con modulo di raffreddamento ad aria esterno.',
-                  costEur: 290,
-                  requirements: [{ kind: 'node', id: 'fan-pressure-140' }],
-                  children: [],
-                },
-                {
-                  id: 'rig-8-frame-liquid',
-                  name: 'RIG 8 · Liquido esterno',
-                  category: 'rig',
-                  model: model('rigs', 'rig-8-frame-liquid'),
-                  description: 'Telaio da otto GPU con pompa e radiatore esterni.',
-                  costEur: 400,
-                  requirements: [{ kind: 'node', id: 'rig-8-frame-air' }],
-                  children: [],
-                }
+                rigResearchNode('rig-8-frame-filtered'),
+                rigResearchNode('rig-8-frame-air'),
+                rigResearchNode('rig-8-frame-liquid'),
+                rigResearchNode('rig-8-frame-filtered-air'),
+                rigResearchNode('rig-8-frame-filtered-liquid'),
               ],
             },
           ],
@@ -444,6 +433,37 @@ export const RESEARCH_TREE: ResearchNode = {
                   requirements: [{ kind: 'blocks', count: 4 }],
                 },
               ],
+            },
+          ],
+        },
+      ],
+    },
+    // ─────────────── Dissipazione RIG ───────────────
+    {
+      id: 'cooling',
+      name: 'Dissipazione RIG',
+      category: 'cooling',
+      model: model('cooling', 'cooling-bracket'),
+      description: 'Metodi di raffreddamento esterno per i RIG.',
+      costEur: 0,
+      initiallyUnlocked: true,
+      children: [
+        {
+          id: 'cooling-air',
+          name: 'Air Wall',
+          category: 'cooling',
+          model: model('cooling', 'cooling-air'),
+          description: 'Supporto esterno con ventole per dissipare il calore del RIG.',
+          costEur: 140,
+          requirements: [{ kind: 'node', id: 'fan-pressure-140' }],
+          children: [
+            {
+              id: 'cooling-liquid',
+              name: 'Hydro Tower',
+              category: 'cooling',
+              model: model('cooling', 'cooling-liquid'),
+              description: 'Supporto esterno con pompa e radiatore a liquido.',
+              costEur: 240,
             },
           ],
         },

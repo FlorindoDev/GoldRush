@@ -1,8 +1,4 @@
-import {
-  CRYPTO_CONFIG,
-  STARTING_CRYPTO_ID,
-  cryptoValueEur,
-} from '../config/crypto-config';
+import { CRYPTO_CONFIG, STARTING_CRYPTO_ID, cryptoValueEur } from '../config/crypto-config';
 import type { MiningWorld } from './mining-world';
 
 function distributeEuros(holdings: MiningWorld['holdings'], amount: number) {
@@ -50,14 +46,15 @@ export function reconcileWallet(world: MiningWorld): MiningWorld {
   };
 }
 
-/** Converte prima le cripto possedute, poi usa euro disponibili. Nessuna mutazione parziale. */
+/** Usa prima gli euro disponibili, poi converte le cripto possedute. Nessuna mutazione parziale. */
 export function spendEuros(world: MiningWorld, amount: number): MiningWorld {
   if (!Number.isFinite(amount) || amount < 0) throw new Error('Importo non valido.');
   const reconciled = world.cashEur < 0 ? reconcileWallet(world) : world;
   if (reconciled.cashEur + cryptoValueEur(reconciled.holdings) + 0.000001 < amount) {
     throw new Error('Saldo insufficiente.');
   }
-  let remaining = amount;
+  const cashSpent = Math.min(reconciled.cashEur, amount);
+  let remaining = amount - cashSpent;
   const holdings = { ...reconciled.holdings };
   for (const crypto of CRYPTO_CONFIG) {
     if (remaining <= 0.000001) break;
@@ -66,7 +63,7 @@ export function spendEuros(world: MiningWorld, amount: number): MiningWorld {
     holdings[crypto.id] = Math.max(0, owned - spent / crypto.priceEur);
     remaining -= spent;
   }
-  return { ...reconciled, holdings };
+  return { ...reconciled, cashEur: reconciled.cashEur - cashSpent, holdings };
 }
 
 /** Paga bollette con cripto e poi euro; conserva scoperto solo se fondi insufficienti. */

@@ -104,6 +104,7 @@ interface MiningAction {
   readonly gpuId: number;
   readonly startedAt: number;
   readonly durationMs: number;
+  readonly pauseDurationAtStart: number;
   readonly parallelGroupId?: number;
 }
 
@@ -115,6 +116,7 @@ export class GameService {
   readonly world = signal(this.initialSave?.world ?? createWorld());
   readonly gameElapsedMinutes = signal(this.initialSave?.gameElapsedMinutes ?? 0);
   readonly started = signal(false);
+  readonly paused = signal(false);
   readonly computerOpen = signal(false);
   readonly running = signal(false);
   readonly mining = signal(false);
@@ -252,6 +254,8 @@ export class GameService {
   }
   private controller?: AbortController;
   private rigPoweredDownAt = Date.now();
+  private pauseStartedAt: number | null = null;
+  private totalPausedMilliseconds = 0;
   private billedGameDay = 0;
   private readonly miningControllers = new Map<number, AbortController>();
   private readonly parallelGpuIds = new Map<number, Set<number>>();
@@ -279,6 +283,51 @@ export class GameService {
     this.log('Esegui il codice per iniziare a minare.');
   }
 
+  setPaused(paused: boolean): void {
+    if (paused === this.paused()) return;
+    if (paused) {
+      this.pauseStartedAt = performance.now();
+    } else if (this.pauseStartedAt !== null) {
+      const duration = performance.now() - this.pauseStartedAt;
+      this.totalPausedMilliseconds += duration;
+      this.rigPoweredDownAt += duration;
+      this.pauseStartedAt = null;
+    }
+    this.paused.set(paused);
+  }
+
+  private pausedMillisecondsNow(): number {
+    return (
+      this.totalPausedMilliseconds +
+      (this.pauseStartedAt === null ? 0 : performance.now() - this.pauseStartedAt)
+    );
+  }
+
+  private activeTimeNow(): number {
+    return performance.now() - this.pausedMillisecondsNow();
+  }
+
+  private effectiveMiningStart(startedAt: number, pauseDurationAtStart: number): number {
+    return startedAt + this.pausedMillisecondsNow() - pauseDurationAtStart;
+  }
+
+  private async waitUntilUnpaused(signal: AbortSignal): Promise<void> {
+    while (this.paused()) {
+      await delay(25, signal);
+    }
+  }
+
+  private async waitWhileUnpaused(milliseconds: number, signal: AbortSignal): Promise<void> {
+    let remaining = milliseconds;
+    while (remaining > 0) {
+      signal.throwIfAborted();
+      await this.waitUntilUnpaused(signal);
+      const activeStart = this.activeTimeNow();
+      await delay(Math.min(remaining, 25), signal);
+      remaining -= this.activeTimeNow() - activeStart;
+    }
+  }
+
   createSave(): GameSave {
     return {
       version: 1,
@@ -293,6 +342,7 @@ export class GameService {
 
   restoreSave(save: GameSave): void {
     if (this.running()) throw new Error('Ferma il programma prima di importare la partita.');
+    this.setPaused(false);
     this.clearLineEffects();
     this.world.set(save.world);
     this.gameElapsedMinutes.set(save.gameElapsedMinutes);
@@ -323,7 +373,11 @@ export class GameService {
   }
 
   advanceGameTime(realElapsedMilliseconds: number): void {
-    if (!Number.isFinite(realElapsedMilliseconds) || realElapsedMilliseconds <= 0) {
+    if (
+      this.paused() ||
+      !Number.isFinite(realElapsedMilliseconds) ||
+      realElapsedMilliseconds <= 0
+    ) {
       return;
     }
 
@@ -514,6 +568,7 @@ export class GameService {
             () => this.readElectricity(),
           ),
           print: (message) => this.log(message, 'output'),
+          wait: (milliseconds, signal) => this.waitWhileUnpaused(milliseconds, signal),
           mine: (gpus, message, line, parallelGroupId, progressEveryPercent) =>
             this.mineUnlockedGpus(
               controller.signal,
@@ -535,6 +590,7 @@ export class GameService {
         },
         controller.signal,
         async (line, sourceName) => {
+          await this.waitUntilUnpaused(controller.signal);
           await this.waitForStepPermit(controller.signal);
           const sourceFileId =
             moduleFiles.find((file) => file.name === sourceName)?.id ?? entryFile.id;
@@ -780,6 +836,7 @@ export class GameService {
     if (this.running()) {
       return;
     }
+    this.setPaused(false);
     this.returnToRig();
     this.world.set(createWorld());
     this.computerOpen.set(false);
@@ -913,6 +970,7 @@ export class GameService {
 
     const startedAt = Date.now();
     const durationMs = MINING_DURATION_MS / this.speed();
+    const pauseDurationAtStart = this.pausedMillisecondsNow();
     if (parallelGroupId !== undefined) {
       const participants = groupGpuIds ?? new Set<number>();
       participants.add(gpuId);
@@ -924,13 +982,14 @@ export class GameService {
     this.miningControllers.set(gpuId, controller);
     this.miningActions.update((actions) => [
       ...actions,
-      { gpuId, startedAt, durationMs, parallelGroupId },
+      { gpuId, startedAt, durationMs, pauseDurationAtStart, parallelGroupId },
     ]);
     this.mining.set(true);
     let progressBefore = getCryptoProgress(this.world(), miningGpu.cryptoId);
     try {
-      await delay(durationMs, controller.signal);
+      await this.waitWhileUnpaused(durationMs, controller.signal);
       controller.signal.throwIfAborted();
+      const effectiveStartedAt = this.effectiveMiningStart(startedAt, pauseDurationAtStart);
       const activeGpuIds =
         parallelGroupId === undefined
           ? this.activeGpuIds()
@@ -940,20 +999,21 @@ export class GameService {
         return mineGpuOnWorld(
           world,
           gpuId,
-          startedAt,
+          effectiveStartedAt,
           Date.now(),
           activeGpuIds.length > 1,
           activeGpuIds,
         );
       });
     } catch (error) {
-      const fraction = Math.min(1, Math.max(0, (Date.now() - startedAt) / durationMs));
+      const effectiveStartedAt = this.effectiveMiningStart(startedAt, pauseDurationAtStart);
+      const fraction = Math.min(1, Math.max(0, (Date.now() - effectiveStartedAt) / durationMs));
       const activeGpuIds =
         parallelGroupId === undefined
           ? this.activeGpuIds()
           : Array.from(this.parallelGpuIds.get(parallelGroupId) ?? [gpuId]);
       this.world.update((world) =>
-        recordGpuWork(world, gpuId, fraction, startedAt, Date.now(), activeGpuIds),
+        recordGpuWork(world, gpuId, fraction, effectiveStartedAt, Date.now(), activeGpuIds),
       );
       throw error;
     } finally {
@@ -1059,8 +1119,12 @@ export class GameService {
         rig.gpus.length,
       );
     }
-    const fraction = Math.min(1, Math.max(0, (now - action.startedAt) / action.durationMs));
-    const projected = applyGpuWork(gpu, fraction, action.startedAt, now, rigSetup);
+    const effectiveStartedAt = this.effectiveMiningStart(
+      action.startedAt,
+      action.pauseDurationAtStart,
+    );
+    const fraction = Math.min(1, Math.max(0, (now - effectiveStartedAt) / action.durationMs));
+    const projected = applyGpuWork(gpu, fraction, effectiveStartedAt, now, rigSetup);
     return getGpuTelemetry(
       1,
       projected,
@@ -1126,7 +1190,11 @@ export class GameService {
         : [action.gpuId];
       const fraction = Math.min(
         1,
-        Math.max(0, (Date.now() - action.startedAt) / action.durationMs),
+        Math.max(
+          0,
+          (Date.now() - this.effectiveMiningStart(action.startedAt, action.pauseDurationAtStart)) /
+            action.durationMs,
+        ),
       );
       return (
         energy +

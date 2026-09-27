@@ -70,6 +70,50 @@ app-scene.world-scene {
   width: 22px;
   height: 22px;
 }
+.pause-button {
+  border-color: #78945b;
+  color: #d6efb7;
+}
+.pause-button:hover,
+.pause-button:focus-visible {
+  border-color: var(--accent);
+  background: #263522;
+  color: var(--accent);
+}
+.pause-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 34;
+  display: grid;
+  place-items: center;
+  background: #080d09b8;
+  backdrop-filter: blur(3px);
+}
+.pause-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 28px 36px;
+  border: 1px solid #46553d;
+  border-radius: 8px;
+  background: #172019f2;
+  color: #e7efdf;
+  text-align: center;
+  box-shadow: 0 18px 60px #0008;
+}
+.pause-card app-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--accent);
+}
+.pause-card strong {
+  font-size: 18px;
+  font-weight: 600;
+}
+.pause-card span {
+  color: #acb8a4;
+  font-size: 13px;
+}
 .floating-window {
   position: fixed;
   z-index: 31;

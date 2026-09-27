@@ -1,4 +1,9 @@
-import { SHOP_MAX_QUANTITY, SHOP_PRODUCTS_BY_ID, type ShopProduct } from '../../config/shop-config';
+import {
+  SHOP_MAX_QUANTITY,
+  SHOP_PRODUCTS_BY_ID,
+  SHOP_PURCHASABLE_IDS,
+  type ShopProduct,
+} from '../../config/shop-config';
 import type { GpuModelId } from '../../config/gpu-config';
 import { purchasedRigSetup, rigSlotCount } from '../../config/rig-model-config';
 import { createGpuOperatingState } from '../gpu-operation';
@@ -8,7 +13,10 @@ import { spendEuros } from '../wallet-transactions';
 import type { CartLine, StockRig } from './types';
 
 export function productAvailable(world: MiningWorld, product: ShopProduct): boolean {
-  return !product.researchId || isResearchUnlocked(world, product.researchId);
+  return (
+    SHOP_PURCHASABLE_IDS.has(product.id) &&
+    (!product.researchId || isResearchUnlocked(world, product.researchId))
+  );
 }
 
 export function purchaseCart(world: MiningWorld, cart: readonly CartLine[]): MiningWorld {
@@ -29,7 +37,7 @@ export function purchaseCart(world: MiningWorld, cart: readonly CartLine[]): Min
   let nextId = world.inventory.nextId;
   for (const [id, quantity] of quantities) {
     const product = SHOP_PRODUCTS_BY_ID.get(id);
-    if (!product || quantity > SHOP_MAX_QUANTITY)
+    if (!product || !SHOP_PURCHASABLE_IDS.has(id) || quantity > SHOP_MAX_QUANTITY)
       throw new Error('Articolo o quantità non validi.');
     if (!productAvailable(world, product))
       throw new Error(`Sblocca ${product.name} nell’albero della ricerca.`);
