@@ -1,0 +1,93 @@
+<aside
+  class="placement-toolbar"
+  aria-label="Posizionamento componenti. Premi Esc per uscire"
+>
+  <div class="category-list">
+    @for (category of categories; track category.kind) {
+      <section
+        class="category"
+        [class.open]="expanded() === category.kind"
+      >
+        <button
+          type="button"
+          class="category-toggle"
+          [attr.aria-expanded]="expanded() === category.kind"
+          [attr.aria-label]="
+            'Apri ' + category.label + ', ' + count(category.kind) + ' in magazzino'
+          "
+          (click)="toggle(category.kind)"
+        >
+          <span class="category-preview">
+            @if (thumbnails().get(categoryProduct(category.kind).id); as image) {
+              <img
+                [src]="image"
+                [alt]="'Modello 3D ' + categoryProduct(category.kind).name"
+              />
+            } @else {
+              <app-icon [name]="category.icon" />
+            }
+          </span>
+          <span class="category-name">{{ category.label }}</span>
+          <span class="category-count">{{ count(category.kind) }}</span>
+          <span
+            class="arrow"
+            aria-hidden="true"
+            >›</span
+          >
+        </button>
+
+        @if (expanded() === category.kind && groupsFor(category.kind).length) {
+          <div
+            class="stock-list"
+            [attr.aria-label]="category.label + ' in magazzino'"
+          >
+            @for (group of groupsFor(category.kind); track group.product.id) {
+              <div
+                class="stock-item"
+                [class.unavailable]="!group.usable"
+                [attr.draggable]="!!group.usable"
+                [attr.aria-label]="group.product.name + ', ' + group.items.length + ' in magazzino'"
+                [attr.title]="group.product.name + (group.usable ? '' : ' · Non utilizzabile')"
+                (dragstart)="startDrag($event, group)"
+                (dragend)="stopDrag()"
+              >
+                <span class="item-preview">
+                  @if (thumbnails().get(group.product.id); as image) {
+                    <img
+                      [src]="image"
+                      [alt]="'Modello 3D ' + group.product.name"
+                    />
+                  } @else {
+                    <app-icon [name]="category.icon" />
+                  }
+                </span>
+                <span class="item-name"
+                  ><strong>{{ group.product.name }}</strong></span
+                >
+                <span class="quantity">×{{ group.items.length }}</span>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+  </div>
+
+  <div
+    class="plot-keypad"
+    role="group"
+    aria-label="Seleziona plot"
+  >
+    @for (plotId of plotIds(); track plotId) {
+      <button
+        type="button"
+        [class.active]="game.viewedPlotId() === plotId"
+        [attr.aria-pressed]="game.viewedPlotId() === plotId"
+        [attr.aria-label]="'Vai al Plot ' + plotId"
+        (click)="viewPlot(plotId)"
+      >
+        {{ plotId }}
+      </button>
+    }
+  </div>
+</aside>

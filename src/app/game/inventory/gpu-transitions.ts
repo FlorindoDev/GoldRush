@@ -1,5 +1,5 @@
 import { createGpuOperatingState, isGpuOperational } from '../gpu-operation';
-import { getGpu, isGpuUnlocked } from '../mining-world';
+import { getGpu, getRig, isGpuUnlocked } from '../mining-world';
 import type { MiningWorld } from '../mining-world';
 
 export function storeGpu(world: MiningWorld, gpuId: number): MiningWorld {
@@ -24,6 +24,50 @@ export function storeGpu(world: MiningWorld, gpuId: number): MiningWorld {
         { id: world.inventory.nextId, productId: gpu.modelId, gpu: state },
       ],
     },
+  };
+}
+
+export function moveInstalledGpu(
+  world: MiningWorld,
+  sourceGpuId: number,
+  targetGpuId: number,
+  now = Date.now(),
+): MiningWorld {
+  if (!isGpuUnlocked(world, sourceGpuId)) throw new Error('GPU non disponibile.');
+  const source = getGpu(world, sourceGpuId);
+  const target = getGpu(world, targetGpuId);
+  if (source.onWorkbench) throw new Error('Rimonta prima la GPU dal banco.');
+  if (!getRig(world, target.rigId).unlocked || target.unlocked || target.onWorkbench)
+    throw new Error('Seleziona uno slot GPU vuoto in un RIG montato.');
+
+  return {
+    ...world,
+    plots: world.plots.map((plot) => ({
+      ...plot,
+      rigs: plot.rigs.map((rig) => ({
+        ...rig,
+        gpus: rig.gpus.map((gpu) => {
+          if (gpu.id === sourceGpuId)
+            return {
+              ...gpu,
+              ...createGpuOperatingState(),
+              unlocked: false,
+              onWorkbench: false,
+              lastUpdatedAt: now,
+            };
+          if (gpu.id === targetGpuId)
+            return {
+              ...source,
+              id: target.id,
+              rigId: target.rigId,
+              plotId: target.plotId,
+              onWorkbench: false,
+              lastUpdatedAt: now,
+            };
+          return gpu;
+        }),
+      })),
+    })),
   };
 }
 

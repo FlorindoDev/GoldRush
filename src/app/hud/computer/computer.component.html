@@ -31,6 +31,7 @@
       >
         <app-icon name="box" />Magazzino
       </button>
+      <button (click)="enterPlacement()"><app-icon name="rack" />Posizionamento</button>
     </nav>
     <span class="balance"
       ><small>Saldo disponibile</small><strong>{{ money(availableBalance()) }}</strong></span
@@ -68,6 +69,15 @@
           ><span
             ><strong>Magazzino</strong
             ><small>{{ stockCount() }} in stock · {{ brokenCount() }} GPU guaste</small></span
+          ><app-icon name="arrow" />
+        </button>
+        <button
+          (click)="enterPlacement()"
+          aria-label="Apri Posizionamento"
+        >
+          <span class="app-symbol"><app-icon name="rack" /></span
+          ><span
+            ><strong>Posizionamento</strong><small>Monta RIG e schede video dalla farm</small></span
           ><app-icon name="arrow" />
         </button>
       </div>

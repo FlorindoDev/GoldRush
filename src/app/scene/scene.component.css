@@ -43,6 +43,89 @@ canvas:active {
   pointer-events: none;
   transform: translateX(-50%);
 }
+.placement-grab-hand {
+  position: absolute;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #e2eec4;
+  border-radius: 50%;
+  background: #22331fe8;
+  color: #e8f5d8;
+  box-shadow: 0 2px 8px #0009;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.placement-grab-hand app-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.placement-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.placement-action-layer {
+  position: absolute;
+  z-index: 52;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.placement-action-menu {
+  position: absolute;
+  width: 220px;
+  padding: 4px;
+  border: 1px solid #80905e;
+  border-radius: 7px;
+  background: #182219f5;
+  box-shadow: 0 10px 24px #0009;
+  color: #ecf4e1;
+  font:
+    12px 'Segoe UI',
+    system-ui,
+    sans-serif;
+}
+
+.placement-action-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.placement-action-menu button:hover,
+.placement-action-menu button:focus-visible {
+  background: #344831;
+}
+
+.placement-action-menu app-icon {
+  width: 16px;
+  height: 16px;
+  color: #c6ee89;
+}
+
+.placement-action-menu p {
+  margin: 4px 8px 6px;
+  color: #edc786;
+  line-height: 1.4;
+}
 
 .webgl-error {
   position: absolute;

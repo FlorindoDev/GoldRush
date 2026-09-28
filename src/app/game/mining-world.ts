@@ -87,6 +87,11 @@ export interface MiningWorld {
   readonly lastElectricityBill: ElectricityBill | null;
 }
 
+export interface PlacedItem {
+  readonly kind: 'rig' | 'gpu';
+  readonly id: number;
+}
+
 export const PLOT_COUNT = GAME_BALANCE.world.plotCount;
 export const RIGS_PER_PLOT = GAME_BALANCE.world.rigsPerPlot;
 export const GPUS_PER_RIG = GAME_BALANCE.world.gpusPerRig;

@@ -72,13 +72,15 @@ export class SceneCameraController {
     }
   }
 
-  resize(width: number, height: number): void {
+  resize(width: number, height: number, placementMode = false): void {
     this.camera.aspect = width / height;
     // Leave space for the editor on desktop without changing the orbit target.
     this.camera.setViewOffset(
       width,
       height,
-      width >= CAMERA.editorOffsetMinWidthPx ? width * CAMERA.editorOffsetWidthRatio : 0,
+      width >= CAMERA.editorOffsetMinWidthPx
+        ? width * (placementMode ? 0.2 : CAMERA.editorOffsetWidthRatio)
+        : 0,
       0,
       width,
       height,

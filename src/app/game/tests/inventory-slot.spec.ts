@@ -5,6 +5,37 @@ import { installStockGpu, storeGpu } from '../inventory';
 import { createWorld, getGpu } from '../mining-world';
 
 describe('Exact inventory slot integration', () => {
+  it('moves a mounted GPU to an empty slot without touching inventory or wear', () => {
+    const game = new GameService();
+    game.world.set({
+      ...game.world(),
+      plots: game.world().plots.map((plot) => ({
+        ...plot,
+        rigs: plot.rigs.map((rig) => ({
+          ...rig,
+          gpus: rig.gpus.map((gpu) =>
+            gpu.id === 1 ? { ...gpu, wearPercent: 37, dustPercent: 19 } : gpu,
+          ),
+        })),
+      })),
+    });
+    const inventory = game.world().inventory;
+    game.selectedGpuId.set(1);
+    game.moveMountedGpu(1, 2);
+
+    expect(getGpu(game.world(), 1).unlocked).toBe(false);
+    expect(getGpu(game.world(), 2)).toMatchObject({
+      unlocked: true,
+      wearPercent: 37,
+      dustPercent: 19,
+    });
+    expect(game.world().inventory).toBe(inventory);
+    expect(game.selectedGpuId()).toBe(2);
+    const moved = game.world();
+    expect(() => game.moveMountedGpu(2, 2)).toThrow('slot GPU vuoto');
+    expect(game.world()).toBe(moved);
+  });
+
   it.each([3, 5, 0, -1, NaN, Infinity])(
     'rejects occupied, foreign or invalid slot %s without consuming stock',
     (slotId) => {

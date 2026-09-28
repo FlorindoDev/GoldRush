@@ -12,6 +12,7 @@ import {
   MiningWorld,
   plotCount,
   rigIdForGpu,
+  type PlacedItem,
 } from '../game/mining-world';
 import { BITCOIN_MODEL_PATH } from '../assets/models/bitcoin/bitcoin-model-path';
 import { createGpuMiningRig, createRigPlot, type GpuMiningRig } from './models/gpu-mining-rig';
@@ -26,6 +27,7 @@ import { rigPlotCenter, rigPosition, TOOL_AREA_POSITION } from './environment/sc
 import { GpuVisuals, type GpuPose } from './gpu-visuals';
 import type { GpuTelemetry } from '../game/gpu-telemetry';
 import { disposeObject } from './resources/dispose-object';
+import { PlacementDragVisual } from './placement-drag-visual';
 import { SceneAssets } from './resources/scene-assets';
 import { createWorkbench, WorkbenchMesh } from './tools/workbench-mesh';
 import {
@@ -49,7 +51,14 @@ interface GpuInteractions {
   inspectRig(id: number): void;
   hover(id: number | null, x: number, y: number): void;
   contextMenu(target: { kind: 'gpu'; id: number } | null, x: number, y: number): void;
+  placementSelect(target: PlacedItem | null, extend: boolean): void;
+  placementContextMenu(target: PlacedItem | null, x: number, y: number): void;
   telemetry(id: number): GpuTelemetry;
+}
+
+export interface PlacementTarget {
+  readonly rigId: number;
+  readonly slotGpuId?: number;
 }
 
 export class MiningScene {
@@ -70,6 +79,9 @@ export class MiningScene {
   private readonly rigWorkbench: RigWorkbenchMesh;
   private readonly computer: THREE.Group;
   private readonly gpuVisuals: GpuVisuals;
+  private readonly placementDragVisual: PlacementDragVisual;
+  private hiddenPlacedObjects: THREE.Object3D[] = [];
+  private readonly placementSelectionHelpers: THREE.BoxHelper[] = [];
   private readonly particles: THREE.Points;
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   private bitcoin?: THREE.Group;
@@ -77,6 +89,8 @@ export class MiningScene {
   private viewedRigId = 1;
   private selectedToolStationId: ToolStationId | null = null;
   private computerOpen = false;
+  private placementMode = false;
+  private placementHover: PlacementTarget | null = null;
   private cameraPreset: CameraPreset = 'front';
   private inspectedGpuId: number | null = null;
   private selectedGpuId: number | null = null;
@@ -108,6 +122,7 @@ export class MiningScene {
   ) {
     this.scene = createSceneEnvironment(assets.instantiate('floor'));
     this.renderer = this.createRenderer();
+    this.placementDragVisual = new PlacementDragVisual(this.scene, this.camera, canvas);
     this.cameraController = new SceneCameraController(canvas, this.camera, this.reducedMotion);
     const toolArea = assets.instantiate('toolArea');
     toolArea.name = 'tool-area';
@@ -162,6 +177,7 @@ export class MiningScene {
     activeGpuIds: readonly number[] = [],
     selectedGpuId: number | null = null,
     computerOpen = false,
+    placementMode = false,
   ): void {
     this.currentWorld = world;
     const inspection =
@@ -174,6 +190,7 @@ export class MiningScene {
     const cameraPresetChanged = cameraPreset !== this.cameraPreset;
     const toolStationChanged = selectedToolStationId !== this.selectedToolStationId;
     const computerOpenChanged = computerOpen !== this.computerOpen;
+    const placementChanged = placementMode !== this.placementMode;
     this.inspectedGpuId = inspection;
     this.selectedGpuId = selectedGpuId;
     this.isMining = mining;
@@ -184,6 +201,11 @@ export class MiningScene {
     this.cameraPreset = cameraPreset;
     this.selectedToolStationId = selectedToolStationId;
     this.computerOpen = computerOpen;
+    this.placementMode = placementMode;
+    if (!placementMode && this.placementDragVisual.active) this.endPlacementDrag();
+    if (!placementMode && this.placementHover) this.setPlacementHover(null);
+    if (!placementMode && this.placementSelectionHelpers.length) this.setPlacementSelection([]);
+    if (placementChanged) this.resize();
     this.syncPlots(world);
     this.syncRigSlotTiles(world);
     this.syncRigs(world);
@@ -197,17 +219,186 @@ export class MiningScene {
       rigChanged ||
       cameraPresetChanged ||
       toolStationChanged ||
-      computerOpenChanged
+      computerOpenChanged ||
+      placementChanged
     ) {
-      const focus = resolveCameraFocus({
-        viewedRigId,
-        cameraPreset,
-        inspectedGpuId: inspection,
-        selectedToolStationId,
-        computerOpen,
-      });
+      const focus = placementMode
+        ? {
+            target: rigPlotCenter(viewedPlotId).add(new THREE.Vector3(0, 0.8, 0)),
+            offset: new THREE.Vector3(13, 20, 19),
+          }
+        : resolveCameraFocus({
+            viewedRigId,
+            cameraPreset,
+            inspectedGpuId: inspection,
+            selectedToolStationId,
+            computerOpen,
+          });
       this.cameraController.focus(focus.target, focus.offset);
     }
+  }
+
+  placementTargetAt(clientX: number, clientY: number, kind: 'rig' | 'gpu'): PlacementTarget | null {
+    const world = this.currentWorld;
+    if (!this.placementMode || !world) return null;
+    const rect = this.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    this.pointer.set(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const tiles = [...this.rigSlotTiles.values()].map((tile) => tile.root);
+    const roots: THREE.Object3D[] =
+      kind === 'rig' ? tiles : [...tiles, ...Array.from(this.rigs.values(), (rig) => rig.root)];
+    for (const hit of this.raycaster.intersectObjects(roots, true)) {
+      let object: THREE.Object3D | null = hit.object;
+      while (object && typeof object.userData['rigId'] !== 'number') object = object.parent;
+      if (!object) continue;
+      const rigId = object.userData['rigId'] as number;
+      const rig = getRig(world, rigId);
+      if (kind === 'rig') {
+        if (!rig.unlocked) return { rigId };
+        continue;
+      }
+      if (!rig.unlocked) continue;
+      const visual = this.rigs.get(rigId);
+      if (!visual) continue;
+      const open = rig.gpus.flatMap((gpu, index) =>
+        !gpu.unlocked && visual.slots[index]
+          ? [
+              {
+                gpuId: gpu.id,
+                position: visual.root.localToWorld(visual.slots[index].position.clone()),
+              },
+            ]
+          : [],
+      );
+      open.sort(
+        (a, b) => a.position.distanceToSquared(hit.point) - b.position.distanceToSquared(hit.point),
+      );
+      if (open[0]) return { rigId, slotGpuId: open[0].gpuId };
+    }
+    return null;
+  }
+
+  placedItemAt(clientX: number, clientY: number): PlacedItem | null {
+    const world = this.currentWorld;
+    if (!this.placementMode || !world) return null;
+    const rect = this.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    this.pointer.set(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    for (const hit of this.raycaster.intersectObjects([...this.gpuVisuals.objects], true)) {
+      let object: THREE.Object3D | null = hit.object;
+      while (object) {
+        const gpuId = object.userData['gpuId'];
+        if (
+          typeof gpuId === 'number' &&
+          isGpuUnlocked(world, gpuId) &&
+          !getGpu(world, gpuId).onWorkbench
+        )
+          return { kind: 'gpu', id: gpuId };
+        object = object.parent;
+      }
+    }
+    const rigRoots = Array.from(this.rigs.values(), (rig) => rig.root);
+    for (const hit of this.raycaster.intersectObjects(rigRoots, true)) {
+      let object: THREE.Object3D | null = hit.object;
+      while (object) {
+        const rigId = object.userData['rigId'];
+        if (typeof rigId === 'number' && isRigUnlocked(world, rigId))
+          return { kind: 'rig', id: rigId };
+        object = object.parent;
+      }
+    }
+    return null;
+  }
+
+  setPlacementSelection(items: readonly PlacedItem[]): void {
+    for (const helper of this.placementSelectionHelpers) {
+      this.scene.remove(helper);
+      disposeObject(helper);
+    }
+    this.placementSelectionHelpers.length = 0;
+    for (const item of items) {
+      const object =
+        item.kind === 'rig'
+          ? this.rigs.get(item.id)?.root
+          : this.gpuVisuals.objects.find((gpu) => gpu.userData['gpuId'] === item.id);
+      if (!object) continue;
+      const helper = new THREE.BoxHelper(object, 0xf4d271);
+      helper.material.depthTest = false;
+      helper.renderOrder = 950;
+      this.placementSelectionHelpers.push(helper);
+      this.scene.add(helper);
+    }
+  }
+
+  setPlacementHover(target: PlacementTarget | null): void {
+    this.placementHover = target;
+    for (const [rigId, tile] of this.rigSlotTiles) {
+      tile.setPlacementHighlight(target?.rigId === rigId && target.slotGpuId === undefined);
+    }
+    if (this.currentWorld) this.updateAppearance(this.currentWorld);
+  }
+
+  beginPlacementDrag(
+    stockId: number,
+    modelPath: string,
+    kind: 'rig' | 'gpu',
+    clientX: number,
+    clientY: number,
+  ): void {
+    if (!this.placementMode) return;
+    this.placementDragVisual.begin(stockId, modelPath, kind, clientX, clientY);
+  }
+
+  beginPlacedDrag(item: PlacedItem, clientX: number, clientY: number): void {
+    if (!this.placementMode || !this.currentWorld) return;
+    const key = `placed:${item.kind}:${item.id}`;
+    if (this.placementDragVisual.key === key) {
+      this.placementDragVisual.move(clientX, clientY);
+      return;
+    }
+    this.endPlacementDrag();
+    const rigRoot = item.kind === 'rig' ? this.rigs.get(item.id)?.root : undefined;
+    const gpuRoots = this.gpuVisuals.objects.filter((gpu) => {
+      const id = gpu.userData['gpuId'];
+      return (
+        typeof id === 'number' &&
+        (item.kind === 'gpu' ? id === item.id : rigIdForGpu(id) === item.id) &&
+        !getGpu(this.currentWorld!, id).onWorkbench
+      );
+    });
+    const originals = rigRoot ? [rigRoot, ...gpuRoots] : gpuRoots;
+    if (!originals.length) return;
+    const origin = originals[0].getWorldPosition(new THREE.Vector3());
+    const preview = new THREE.Group();
+    for (const original of originals) {
+      const clone = original.clone(true);
+      clone.position.copy(original.getWorldPosition(new THREE.Vector3()).sub(origin));
+      clone.traverse((object) => {
+        if (!(object instanceof THREE.Mesh || object instanceof THREE.LineSegments)) return;
+        object.userData['sharedAssetGeometry'] = true;
+        object.material = Array.isArray(object.material)
+          ? object.material.map((material) => material.clone())
+          : object.material.clone();
+      });
+      preview.add(clone);
+    }
+    for (const original of originals) original.visible = false;
+    this.hiddenPlacedObjects = originals;
+    this.placementDragVisual.beginExisting(key, preview, item.kind, clientX, clientY);
+  }
+
+  endPlacementDrag(): void {
+    if (this.placementDragVisual.active) this.placementDragVisual.stop();
+    for (const original of this.hiddenPlacedObjects) original.visible = true;
+    this.hiddenPlacedObjects = [];
   }
 
   resetCamera(): void {
@@ -217,6 +408,8 @@ export class MiningScene {
 
   dispose(): void {
     this.disposed = true;
+    this.endPlacementDrag();
+    this.setPlacementSelection([]);
     this.renderer.setAnimationLoop(null);
     this.observer.disconnect();
     this.cameraController.dispose();
@@ -284,6 +477,9 @@ export class MiningScene {
         }
 
         const tile = createRigSlotTile(rig.id, rig.unlocked, this.assets.instantiate('rigSlot'));
+        tile.setPlacementHighlight(
+          this.placementHover?.rigId === rig.id && this.placementHover.slotGpuId === undefined,
+        );
         tile.root.position.copy(rigPosition(rig.id));
         tile.root.position.y = -0.42;
         this.rigSlotTiles.set(rig.id, tile);
@@ -488,7 +684,8 @@ export class MiningScene {
         slot.indicator.material.color.set(color);
         slot.indicator.material.emissive.set(color);
         slot.indicator.material.emissiveIntensity = mining ? 2 : unlocked ? 0.45 : 0;
-        slot.outline.visible = selected || inspecting || mining;
+        slot.outline.visible =
+          selected || inspecting || mining || this.placementHover?.slotGpuId === gpuId;
         slot.cable.visible = unlocked && !inspecting;
       }
     }
@@ -547,6 +744,8 @@ export class MiningScene {
       this.syncLiquidHoses(this.currentWorld);
     }
     this.cameraController.update(delta);
+    this.placementDragVisual.update(delta, this.reducedMotion.matches);
+    for (const helper of this.placementSelectionHelpers) helper.update();
     this.particles.visible = this.isMining;
     if (this.isMining && !this.isPaused) {
       this.animateParticles(delta);
@@ -593,7 +792,7 @@ export class MiningScene {
     if (!width || !height) {
       return;
     }
-    this.cameraController.resize(width, height);
+    this.cameraController.resize(width, height, this.placementMode);
     this.renderer.setSize(width, height, false);
   }
 
@@ -605,6 +804,14 @@ export class MiningScene {
     this.previousRigClickTime = this.lastRigClickTime;
     this.lastClickedRigId = null;
     if (!this.cameraController.finishPointer(event)) {
+      return;
+    }
+    if (this.placementMode) {
+      if (event.button === 0)
+        this.interactions.placementSelect(
+          this.placedItemAt(event.clientX, event.clientY),
+          event.ctrlKey || event.metaKey,
+        );
       return;
     }
     const bounds = this.canvas.getBoundingClientRect();
@@ -635,6 +842,14 @@ export class MiningScene {
 
   private readonly handleContextMenu = (event: MouseEvent): void => {
     event.preventDefault();
+    if (this.placementMode) {
+      this.interactions.placementContextMenu(
+        this.placedItemAt(event.clientX, event.clientY),
+        event.clientX,
+        event.clientY,
+      );
+      return;
+    }
     const start = this.contextPointerStart;
     this.contextPointerStart = null;
     if (
@@ -654,6 +869,7 @@ export class MiningScene {
   };
 
   private readonly handleDoubleClick = (event: MouseEvent): void => {
+    if (this.placementMode) return;
     const gpuId = this.lastClickedGpuId;
     const rigId = this.previousClickedRigId;
     // I due pointerup hanno già verificato hit e trascinamento usando coordinate precise.
@@ -679,6 +895,7 @@ export class MiningScene {
   };
 
   private readonly handleGpuHover = (event: PointerEvent): void => {
+    if (this.placementMode) return;
     if (event.buttons !== 0 || event.pointerType === 'touch') {
       this.clearGpuHover();
       return;

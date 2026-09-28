@@ -15,6 +15,16 @@ export {
   resaleValue,
   sellStockItem,
 } from './inventory/queries';
-export { installStockGpu, replaceInstalledGpu, storeGpu } from './inventory/gpu-transitions';
-export { installStockRig, replaceRig, storeRig } from './inventory/rig-transitions';
+export {
+  installStockGpu,
+  moveInstalledGpu,
+  replaceInstalledGpu,
+  storeGpu,
+} from './inventory/gpu-transitions';
+export {
+  installStockRig,
+  moveInstalledRig,
+  replaceRig,
+  storeRig,
+} from './inventory/rig-transitions';
 export { configureRigWithStock, serviceGpuWithStock } from './inventory/component-stock';

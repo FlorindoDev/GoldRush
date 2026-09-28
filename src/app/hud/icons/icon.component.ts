@@ -41,6 +41,7 @@ const PATHS: Record<string, string | readonly string[]> = {
   info: 'M12 11v6m0-10v.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
   trash: 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
   mouse: 'M12 2a7 7 0 0 0-7 7v6a7 7 0 0 0 14 0V9a7 7 0 0 0-7-7Zm0 0v7',
+  hand: 'M8 13V5a2 2 0 0 1 4 0v6m0-4a2 2 0 0 1 4 0v4m0-2a2 2 0 0 1 4 0v5a8 8 0 0 1-8 8h-1a8 8 0 0 1-6.2-3L2.5 16a2 2 0 0 1 2.8-2.8L8 16',
   wallet: 'M20 8H5a3 3 0 0 1 0-6h13v6M2 5v14a3 3 0 0 0 3 3h15V8m-4 5h6v5h-6v-5Z',
   layers: 'm12 3 10 5-10 5L2 8l10-5ZM2 12l10 5 10-5M2 16l10 5 10-5',
   flag: 'M5 21V3m0 1c6-4 8 4 14 0v10c-6 4-8-4-14 0',

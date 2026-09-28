@@ -1,5 +1,6 @@
 <main
   class="game-shell"
+  [class.placement-mode]="game.placementMode()"
   (dragover)="dragOverWorkspace($event)"
   (drop)="dropTabOutside($event)"
 >
@@ -7,8 +8,15 @@
   <app-scene
     #scene
     class="world-scene"
+    [placementItem]="draggedPlacement()"
     (gpuHover)="hoveredGpu.set($event)"
   />
+  @if (game.placementMode()) {
+    <app-placement-panel
+      (dragStarted)="draggedPlacement.set($event)"
+      (dragEnded)="draggedPlacement.set(null)"
+    />
+  }
 
   @if (visibleGpuHover(); as hover) {
     <app-gpu-tooltip [hover]="hover" />

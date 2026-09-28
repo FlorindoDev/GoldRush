@@ -4,6 +4,8 @@ import {
   sellStockItem,
   storeGpu,
   storeRig,
+  moveInstalledGpu,
+  moveInstalledRig,
   installStockGpu,
   installStockRig,
   replaceInstalledGpu,
@@ -45,6 +47,8 @@ import {
   createWorld,
   farmPowerWatts,
   getGpu,
+  gpuIdForRigSlot,
+  gpuSlotIndex,
   getCryptoBlock,
   getCryptoProgress,
   isCryptoBlockSettled,
@@ -70,6 +74,7 @@ import {
   rigIdForGpu,
   STARTING_GPU_COUNT,
   STARTING_RIG_COUNT,
+  type PlacedItem,
 } from './mining-world';
 
 const LINE_EFFECT_DURATION_MS = GAME_BALANCE.editor.lineEffectDurationMs;
@@ -118,6 +123,7 @@ export class GameService {
   readonly started = signal(false);
   readonly paused = signal(false);
   readonly computerOpen = signal(false);
+  readonly placementMode = signal(false);
   readonly running = signal(false);
   readonly mining = signal(false);
   readonly miningActions = signal<readonly MiningAction[]>([]);
@@ -198,13 +204,17 @@ export class GameService {
   }
 
   moveGpuToStock(id: number): void {
-    if (this.isGpuMining(id)) throw new Error('Attendi che questa GPU termini mine().');
-    this.world.update((world) => storeGpu(world, id));
-    if (this.selectedGpuId() === id) this.selectedGpuId.set(null);
+    this.movePlacedItemsToStock([{ kind: 'gpu', id }]);
   }
 
   mountStockGpu(id: number, rigId: number, slotGpuId?: number): void {
     this.world.update((world) => installStockGpu(world, id, rigId, slotGpuId));
+  }
+
+  moveMountedGpu(sourceGpuId: number, targetGpuId: number): void {
+    if (this.isGpuMining(sourceGpuId)) throw new Error('Attendi che questa GPU termini mine().');
+    this.world.update((world) => moveInstalledGpu(world, sourceGpuId, targetGpuId));
+    if (this.selectedGpuId() === sourceGpuId) this.selectedGpuId.set(targetGpuId);
   }
 
   replaceGpuFromStock(gpuId: number, stockId: number): void {
@@ -213,21 +223,65 @@ export class GameService {
   }
 
   moveRigToStock(rigId: number): void {
-    if (this.isRigMining(rigId))
-      throw new Error('Attendi che le GPU di questo RIG terminino mine().');
-    this.assertRigOffWorkbench(rigId);
-    const gpuIds = getRig(this.world(), rigId).gpus.map((gpu) => gpu.id);
-    this.world.update((world) => storeRig(world, rigId));
-    if (gpuIds.includes(this.selectedGpuId() ?? -1)) this.selectedGpuId.set(null);
-    if (this.selectedRigId() === rigId) this.selectedRigId.set(null);
+    this.movePlacedItemsToStock([{ kind: 'rig', id: rigId }]);
   }
 
-  mountStockRig(stockId: number, rigId: number): void {
+  movePlacedItemsToStock(items: readonly PlacedItem[]): void {
+    const rigIds = new Set(items.filter((item) => item.kind === 'rig').map((item) => item.id));
+    const gpuIds = new Set(
+      items
+        .filter((item) => item.kind === 'gpu' && !rigIds.has(rigIdForGpu(item.id)))
+        .map((item) => item.id),
+    );
+    if (!rigIds.size && !gpuIds.size) return;
+
+    const world = this.world();
+    for (const rigId of rigIds) {
+      if (this.isRigMining(rigId))
+        throw new Error('Attendi che le GPU di questo RIG terminino mine().');
+      this.assertRigOffWorkbench(rigId);
+    }
+    for (const gpuId of gpuIds) {
+      if (this.isGpuMining(gpuId)) throw new Error('Attendi che questa GPU termini mine().');
+    }
+
+    this.world.update((current) => {
+      let updated = current;
+      for (const gpuId of gpuIds) updated = storeGpu(updated, gpuId);
+      for (const rigId of rigIds) updated = storeRig(updated, rigId);
+      return updated;
+    });
+    const removedGpuIds = new Set(gpuIds);
+    for (const rigId of rigIds) {
+      for (const gpu of getRig(world, rigId).gpus) removedGpuIds.add(gpu.id);
+    }
+    if (removedGpuIds.has(this.selectedGpuId() ?? -1)) this.selectedGpuId.set(null);
+    if (rigIds.has(this.selectedRigId() ?? -1)) this.selectedRigId.set(null);
+  }
+
+  mountStockRig(stockId: number, rigId: number, focus = true): void {
     this.world.update((world) => installStockRig(world, stockId, rigId));
     this.selectedGpuId.set(null);
     this.selectedRigId.set(rigId);
-    this.viewedRigId.set(rigId);
-    this.viewedPlotId.set(plotIdForRig(rigId));
+    if (focus) {
+      this.viewedRigId.set(rigId);
+      this.viewedPlotId.set(plotIdForRig(rigId));
+    }
+  }
+
+  moveMountedRig(sourceRigId: number, targetRigId: number): void {
+    if (this.isRigMining(sourceRigId))
+      throw new Error('Attendi che le GPU di questo RIG terminino mine().');
+    this.assertRigOffWorkbench(sourceRigId);
+    const selectedGpuId = this.selectedGpuId();
+    const selectedSlotIndex =
+      selectedGpuId !== null && rigIdForGpu(selectedGpuId) === sourceRigId
+        ? gpuSlotIndex(selectedGpuId)
+        : null;
+    this.world.update((world) => moveInstalledRig(world, sourceRigId, targetRigId));
+    if (selectedSlotIndex !== null)
+      this.selectedGpuId.set(gpuIdForRigSlot(targetRigId, selectedSlotIndex));
+    if (this.selectedRigId() === sourceRigId) this.selectedRigId.set(targetRigId);
   }
 
   replaceRigFromStock(rigId: number, stockId: number): void {
@@ -362,6 +416,7 @@ export class GameService {
     this.viewedRigId.set(1);
     this.viewedPlotId.set(1);
     this.computerOpen.set(false);
+    this.placementMode.set(false);
     this.activeLine.set(0);
     this.errorLine.set(0);
     this.errorFileId.set(null);
@@ -842,6 +897,7 @@ export class GameService {
     this.returnToRig();
     this.world.set(createWorld());
     this.computerOpen.set(false);
+    this.placementMode.set(false);
     this.gameElapsedMinutes.set(0);
     this.billedGameDay = 0;
     this.clearLineEffects();

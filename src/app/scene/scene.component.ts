@@ -5,9 +5,11 @@ import {
   ElementRef,
   effect,
   inject,
+  input,
   OnDestroy,
   output,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { GameService } from '../game/game.service';
@@ -16,9 +18,11 @@ import { IconComponent } from '../hud/icons/icon.component';
 import type { GpuHover } from '../hud/indicators/gpu-tooltip/gpu-tooltip.component';
 import type { CameraPreset } from './camera/camera-preset';
 import { MiningScene } from './mining-scene';
+import type { PlacementTarget } from './mining-scene';
+import { PLACED_MIME, PLACEMENT_MIME, type PlacementItem } from '../hud/placement/placement-item';
 import { SceneAssets } from './resources/scene-assets';
 import type { ToolStationId } from './tools/tool-stations';
-import { getGpu, isGpuUnlocked } from '../game/mining-world';
+import { getGpu, isGpuUnlocked, type PlacedItem } from '../game/mining-world';
 import { SHOP_PRODUCTS_BY_ID } from '../config/shop-config';
 import {
   SceneContextMenuComponent,
@@ -33,11 +37,26 @@ import {
   templateUrl: './scene.component.html',
   styleUrl: './scene.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'closeContextMenuFromEscape()' },
+  host: {
+    '(document:keydown.escape)': 'closeContextMenuFromEscape()',
+    '(document:dragover)': 'trackPlacementDrag($event)',
+    '(document:dragend)': 'endPlacementDrag()',
+    '(document:drop)': 'cancelPlacementDrop($event)',
+  },
 })
 export class SceneComponent implements AfterViewInit, OnDestroy {
   readonly game = inject(GameService);
   readonly gpuHover = output<GpuHover | null>();
+  readonly placementItem = input<PlacementItem | null>(null);
+  readonly draggedPlacedItem = signal<PlacedItem | null>(null);
+  readonly placementTarget = signal<PlacementTarget | null>(null);
+  readonly dragCursor = signal<{ x: number; y: number } | null>(null);
+  readonly placementSelection = signal<readonly PlacedItem[]>([]);
+  readonly placementMenu = signal<{ x: number; y: number; items: readonly PlacedItem[] } | null>(
+    null,
+  );
+  readonly placementFeedback = signal('');
+  readonly placementMessage = signal('');
   readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   readonly unavailable = signal(false);
   readonly cameraPreset = signal<CameraPreset>('front');
@@ -46,6 +65,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
   readonly contextFeedback = signal('');
   readonly contextNotice = signal('');
   private scene?: MiningScene;
+  private pendingPlacedItem: PlacedItem | null = null;
   private destroyed = false;
   private contextNoticeTimeout?: ReturnType<typeof setTimeout>;
 
@@ -63,7 +83,25 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
       const cameraPreset = this.cameraPreset();
       const selectedToolStationId = this.selectedToolStationId();
       const computerOpen = this.game.computerOpen();
+      const placementMode = this.game.placementMode();
+      if (placementMode && selectedToolStationId !== null) {
+        untracked(() => this.selectedToolStationId.set(null));
+      }
+      if (!placementMode) {
+        this.placementTarget.set(null);
+        this.placementMessage.set('');
+        this.placementMenu.set(null);
+        if (untracked(() => this.placementSelection().length)) this.setPlacementSelection([]);
+      } else if (
+        !this.placementItem() &&
+        !this.draggedPlacedItem() &&
+        untracked(() => this.placementTarget()) !== null
+      ) {
+        this.leavePlacement();
+      }
+      if (!placementMode) this.endPlacementDrag();
       const menu = this.contextMenu();
+      if (placementMode && menu) this.closeContextMenu();
       const targetUnavailable =
         menu !== null &&
         (!isGpuUnlocked(world, menu.id) ||
@@ -83,6 +121,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
         activeGpuIds,
         selectedGpuId,
         computerOpen,
+        placementMode,
       );
     });
   }
@@ -121,6 +160,8 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
           openComputer: () => this.setSelectedToolStationId('computer'),
           hover: (gpuId, x, y) => this.gpuHover.emit(gpuId === null ? null : { gpuId, x, y }),
           contextMenu: (target, x, y) => this.openContextMenu(target, x, y),
+          placementSelect: (target, extend) => this.selectPlacedItem(target, extend),
+          placementContextMenu: (target, x, y) => this.openPlacementMenu(target, x, y),
         },
         assets,
       );
@@ -137,6 +178,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
         this.game.activeGpuIds(),
         this.game.selectedGpuId(),
         this.game.computerOpen(),
+        this.game.placementMode(),
       );
     } catch (error) {
       console.error('Impossibile inizializzare la scena 3D.', error);
@@ -162,6 +204,167 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
     if (id === 'computer') this.game.computerOpen.set(true);
   }
 
+  armPlacedDrag(event: PointerEvent): void {
+    if (!this.game.placementMode() || event.button !== 0 || event.ctrlKey || event.metaKey) return;
+    this.pendingPlacedItem = this.scene?.placedItemAt(event.clientX, event.clientY) ?? null;
+    this.canvas().nativeElement.draggable = this.pendingPlacedItem !== null;
+  }
+
+  disarmPlacedDrag(): void {
+    this.pendingPlacedItem = null;
+    if (!this.draggedPlacedItem()) this.canvas().nativeElement.draggable = false;
+  }
+
+  startPlacedDrag(event: DragEvent): void {
+    const item = this.pendingPlacedItem;
+    if (!this.game.placementMode() || !item || !event.dataTransfer) {
+      event.preventDefault();
+      return;
+    }
+    event.dataTransfer.setData(PLACED_MIME, `${item.kind}:${item.id}`);
+    event.dataTransfer.effectAllowed = 'move';
+    const transparentImage = document.createElement('canvas');
+    transparentImage.width = 1;
+    transparentImage.height = 1;
+    event.dataTransfer.setDragImage(transparentImage, 0, 0);
+    this.draggedPlacedItem.set(item);
+    this.placementMenu.set(null);
+    this.setPlacementSelection([]);
+  }
+
+  dragOverPlacement(event: DragEvent): void {
+    const stock = this.placementItem();
+    const placed = this.draggedPlacedItem();
+    const transfer = event.dataTransfer;
+    if (!this.game.placementMode() || !transfer) return;
+    const item = transfer.types.includes(PLACED_MIME)
+      ? placed
+      : transfer.types.includes(PLACEMENT_MIME)
+        ? stock
+        : null;
+    if (!item) return;
+    event.preventDefault();
+    const target = this.scene?.placementTargetAt(event.clientX, event.clientY, item.kind) ?? null;
+    this.placementTarget.set(target);
+    this.scene?.setPlacementHover(target);
+    transfer.dropEffect = 'move';
+  }
+
+  trackPlacementDrag(event: DragEvent): void {
+    const stockItem = this.placementItem();
+    const placedItem = this.draggedPlacedItem();
+    const transfer = event.dataTransfer;
+    if (!this.game.placementMode() || !transfer) return;
+    const draggingPlaced = placedItem && transfer.types.includes(PLACED_MIME);
+    const draggingStock = stockItem && transfer.types.includes(PLACEMENT_MIME);
+    if (!draggingStock && !draggingPlaced) return;
+    event.preventDefault();
+    transfer.dropEffect = 'move';
+    const bounds = this.canvas().nativeElement.getBoundingClientRect();
+    this.dragCursor.set({ x: event.clientX - bounds.left, y: event.clientY - bounds.top });
+    if (draggingPlaced && placedItem) {
+      this.scene?.beginPlacedDrag(placedItem, event.clientX, event.clientY);
+      return;
+    }
+    const stock = this.game
+      .world()
+      .inventory.items.find((entry) => entry.id === stockItem!.stockId);
+    const product = stock && SHOP_PRODUCTS_BY_ID.get(stock.productId);
+    if (product)
+      this.scene?.beginPlacementDrag(
+        stockItem!.stockId,
+        product.model,
+        stockItem!.kind,
+        event.clientX,
+        event.clientY,
+      );
+  }
+
+  endPlacementDrag(): void {
+    this.dragCursor.set(null);
+    this.draggedPlacedItem.set(null);
+    this.pendingPlacedItem = null;
+    if (this.scene) this.canvas().nativeElement.draggable = false;
+    this.scene?.endPlacementDrag();
+  }
+
+  cancelPlacementDrop(event: DragEvent): void {
+    if (
+      !event.dataTransfer?.types.includes(PLACEMENT_MIME) &&
+      !event.dataTransfer?.types.includes(PLACED_MIME)
+    )
+      return;
+    event.preventDefault();
+    this.endPlacementDrag();
+    this.leavePlacement();
+  }
+
+  leavePlacement(): void {
+    this.placementTarget.set(null);
+    this.scene?.setPlacementHover(null);
+  }
+
+  dropPlacement(event: DragEvent): void {
+    const stockItem = this.placementItem();
+    const placedItem = this.draggedPlacedItem();
+    const droppingPlaced = Boolean(
+      placedItem &&
+      event.dataTransfer?.getData(PLACED_MIME) === `${placedItem.kind}:${placedItem.id}`,
+    );
+    const droppingStock =
+      stockItem && event.dataTransfer?.getData(PLACEMENT_MIME) === String(stockItem.stockId);
+    if (!this.game.placementMode() || (!droppingPlaced && !droppingStock)) return;
+    const kind = (droppingPlaced ? placedItem : stockItem)!.kind;
+    event.preventDefault();
+    event.stopPropagation();
+    const target = this.scene?.placementTargetAt(event.clientX, event.clientY, kind);
+    this.placementTarget.set(null);
+    this.scene?.setPlacementHover(null);
+    this.endPlacementDrag();
+    if (!target) {
+      this.placementMessage.set(
+        kind === 'rig'
+          ? 'Rilascia il RIG su una pedana vuota.'
+          : 'Rilascia la GPU su un RIG con slot libero.',
+      );
+      return;
+    }
+    if (droppingPlaced && placedItem) {
+      try {
+        if (placedItem.kind === 'rig') {
+          this.game.moveMountedRig(placedItem.id, target.rigId);
+        } else if (target.slotGpuId !== undefined) {
+          this.game.moveMountedGpu(placedItem.id, target.slotGpuId);
+        }
+        this.placementMessage.set('Componente spostato.');
+      } catch (error) {
+        this.placementMessage.set(
+          error instanceof Error ? error.message : 'Spostamento non riuscito.',
+        );
+      }
+      return;
+    }
+    const item = stockItem!;
+    const stock = this.game.world().inventory.items.find((entry) => entry.id === item.stockId);
+    if (!stock || (item.kind === 'rig' ? !stock.rig : !stock.gpu)) {
+      this.placementMessage.set('Componente non più disponibile in magazzino.');
+      return;
+    }
+    try {
+      if (item.kind === 'rig') {
+        this.game.mountStockRig(item.stockId, target.rigId, false);
+        this.placementMessage.set(`RIG montato nella posizione ${target.rigId}.`);
+      } else {
+        this.game.mountStockGpu(item.stockId, target.rigId, target.slotGpuId);
+        this.placementMessage.set(`GPU montata nel RIG ${target.rigId}.`);
+      }
+    } catch (error) {
+      this.placementMessage.set(
+        error instanceof Error ? error.message : 'Posizionamento non riuscito.',
+      );
+    }
+  }
+
   closeContextMenu(restoreFocus = false): void {
     const wasOpen = this.contextMenu() !== null;
     this.contextMenu.set(null);
@@ -170,7 +373,67 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
   }
 
   closeContextMenuFromEscape(): void {
+    if (this.game.placementMode()) {
+      this.placementMenu.set(null);
+      this.setPlacementSelection([]);
+      return;
+    }
     this.closeContextMenu(true);
+  }
+
+  selectPlacedItem(target: PlacedItem | null, extend: boolean): void {
+    this.placementMenu.set(null);
+    this.placementFeedback.set('');
+    if (!extend) {
+      this.setPlacementSelection([]);
+      return;
+    }
+    if (!target) return;
+    const selected = this.placementSelection();
+    const exists = selected.some((item) => item.kind === target.kind && item.id === target.id);
+    this.setPlacementSelection(
+      exists
+        ? selected.filter((item) => item.kind !== target.kind || item.id !== target.id)
+        : [...selected, target],
+    );
+  }
+
+  openPlacementMenu(target: PlacedItem | null, clientX: number, clientY: number): void {
+    this.placementFeedback.set('');
+    if (!target) {
+      this.placementMenu.set(null);
+      return;
+    }
+    const selection = this.placementSelection();
+    const included = selection.some((item) => item.kind === target.kind && item.id === target.id);
+    const items = included ? selection : [target];
+    if (!included) this.setPlacementSelection(items);
+    const bounds = this.canvas().nativeElement.getBoundingClientRect();
+    this.placementMenu.set({
+      x: Math.max(8, Math.min(clientX - bounds.left, bounds.width - 228)),
+      y: Math.max(8, Math.min(clientY - bounds.top, bounds.height - 88)),
+      items,
+    });
+  }
+
+  removePlacedItems(): void {
+    const menu = this.placementMenu();
+    if (!menu) return;
+    try {
+      this.game.movePlacedItemsToStock(menu.items);
+      this.placementMessage.set(`${menu.items.length} elementi rimessi in magazzino.`);
+      this.placementMenu.set(null);
+      this.setPlacementSelection([]);
+    } catch (error) {
+      this.placementFeedback.set(
+        error instanceof Error ? error.message : 'Spostamento in magazzino non riuscito.',
+      );
+    }
+  }
+
+  private setPlacementSelection(items: readonly PlacedItem[]): void {
+    this.placementSelection.set(items);
+    this.scene?.setPlacementSelection(items);
   }
 
   handleContextAction(request: SceneContextRequest): void {

@@ -4,19 +4,76 @@
 >
   <canvas
     #canvas
+    (pointerdown)="armPlacedDrag($event)"
+    (pointerup)="disarmPlacedDrag()"
+    (pointercancel)="disarmPlacedDrag()"
+    (dragstart)="startPlacedDrag($event)"
+    (dragend)="endPlacementDrag()"
+    (dragover)="dragOverPlacement($event)"
+    (dragleave)="leavePlacement()"
+    (drop)="dropPlacement($event)"
+    [attr.data-placement-target]="
+      placementTarget()?.slotGpuId ? 'gpu' : placementTarget() ? 'rig' : null
+    "
     aria-label="Farm 3D. Clicca un RIG per inquadrarlo; doppio clic per configurarlo. Clicca una GPU per selezionarla; doppio clic per portarla al banco. Tasto destro su una GPU per aprire le azioni. Clicca il computer per Shop e Magazzino. Trascina per ruotare, tasto destro e trascina per spostare la visuale, rotella per zoom."
     tabindex="0"
   ></canvas>
 
-  <app-scene-context-menu
-    [context]="contextMenu()"
-    [world]="game.world()"
-    [disabled]="game.isGpuMining(contextMenu()?.id ?? -1)"
-    [feedback]="contextFeedback()"
-    (close)="closeContextMenu($event)"
-    (action)="handleContextAction($event)"
-  />
-  @if (contextNotice()) {
+  @if (dragCursor(); as cursor) {
+    <div
+      class="placement-grab-hand"
+      [style.left.px]="cursor.x"
+      [style.top.px]="cursor.y"
+      aria-hidden="true"
+    >
+      <app-icon name="hand" />
+    </div>
+  }
+
+  @if (!game.placementMode()) {
+    <app-scene-context-menu
+      [context]="contextMenu()"
+      [world]="game.world()"
+      [disabled]="game.isGpuMining(contextMenu()?.id ?? -1)"
+      [feedback]="contextFeedback()"
+      (close)="closeContextMenu($event)"
+      (action)="handleContextAction($event)"
+    />
+  }
+  <span
+    class="placement-status"
+    role="status"
+    aria-live="polite"
+    >{{ placementMessage() }}</span
+  >
+  @if (placementMenu(); as menu) {
+    <div
+      class="placement-action-layer"
+      (pointerdown)="placementMenu.set(null)"
+    >
+      <div
+        class="placement-action-menu"
+        [style.left.px]="menu.x"
+        [style.top.px]="menu.y"
+        (pointerdown)="$event.stopPropagation()"
+      >
+        <button (click)="removePlacedItems()">
+          <app-icon name="minus" />
+          <span>
+            {{
+              menu.items.length === 1
+                ? 'Rimetti in magazzino'
+                : 'Rimetti ' + menu.items.length + ' elementi in magazzino'
+            }}
+          </span>
+        </button>
+        @if (placementFeedback()) {
+          <p role="status">{{ placementFeedback() }}</p>
+        }
+      </div>
+    </div>
+  }
+  @if (!game.placementMode() && contextNotice()) {
     <div
       class="gpu-context-notice"
       role="status"
@@ -26,12 +83,14 @@
     </div>
   }
 
-  <app-scene-controls
-    [cameraPreset]="cameraPreset()"
-    [selectedToolStationId]="selectedToolStationId()"
-    (cameraPresetChange)="setCameraPreset($event)"
-    (selectedToolStationIdChange)="setSelectedToolStationId($event)"
-  />
+  @if (!game.placementMode()) {
+    <app-scene-controls
+      [cameraPreset]="cameraPreset()"
+      [selectedToolStationId]="selectedToolStationId()"
+      (cameraPresetChange)="setCameraPreset($event)"
+      (selectedToolStationIdChange)="setSelectedToolStationId($event)"
+    />
+  }
 
   @if (unavailable()) {
     <div

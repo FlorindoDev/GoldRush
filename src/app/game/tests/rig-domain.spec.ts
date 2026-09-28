@@ -15,6 +15,7 @@ import {
   type MiningWorld,
 } from '../mining-world';
 import { GameService } from '../game.service';
+import { withUnlockedGpus } from './world-fixture';
 import { inventoryEntries, purchaseCart, resaleValue } from '../inventory';
 
 const fundedWorld = (
@@ -23,6 +24,54 @@ const fundedWorld = (
 ): MiningWorld => ({ ...world, cashEur: 2000, unlockedResearchIds });
 
 describe('RIG inventory domain', () => {
+  it('moves a mounted RIG with every GPU to another plot without stock changes', () => {
+    const game = new GameService();
+    game.world.set(withUnlockedGpus(createWorld(), 3));
+    const inventory = game.world().inventory;
+    game.selectedGpuId.set(2);
+    game.selectedRigId.set(1);
+    game.moveMountedRig(1, 7);
+
+    expect(getRig(game.world(), 1).unlocked).toBe(false);
+    expect(getRig(game.world(), 7).unlocked).toBe(true);
+    expect(
+      getRig(game.world(), 7)
+        .gpus.slice(0, 3)
+        .map((gpu) => gpu.unlocked),
+    ).toEqual([true, true, true]);
+    expect(
+      getRig(game.world(), 7)
+        .gpus.slice(0, 3)
+        .map((gpu) => gpu.rigId),
+    ).toEqual([7, 7, 7]);
+    expect(game.world().inventory).toBe(inventory);
+    expect(game.selectedGpuId()).toBe(26);
+    expect(game.selectedRigId()).toBe(7);
+    const moved = game.world();
+    expect(() => game.moveMountedRig(7, 7)).toThrow('slot RIG vuoto');
+    expect(game.world()).toBe(moved);
+  });
+
+  it('moves a mixed selection in one update and stores GPUs of selected RIGs once', () => {
+    const game = new GameService();
+    const original = game.world();
+    expect(() =>
+      game.movePlacedItemsToStock([
+        { kind: 'gpu', id: 1 },
+        { kind: 'rig', id: 2 },
+      ]),
+    ).toThrow('RIG non disponibile');
+    expect(game.world()).toBe(original);
+
+    game.movePlacedItemsToStock([
+      { kind: 'gpu', id: 1 },
+      { kind: 'rig', id: 1 },
+    ]);
+    expect(getRig(game.world(), 1).unlocked).toBe(false);
+    expect(game.world().inventory.items.filter((item) => item.rig)).toHaveLength(1);
+    expect(game.world().inventory.items.filter((item) => item.gpu)).toHaveLength(1);
+  });
+
   it('installs shop RIGs, stores their setup and GPU slots, and remounts without losing identity', () => {
     const purchased = purchaseCart(fundedWorld(createWorld(), ['rig-8-frame-none']), [
       { productId: 'rig-8-frame-none', quantity: 1 },

@@ -89,6 +89,52 @@ export function storeRig(world: MiningWorld, rigId: number, now = Date.now()): M
   };
 }
 
+export function moveInstalledRig(
+  world: MiningWorld,
+  sourceRigId: number,
+  targetRigId: number,
+  now = Date.now(),
+): MiningWorld {
+  if (!isRigUnlocked(world, sourceRigId)) throw new Error('RIG non disponibile.');
+  const source = getRig(world, sourceRigId);
+  const target = getRig(world, targetRigId);
+  if (source.gpus.some((gpu) => gpu.unlocked && gpu.onWorkbench))
+    throw new Error('Rimonta prima tutte le GPU dal banco.');
+  if (target.unlocked || target.gpus.some((gpu) => gpu.unlocked || gpu.onWorkbench))
+    throw new Error('Seleziona uno slot RIG vuoto.');
+
+  return {
+    ...world,
+    plots: world.plots.map((plot) => ({
+      ...plot,
+      rigs: plot.rigs.map((rig) => {
+        if (rig.id === sourceRigId)
+          return {
+            ...rig,
+            unlocked: false,
+            rigProductId: undefined,
+            setup: { ...GAMEPLAY_RIG_SETUP },
+            gpus: rig.gpus.slice(0, GPUS_PER_RIG).map((gpu) => emptyGpuSlot(gpu, now)),
+          };
+        if (rig.id === targetRigId)
+          return {
+            ...source,
+            id: targetRigId,
+            plotId: target.plotId,
+            gpus: source.gpus.map((gpu, index) => ({
+              ...gpu,
+              id: gpuIdForRigSlot(targetRigId, index),
+              rigId: targetRigId,
+              plotId: target.plotId,
+              lastUpdatedAt: now,
+            })),
+          };
+        return rig;
+      }),
+    })),
+  };
+}
+
 function requireStockRig(world: MiningWorld, stockId: number): StockItem {
   const item = world.inventory.items.find((entry) => entry.id === stockId);
   if (!item || !item.rig || SHOP_PRODUCTS_BY_ID.get(item.productId)?.category !== 'rig') {
@@ -185,7 +231,11 @@ export function replaceRig(
     ...installed,
     inventory: {
       nextId: world.inventory.nextId + 1 + components.length,
-      items: [...world.inventory.items.filter((item) => item.id !== stockId), oldItem, ...components],
+      items: [
+        ...world.inventory.items.filter((item) => item.id !== stockId),
+        oldItem,
+        ...components,
+      ],
     },
   };
 }

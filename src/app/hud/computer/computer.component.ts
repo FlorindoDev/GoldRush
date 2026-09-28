@@ -185,6 +185,11 @@ export class ComputerComponent implements OnDestroy {
   close(): void {
     this.game.computerOpen.set(false);
   }
+  enterPlacement(): void {
+    this.game.returnToRig();
+    this.game.computerOpen.set(false);
+    this.game.placementMode.set(true);
+  }
   launch(app: Application): void {
     this.app.set(app);
     this.category.set('all');

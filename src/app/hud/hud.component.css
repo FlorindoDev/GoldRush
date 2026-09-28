@@ -21,6 +21,9 @@ app-scene.world-scene {
   inset: 0;
   z-index: 0;
 }
+.game-shell.placement-mode > :not(app-scene):not(app-placement-panel) {
+  display: none;
+}
 .status-panels {
   position: absolute;
   z-index: 24;

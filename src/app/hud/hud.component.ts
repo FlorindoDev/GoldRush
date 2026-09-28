@@ -38,6 +38,8 @@ import { RigWorkbenchComponent } from './panels/rig-workbench/rig-workbench.comp
 import { GuideCodeComponent } from './guide-code/guide-code.component';
 import { ResearchTreeComponent } from './research-tree/research-tree.component';
 import { ComputerComponent } from './computer/computer.component';
+import { PlacementPanelComponent } from './placement/placement-panel.component';
+import type { PlacementItem } from './placement/placement-item';
 import { HudWindowLayout } from './hud-window-layout';
 
 type GuideSection = 'intro' | 'language' | 'gpu' | 'energy' | 'wallet' | 'examples' | 'shortcuts';
@@ -89,6 +91,7 @@ const SHORTCUT_GROUPS = [
     GuideCodeComponent,
     ResearchTreeComponent,
     ComputerComponent,
+    PlacementPanelComponent,
   ],
   templateUrl: './hud.component.html',
   styleUrl: './hud.component.css',
@@ -108,6 +111,7 @@ export class HudComponent implements OnDestroy {
     { id: 'editor', fileIds: [this.game.activeFileId()], activeFileId: this.game.activeFileId() },
   ]);
   readonly draggedTab = signal<DraggedTab | null>(null);
+  readonly draggedPlacement = signal<PlacementItem | null>(null);
   readonly dockEditorId = computed(
     () =>
       this.editorWindows().find((entry) => entry.id === 'editor')?.id ??
@@ -119,6 +123,7 @@ export class HudComponent implements OnDestroy {
   readonly gpuHoverTooltipEnabled = signal(loadGpuHoverTooltipEnabled());
   readonly visibleGpuHover = computed(() => {
     if (
+      this.game.placementMode() ||
       !this.gpuHoverTooltipEnabled() ||
       this.game.inspectedGpuId() !== null ||
       this.game.inspectedRigId() !== null
@@ -166,6 +171,12 @@ export class HudComponent implements OnDestroy {
 
   handleEscape(event: Event): void {
     this.hoveredGpu.set(null);
+    if (this.game.placementMode()) {
+      event.preventDefault();
+      this.draggedPlacement.set(null);
+      this.game.placementMode.set(false);
+      return;
+    }
     if (this.game.paused()) {
       event.preventDefault();
       this.game.setPaused(false);
