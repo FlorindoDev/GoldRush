@@ -86,15 +86,12 @@
 
   @if (game.paused()) {
     <div
-      class="pause-overlay"
+      class="pause-notice"
       role="status"
       aria-live="polite"
     >
-      <div class="pause-card">
-        <app-icon name="pause" />
-        <strong>Gioco in pausa</strong>
-        <span>Premi Esc o Riprendi per continuare</span>
-      </div>
+      <app-icon name="pause" />
+      <span>Gioco in pausa · tempo e codice fermi</span>
     </div>
   }
 
@@ -195,8 +192,8 @@
         <span class="guide-brand"><app-icon name="book" /> MineScript <span>/ Guida</span></span>
         <button
           class="icon-button guide-close"
-          aria-label="Chiudi tutorial"
-          title="Chiudi tutorial"
+          aria-label="Chiudi guida"
+          title="Chiudi guida"
           (click)="closeGuide()"
         >
           <app-icon name="close" />
@@ -205,37 +202,27 @@
       <nav
         class="guide-navigation"
         role="tablist"
-        aria-label="Sezioni del tutorial"
+        aria-label="Sezioni della guida"
       >
         <button
-          id="guide-tab-examples"
+          id="guide-tab-intro"
           type="button"
           role="tab"
-          aria-controls="guide-page-examples"
-          [attr.aria-selected]="guideSection() === 'examples'"
-          (click)="selectGuideSection('examples')"
+          aria-controls="guide-page-intro"
+          [attr.aria-selected]="guideSection() === 'intro'"
+          (click)="selectGuideSection('intro')"
         >
-          Esempi
+          Introduzione
         </button>
         <button
-          id="guide-tab-functions"
+          id="guide-tab-language"
           type="button"
           role="tab"
-          aria-controls="guide-page-functions"
-          [attr.aria-selected]="guideSection() === 'functions'"
-          (click)="selectGuideSection('functions')"
+          aria-controls="guide-page-language"
+          [attr.aria-selected]="guideSection() === 'language'"
+          (click)="selectGuideSection('language')"
         >
-          Azioni e strumenti
-        </button>
-        <button
-          id="guide-tab-constructs"
-          type="button"
-          role="tab"
-          aria-controls="guide-page-constructs"
-          [attr.aria-selected]="guideSection() === 'constructs'"
-          (click)="selectGuideSection('constructs')"
-        >
-          Scrivere il programma
+          Linguaggio
         </button>
         <button
           id="guide-tab-gpu"
@@ -255,7 +242,27 @@
           [attr.aria-selected]="guideSection() === 'energy'"
           (click)="selectGuideSection('energy')"
         >
-          Energia e saldo
+          Corrente
+        </button>
+        <button
+          id="guide-tab-wallet"
+          type="button"
+          role="tab"
+          aria-controls="guide-page-wallet"
+          [attr.aria-selected]="guideSection() === 'wallet'"
+          (click)="selectGuideSection('wallet')"
+        >
+          Saldo
+        </button>
+        <button
+          id="guide-tab-examples"
+          type="button"
+          role="tab"
+          aria-controls="guide-page-examples"
+          [attr.aria-selected]="guideSection() === 'examples'"
+          (click)="selectGuideSection('examples')"
+        >
+          Esempi
         </button>
         <button
           id="guide-tab-shortcuts"
@@ -273,40 +280,1087 @@
       #guideContent
       class="dialog-content"
     >
+      @if (guideSection() === 'intro') {
+        <section
+          id="guide-page-intro"
+          class="guide-page guide-reference guide-markdown"
+          role="tabpanel"
+          aria-labelledby="guide-tab-intro"
+        >
+          <h2 id="guide-title">Benvenuto nella farm</h2>
+          <p class="dialog-intro">
+            Scrivi programmi MineScript per far lavorare le GPU, completare blocchi e guadagnare
+            criptovalute. Usa i ricavi per migliorare la farm e affrontare blocchi sempre più
+            difficili.
+          </p>
+
+          <h3>Il primo blocco, passo per passo</h3>
+          <ol class="guide-steps">
+            <li>
+              Apri l'editor. All'inizio hai {{ balance.world.startingGpuCount }} GPU già disponibili
+              per minare DOGE.
+            </li>
+            <li>
+              Scrivi <code>mine();</code> per una singola azione, oppure usa il programma qui sotto
+              per completare il blocco.
+            </li>
+            <li>
+              Avvia con il pulsante verde o <kbd>Ctrl</kbd> + <kbd>Invio</kbd>. Guarda progresso,
+              premio ed errori nella console.
+            </li>
+            <li>
+              Apri Ricerca per sbloccare progetti e valute; acquista componenti nel computer, poi
+              montali dal Magazzino.
+            </li>
+          </ol>
+          <app-guide-code [source]="examples[0].code" />
+          <p>
+            Il progresso va da 0 a 100 per ogni valuta. Al 100% ricevi il premio del blocco; la
+            successiva chiamata a <code>mine()</code> prepara un nuovo blocco.
+          </p>
+
+          <h3>Le meccaniche da conoscere</h3>
+          <div
+            class="guide-table-wrapper"
+            role="region"
+            aria-label="Meccaniche di base"
+            tabindex="0"
+          >
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th scope="col">Meccanica</th>
+                  <th scope="col">In pratica</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Mining</td>
+                  <td>
+                    Ogni <code>mine()</code> usa le GPU operative. Più GPU e frequenza aiutano, ma
+                    aumentano il consumo.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Calore</td>
+                  <td>
+                    Il lavoro scalda le GPU. Troppo calore riduce la frequenza effettiva e può
+                    fermare una scheda. Ventole e raffreddamento del RIG aiutano.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Sporco e usura</td>
+                  <td>
+                    La polvere si accumula e peggiora la temperatura; l'usura cresce lavorando. Al
+                    banco puoi pulire la GPU e fare manutenzione.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Corrente</td>
+                  <td>
+                    Il mining consuma energia. La bolletta si accumula e viene addebitata ogni 24
+                    ore di gioco.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Ricerca</td>
+                  <td>
+                    Sblocca modelli, componenti e nuove valute. Sbloccare un progetto non compra
+                    l'oggetto.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Acquisti e montaggio</td>
+                  <td>
+                    Compra dal computer. I pezzi arrivano nel Magazzino: scegli uno slot libero nel
+                    RIG e monta la GPU, oppure installa un RIG.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <aside
+            class="guide-callout guide-callout-tip"
+            role="note"
+          >
+            <h3><app-icon name="info" /> <span>Orientarsi nella scena</span></h3>
+            <p>
+              Clicca una GPU per selezionarla; doppio clic per portarla al banco. Con il tasto
+              destro su una GPU montata puoi smontarla o sostituirla. Passa il cursore sulla scheda
+              per vedere temperatura, sporco, usura e consumo.
+            </p>
+          </aside>
+          <p class="guide-note">
+            Partita e file si salvano automaticamente nel browser. Le Impostazioni permettono anche
+            di esportare e importare un salvataggio.
+          </p>
+        </section>
+      }
+
+      @if (guideSection() === 'language') {
+        <section
+          id="guide-page-language"
+          class="guide-page guide-reference guide-markdown"
+          role="tabpanel"
+          aria-labelledby="guide-tab-language"
+        >
+          <h2 id="guide-title">Linguaggio MineScript</h2>
+          <p class="dialog-intro">
+            MineScript controlla la farm con istruzioni, condizioni, cicli, funzioni e vettori.
+            Scrivi nel file attivo, avvia il programma e leggi risultati o errori nella console. Le
+            istruzioni vengono eseguite in ordine; una chiamata a <code>mine()</code> termina prima
+            della riga successiva.
+          </p>
+          <nav
+            class="guide-toc"
+            aria-label="Argomenti del linguaggio"
+          >
+            <span>Vai a</span>
+            <a
+              href="#language-basics"
+              (click)="goToGuideHeading($event, 'language-basics')"
+              >Valori e variabili</a
+            >
+            <a
+              href="#language-operators"
+              (click)="goToGuideHeading($event, 'language-operators')"
+              >Operatori</a
+            >
+            <a
+              href="#language-flow"
+              (click)="goToGuideHeading($event, 'language-flow')"
+              >Costrutti</a
+            >
+            <a
+              href="#language-collections"
+              (click)="goToGuideHeading($event, 'language-collections')"
+              >Vettori e raccolte</a
+            >
+            <a
+              href="#language-farm"
+              (click)="goToGuideHeading($event, 'language-farm')"
+              >Oggetti della farm</a
+            >
+            <a
+              href="#language-functions"
+              (click)="goToGuideHeading($event, 'language-functions')"
+              >Funzioni e file</a
+            >
+            <a
+              href="#language-builtins"
+              (click)="goToGuideHeading($event, 'language-builtins')"
+              >Funzioni integrate</a
+            >
+            <a
+              href="#language-errors"
+              (click)="goToGuideHeading($event, 'language-errors')"
+              >Errori e limiti</a
+            >
+          </nav>
+
+          <h3
+            id="language-basics"
+            tabindex="-1"
+          >
+            Valori, istruzioni e variabili
+          </h3>
+          <p>
+            Termina assegnazioni e chiamate con <code>;</code>. I blocchi di <code>if</code>, cicli,
+            funzioni e <code>parallel</code> usano <code>&lbrace;</code> e <code>&rbrace;</code>.
+            <code>//</code> commenta il resto della riga; <code>/* ... */</code> commenta anche più
+            righe.
+          </p>
+          <app-guide-code [source]="guideCode.variable" />
+          <p>
+            <code>let</code> crea una variabile; <code>=</code> cambia il valore di una variabile
+            già dichiarata. <code>i++</code> e <code>i--</code> modificano un contatore di uno. Puoi
+            salvare numeri, testo, booleani, <code>null</code>, vettori e oggetti del gioco.
+            Dichiara il nome prima di usarlo: ammette lettere, cifre e <code>_</code>, ma non può
+            iniziare con una cifra. Maiuscole e minuscole sono diverse.
+          </p>
+          <div
+            class="guide-table-wrapper"
+            role="region"
+            aria-label="Tipi di valore"
+            tabindex="0"
+          >
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th scope="col">Tipo</th>
+                  <th scope="col">Come si scrive e usa</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Numero</td>
+                  <td>
+                    <code>12</code>, <code>2.5</code>, <code>-3</code>. Usa il punto per i decimali.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Testo</td>
+                  <td>
+                    <code>"DOGE"</code> o <code>'DOGE'</code>. Sono ammessi <code>\n</code>,
+                    <code>\t</code> e virgolette con barra inversa.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Booleano</td>
+                  <td><code>true</code> e <code>false</code> per le condizioni.</td>
+                </tr>
+                <tr>
+                  <td>Assenza</td>
+                  <td>
+                    <code>null</code> indica che manca un valore, per esempio in una raccolta vuota.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Oggetto</td>
+                  <td>
+                    Vettori, pile, code, plot, RIG, GPU ed <code>electricity</code> espongono
+                    attributi e metodi.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Le variabili del file principale durano fino alla fine dell'esecuzione, anche se
+            dichiarate dentro un blocco. Quelle dichiarate in una funzione sono locali alla
+            chiamata. A ogni nuovo avvio ripartono da zero; lo stato della farm invece resta.
+          </p>
+          <h3
+            id="language-operators"
+            tabindex="-1"
+          >
+            Espressioni e operatori
+          </h3>
+          <section class="guide-static-section">
+            <h4>Calcoli, confronti e logica</h4>
+            <p>
+              <code>+ - * / %</code> fanno somma, sottrazione, moltiplicazione, divisione e resto.
+              <code>+</code> unisce anche testo e altri valori. Divisione e resto per zero causano
+              un errore. <code>-numero</code> cambia segno; le parentesi tonde decidono l'ordine dei
+              calcoli.
+            </p>
+            <p>
+              <code>==</code> e <code>!=</code> confrontano anche il tipo: <code>2 == "2"</code> è
+              falso. <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code> e
+              <code>&gt;=</code> confrontano numeri. <code>&amp;&amp;</code> significa «e»,
+              <code>||</code> «o», <code>!</code> nega una condizione. <code>&amp;&amp;</code> e
+              <code>||</code> saltano la seconda parte se il risultato è già noto.
+              <code>=</code> assegna; <code>==</code>
+              confronta.
+            </p>
+            <p>
+              Usa <code>oggetto.attributo</code> per leggere un dato e
+              <code>oggetto.metodo(argomenti)</code> per eseguire un'azione. L'attributo
+              <code>type</code> indica il tipo di un oggetto del gioco, per esempio
+              <code>plots.type</code> vale <code>vettore</code>. Gli attributi degli oggetti si
+              leggono: per cambiarne lo stato usa i metodi previsti.
+            </p>
+          </section>
+
+          <h3
+            id="language-flow"
+            tabindex="-1"
+          >
+            Costrutti: scegliere e ripetere
+          </h3>
+          <div
+            class="guide-table-wrapper"
+            role="region"
+            aria-label="Costrutti MineScript"
+            tabindex="0"
+          >
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th scope="col">Costrutto</th>
+                  <th scope="col">Quando usarlo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <code>if (condizione) &lbrace; ... &rbrace; else &lbrace; ... &rbrace;</code>
+                  </td>
+                  <td>
+                    Segue il primo blocco se la condizione è vera, altrimenti il secondo.
+                    <code>else</code> è facoltativo.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>repeat (5) &lbrace; ... &rbrace;</code></td>
+                  <td>Ripete un numero noto di volte, da 0 a 1000.</td>
+                </tr>
+                <tr>
+                  <td><code>while (progress() &lt; 100) &lbrace; mine(); &rbrace;</code></td>
+                  <td>Controlla la condizione prima di ogni giro. Il corpo deve farla cambiare.</td>
+                </tr>
+                <tr>
+                  <td><code>for (let i = 0; i &lt; 5; i++) &lbrace; ... &rbrace;</code></td>
+                  <td>Usa un contatore: inizializzazione, condizione e aggiornamento.</td>
+                </tr>
+                <tr>
+                  <td><code>parallel &lbrace; ... &rbrace;</code></td>
+                  <td>
+                    Avvia chiamate indipendenti insieme e aspetta che finiscano.
+                    <code>mine()</code> usa già più GPU insieme.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            <code>if</code> valuta una condizione e sceglie un solo ramo. <code>repeat</code>
+            esegue esattamente il numero richiesto di giri; con zero non entra nel blocco.
+            <code>while</code> controlla prima di ogni giro, quindi può non partire. Nel
+            <code>for</code> il contatore nasce una volta, la condizione viene ricontrollata e
+            l'aggiornamento avviene dopo ogni giro. Un ciclo che non cambia la condizione raggiunge
+            il limite di operazioni e si ferma con errore.
+          </p>
+          <app-guide-code [source]="guideCode.condition" />
+          <section class="guide-static-section">
+            <h4>Esempio di parallel</h4>
+            <p>
+              Dentro <code>parallel</code> scrivi solo chiamate o altre istruzioni semplici
+              terminate da <code>;</code>. Prepara variabili e funzioni prima del blocco. Le
+              chiamate partono insieme; la riga dopo il blocco attende tutte. Usa GPU distinte per
+              evitare comandi in conflitto.
+            </p>
+            <app-guide-code [source]="guideCode.parallel" />
+          </section>
+
+          <h3
+            id="language-collections"
+            tabindex="-1"
+          >
+            Vettori, pile e code
+          </h3>
+          <p>
+            <code>vector()</code> crea un vettore vuoto e modificabile. Aggiungi valori con
+            <code>push()</code> oppure <code>insert()</code>; leggi con <code>vettore[0]</code>. Gli
+            indici partono da zero. Un indice fuori intervallo o non intero genera un errore. Un
+            vettore contiene al massimo 1000 elementi e può mescolare tipi diversi.
+          </p>
+          <app-guide-code [source]="guideCode.collectionParameters" />
+          <section class="guide-static-section">
+            <h4>Metodi del vettore</h4>
+            <dl class="guide-definition-list">
+              <div>
+                <dt><code>length</code>, <code>size()</code></dt>
+                <dd>
+                  Numero di elementi. Disponibili anche come <code>length()</code> e attributo
+                  <code>size</code>.
+                </dd>
+              </div>
+              <div>
+                <dt><code>first</code>, <code>last</code></dt>
+                <dd>Primo e ultimo valore; <code>null</code> se il vettore è vuoto.</dd>
+              </div>
+              <div>
+                <dt><code>push(x)</code>, <code>pop()</code></dt>
+                <dd>
+                  Aggiunge in fondo e restituisce la nuova lunghezza; oppure toglie e restituisce
+                  l'ultimo valore, <code>null</code> se vuoto.
+                </dd>
+              </div>
+              <div>
+                <dt><code>insert(i, x)</code>, <code>remove(i)</code>, <code>set(i, x)</code></dt>
+                <dd>
+                  Inserisce spostando gli altri, elimina una posizione o sostituisce un valore
+                  esistente. <code>insert()</code> accetta anche <code>i == length</code>.
+                </dd>
+              </div>
+              <div>
+                <dt><code>contains(x)</code>, <code>indexOf(x)</code></dt>
+                <dd>
+                  Cercano un valore. Il primo restituisce <code>true</code> o <code>false</code>; il
+                  secondo la prima posizione oppure <code>-1</code>.
+                </dd>
+              </div>
+              <div>
+                <dt><code>slice(inizio, fine)</code></dt>
+                <dd>
+                  Crea un nuovo vettore dal primo indice incluso al secondo escluso. Usa indici fra
+                  0 e <code>length</code>, con fine non minore di inizio.
+                </dd>
+              </div>
+              <div>
+                <dt><code>concat(v)</code>, <code>copy()</code></dt>
+                <dd>
+                  Creano un nuovo vettore unendo due liste o copiandone una. La copia conserva gli
+                  stessi oggetti contenuti.
+                </dd>
+              </div>
+              <div>
+                <dt><code>reverse()</code>, <code>sort()</code></dt>
+                <dd>
+                  Modificano il vettore originale. <code>sort()</code> ordina in modo crescente e
+                  richiede solo numeri oppure solo stringhe.
+                </dd>
+              </div>
+              <div>
+                <dt><code>clear()</code>, <code>isEmpty()</code></dt>
+                <dd>Svuota il vettore oppure verifica se è vuoto.</dd>
+              </div>
+            </dl>
+          </section>
+          <section class="guide-static-section">
+            <h4>Pila e coda</h4>
+            <p>
+              <code>stack()</code> è una pila di vettori: l'ultimo inserito è il primo a uscire.
+              <code>push(v)</code> inserisce, <code>pop()</code> toglie e <code>peek()</code> legge
+              l'ultimo senza toglierlo. <code>queue()</code> è una coda di vettori: il primo
+              inserito è il primo a uscire. <code>enqueue(v)</code> inserisce,
+              <code>dequeue()</code> toglie il primo; <code>peek()</code> e
+              <code>front()</code> leggono il primo, <code>back()</code> l'ultimo.
+            </p>
+            <p>
+              Pila e coda accettano solo vettori, fino a 1000 ciascuna. Hanno <code>size</code>,
+              <code>length</code>, <code>size()</code>, <code>length()</code>,
+              <code>isEmpty()</code> e <code>clear()</code>. Una lettura da raccolta vuota
+              restituisce <code>null</code>. Conservano il vettore originale: modificarlo in una
+              variabile modifica anche quello presente nella pila o coda.
+            </p>
+          </section>
+
+          <h3
+            id="language-farm"
+            tabindex="-1"
+          >
+            Vettori e oggetti della farm
+          </h3>
+          <p>
+            <code>plots</code> è un vettore di aree. Ogni <code>plot.rigs</code> è un vettore di
+            RIG; ogni <code>rig.gpus</code> è un vettore di GPU. Leggi la prima scheda con
+            <code>plots[0].rigs[0].gpus[0]</code>. Puoi usare sui tre vettori i metodi di lettura,
+            ricerca e copia del vettore, incluso <code>slice(inizio, fine)</code> per scegliere un
+            gruppo di GPU da passare a <code>mine()</code>.
+          </p>
+          <p>
+            I vettori originali della farm sono di sola lettura: <code>push()</code>,
+            <code>pop()</code>, <code>set()</code>, <code>insert()</code>, <code>remove()</code>,
+            <code>reverse()</code>, <code>sort()</code> e <code>clear()</code> danno errore.
+            <code>slice()</code>, <code>copy()</code> e <code>concat()</code> creano vettori
+            separati: modificarli non monta o smonta hardware.
+          </p>
+          <app-guide-code [source]="guideCode.gpuLocation" />
+          <p>
+            Gli oggetti hanno attributi propri: <code>plot.id</code>, <code>plot.rigCount</code>,
+            <code>plot.gpuCount</code>, <code>rig.id</code>, <code>rig.unlocked</code>,
+            <code>rig.gpuCount</code>, <code>gpu.id</code>, <code>gpu.crypto</code> e
+            <code>gpu.progress</code> sono esempi. La scheda GPU spiega tutti i suoi metodi;
+            Corrente spiega l'oggetto globale <code>electricity</code>.
+          </p>
+
+          <h3
+            id="language-functions"
+            tabindex="-1"
+          >
+            Funzioni e file
+          </h3>
+          <p>
+            Con <code>def nome(parametri) &lbrace; ... &rbrace;</code> definisci una funzione.
+            <code>return</code> restituisce il risultato; senza <code>return</code> ottieni
+            <code>null</code>. Passa alla chiamata esattamente il numero di parametri dichiarati. I
+            parametri e le variabili create nella funzione sono locali; numeri e testo si passano
+            come valori, mentre vettori e oggetti restano condivisi. Quindi una funzione può
+            modificare un vettore ricevuto come parametro. Scrivi <code>def</code> al livello
+            principale del file, non dentro un ciclo o un'altra funzione.
+          </p>
+          <app-guide-code [source]="guideCode.functionDefinition" />
+          <section class="guide-static-section">
+            <h4>Importare funzioni da un altro file</h4>
+            <p>
+              Crea file dall'editor e avviane uno come programma principale. Per riusare funzioni di
+              un altro file scrivi <code>import</code> al livello principale. Il nome del file deve
+              coincidere, maiuscole comprese. Un file importato può contenere solo
+              <code>def</code> e <code>import</code>; le funzioni importate partono solo quando le
+              chiami. Gli import possono attraversare più file, ma non formare un ciclo.
+            </p>
+            <app-guide-code [source]="guideCode.fileLibrary" />
+            <p>Salva il codice sopra come <code>utilita.mine</code>, poi nel file principale:</p>
+            <app-guide-code [source]="guideCode.fileImportSelected" />
+            <p>
+              <code>import &lbrace; doppio, triplo &rbrace; from "utilita.mine";</code>
+              importa due funzioni per nome. <code>import * from "utilita.mine";</code> e
+              <code>import "utilita.mine";</code> le importano tutte.
+            </p>
+          </section>
+
+          <h3
+            id="language-builtins"
+            tabindex="-1"
+          >
+            Funzioni integrate
+          </h3>
+          <div
+            class="guide-table-wrapper"
+            role="region"
+            aria-label="Funzioni integrate"
+            tabindex="0"
+          >
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th scope="col">Funzione</th>
+                  <th scope="col">Cosa fa</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>mine()</code></td>
+                  <td>
+                    Esegue un'azione di mining con tutte le GPU montate e operative, poi attende che
+                    termini. Con un vettore usa solo le GPU indicate.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>progress()</code></td>
+                  <td>
+                    Restituisce il progresso del blocco DOGE da 0 a 100, anche con decimali.
+                    <code>progress("KAS")</code> legge un'altra catena.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>setCrypto(gpus, "KAS")</code></td>
+                  <td>
+                    Assegna una valuta già sbloccata a un vettore non vuoto di GPU disponibili,
+                    quando non stanno minando.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>print(valore)</code></td>
+                  <td>
+                    Scrive testo, numeri, booleani o oggetti nella console. <code>+</code> unisce
+                    testo e valori.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>wait(ms)</code></td>
+                  <td>
+                    Attende da 0 a {{ balance.scripting.maxWaitMs }} millisecondi; durante l'attesa
+                    il mining non avanza. <code>wait(1000)</code> equivale a un secondo.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>vector()</code>, <code>stack()</code>, <code>queue()</code></td>
+                  <td>Creano raccolte da usare nel programma.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <section class="guide-static-section">
+            <h4>Opzioni di mine()</h4>
+            <p>
+              <code>mine(gpus)</code> limita le GPU. <code>mine("testo")</code> aggiunge il testo
+              alle righe di progresso e premio; <code>mine(false)</code> le nasconde, lasciando
+              visibili avvisi ed errori. <code>mine(10)</code> mostra aggiornamenti ogni 10%:
+              l'intervallo deve essere maggiore di zero e non superare 100. Puoi combinare le
+              opzioni: <code>mine(gpus, false)</code>, <code>mine(gpus, 10)</code> e
+              <code>mine(gpus, "testo", 10)</code>. Il completamento rimane visibile quando i
+              messaggi sono attivi.
+            </p>
+          </section>
+          <h3
+            id="language-errors"
+            tabindex="-1"
+          >
+            Errori e limiti
+          </h3>
+          <p>
+            La console indica la riga del problema. Controlla prima <code>;</code>, parentesi, nomi,
+            numero e tipo degli argomenti. Un nome di variabile va dichiarato con <code>let</code>;
+            <code>plots</code> ed <code>electricity</code> sono nomi di sistema e non possono essere
+            riassegnati. Un errore ferma lo script, ma conserva il lavoro già completato. Il
+            pulsante Stop interrompe il programma: l'azione di mining ancora in corso non assegna
+            progresso o premio.
+          </p>
+          <ul class="guide-facts">
+            <li>Massimo {{ balance.scripting.maxSourceLength }} caratteri per programma.</li>
+            <li>Massimo {{ balance.scripting.maxNestingDepth }} livelli di annidamento.</li>
+            <li>
+              Massimo {{ balance.scripting.maxExecutionSteps }} operazioni per esecuzione, comprese
+              condizioni e calcoli.
+            </li>
+            <li>
+              Massimo {{ balance.scripting.maxOutputLength }} caratteri per messaggio in console.
+            </li>
+          </ul>
+        </section>
+      }
+
+      @if (guideSection() === 'gpu') {
+        <section
+          id="guide-page-gpu"
+          class="guide-page guide-reference guide-markdown"
+          role="tabpanel"
+          aria-labelledby="guide-tab-gpu"
+        >
+          <h2 id="guide-title">GPU</h2>
+          <p class="dialog-intro">
+            Le GPU minano criptovalute. Qui trovi come ottenerle, selezionarle nel codice, leggere i
+            dati e regolarle.
+          </p>
+          <nav
+            class="guide-toc"
+            aria-label="Argomenti GPU"
+          >
+            <span>Vai a</span>
+            <a
+              href="#gpu-get"
+              (click)="goToGuideHeading($event, 'gpu-get')"
+              >Ottenere e trovare</a
+            >
+            <a
+              href="#gpu-mine"
+              (click)="goToGuideHeading($event, 'gpu-mine')"
+              >Mining e stato</a
+            >
+            <a
+              href="#gpu-read"
+              (click)="goToGuideHeading($event, 'gpu-read')"
+              >Dati</a
+            >
+            <a
+              href="#gpu-control"
+              (click)="goToGuideHeading($event, 'gpu-control')"
+              >Controlli</a
+            >
+            <a
+              href="#gpu-care"
+              (click)="goToGuideHeading($event, 'gpu-care')"
+              >Manutenzione</a
+            >
+          </nav>
+
+          <h3
+            id="gpu-get"
+            tabindex="-1"
+          >
+            Ottenere e trovare una GPU
+          </h3>
+          <ol class="guide-steps">
+            <li>Sblocca un modello nell'albero Ricerca, se necessario.</li>
+            <li>Compralo nello Shop del computer. Il pezzo arriva nel Magazzino.</li>
+            <li>
+              Dal Magazzino monta la GPU in uno slot libero di un RIG. Per nuovi RIG, compra e monta
+              prima il telaio.
+            </li>
+          </ol>
+          <p>
+            Sbloccare una ricerca rende disponibile l'acquisto: non aggiunge automaticamente
+            hardware alla farm. I RIG hanno 4 oppure 8 slot, secondo il modello.
+          </p>
+          <app-guide-code [source]="guideCode.gpuLocation" />
+          <p>
+            <code>plots</code> contiene le aree, <code>rigs</code> i telai, <code>gpus</code> le
+            schede. Gli indici partono da zero; gli <code>id</code> degli oggetti partono da uno.
+            Puoi leggere anche slot bloccati, ma minano solo GPU montate in un RIG disponibile.
+          </p>
+          <section class="guide-static-section">
+            <h4>Attributi di plot e RIG</h4>
+            <p>
+              <code>plot.rigs</code> e <code>rig.gpus</code> sono vettori di sola lettura.
+              <code>plot.id</code>, <code>rig.id</code> e <code>rig.plotId</code> identificano la
+              posizione. <code>rig.unlocked</code> dice se il telaio è montato.
+              <code>gpuCount</code> indica schede utilizzabili; <code>gpuCapacity</code> conta gli
+              slot totali.
+            </p>
+          </section>
+
+          <h3
+            id="gpu-mine"
+            tabindex="-1"
+          >
+            Mining, valuta e stato
+          </h3>
+          <p>
+            <code>mine()</code> avvia le GPU operative;
+            <code>mine(plots[0].rigs[0].gpus.slice(0, 1))</code> usa solo la prima GPU.
+            <code>gpu.crypto</code> indica la valuta assegnata e <code>gpu.progress</code> il
+            progresso della sua catena. Con <code>setCrypto(gpus, "KAS")</code> cambi valuta dopo
+            averla sbloccata in Ricerca.
+          </p>
+          <div
+            class="guide-table-wrapper"
+            role="region"
+            aria-label="Stato GPU"
+            tabindex="0"
+          >
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th scope="col">Metodo o attributo</th>
+                  <th scope="col">Significato</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <code>gpu.id</code>, <code>gpu.rigId</code>, <code>gpu.plotId</code>,
+                    <code>gpu.getModel()</code>
+                  </td>
+                  <td>Identità, posizione e modello della scheda.</td>
+                </tr>
+                <tr>
+                  <td><code>gpu.unlocked</code>, <code>gpu.isWorking()</code></td>
+                  <td>
+                    Disponibilità della GPU e del RIG; <code>isWorking()</code> significa che può
+                    lavorare, non che sta minando ora.
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>gpu.isSelected()</code>, <code>gpu.isStopped()</code>,
+                    <code>gpu.getStopReason()</code>
+                  </td>
+                  <td>Selezione nella scena, stop e suo motivo.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="guide-note">
+            Stessi dati disponibili anche come attributi: <code>model</code>, <code>working</code>,
+            <code>selected</code>, <code>stopped</code>, <code>stopReason</code>.
+          </p>
+
+          <h3
+            id="gpu-read"
+            tabindex="-1"
+          >
+            Leggere dati e limiti
+          </h3>
+          <p>
+            I metodi senza argomenti restituiscono il valore attuale; gli attributi con lo stesso
+            nome senza <code>get</code> sono di sola lettura.
+          </p>
+          <div
+            class="guide-table-wrapper"
+            role="region"
+            aria-label="Telemetria GPU"
+            tabindex="0"
+          >
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th scope="col">Metodi</th>
+                  <th scope="col">Cosa leggono</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>getFrequencyGhz()</code>, <code>getTargetFrequencyGhz()</code></td>
+                  <td>Frequenza effettiva e frequenza impostata, in GHz.</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>getMinFrequencyGhz()</code>, <code>getMaxFrequencyGhz()</code>,
+                    <code>getAbsoluteMaxFrequencyGhz()</code>
+                  </td>
+                  <td>Minimo, massimo nominale e limite assoluto.</td>
+                </tr>
+                <tr>
+                  <td><code>getPowerWatts()</code></td>
+                  <td>Potenza assorbita dalla scheda, in W.</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>getTemperatureCelsius()</code>, <code>getMaxTemperatureCelsius()</code>
+                  </td>
+                  <td>Temperatura attuale e massima del modello, in °C.</td>
+                </tr>
+                <tr>
+                  <td><code>getFanSpeed()</code>, <code>getTargetFanSpeedPercent()</code></td>
+                  <td>Percentuale effettiva e impostata delle ventole.</td>
+                </tr>
+                <tr>
+                  <td><code>getCurrentFanSpeedRpm()</code>, <code>getMaxFanSpeedRpm()</code></td>
+                  <td>Giri attuali e massimi delle ventole.</td>
+                </tr>
+                <tr>
+                  <td><code>getWearPercent()</code>, <code>getDustPercent()</code></td>
+                  <td>Usura e sporco, da 0 a 100%.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <app-guide-code [source]="guideCode.gpuExample" />
+
+          <h3
+            id="gpu-control"
+            tabindex="-1"
+          >
+            Regolare e fermare la scheda
+          </h3>
+          <div
+            class="guide-table-wrapper"
+            role="region"
+            aria-label="Controlli GPU"
+            tabindex="0"
+          >
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th scope="col">Metodo</th>
+                  <th scope="col">Effetto</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>gpu.setFrequencyGhz(2.1)</code></td>
+                  <td>
+                    Imposta la frequenza. Più GHz aumentano lavoro, consumo e rischio termico.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>gpu.setFanSpeed(80)</code>, <code>gpu.setFanSpeedAuto()</code></td>
+                  <td>Imposta le ventole da 0 a 100% o ripristina la regolazione automatica.</td>
+                </tr>
+                <tr>
+                  <td><code>gpu.stop()</code>, <code>gpu.clearStop()</code></td>
+                  <td>
+                    Ferma la GPU oppure prova a riabilitarla. Dopo <code>clearStop()</code> serve
+                    ancora <code>mine()</code>.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>gpu.estimate()</code>, <code>gpu.estimate("DOGE", 1.1)</code></td>
+                  <td>
+                    Stima resa, consumo e margine con valuta e frequenza attuali o ipotetiche, senza
+                    modificarle.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <section class="guide-static-section">
+            <h4>Campi restituiti da estimate()</h4>
+            <p>
+              <code>crypto</code>, <code>unlocked</code>, <code>difficulty</code>,
+              <code>maxDifficulty</code>, <code>rewardEur</code>, <code>progressPerAction</code>,
+              <code>powerWatts</code>, <code>energyCostPerActionEur</code>,
+              <code>revenuePerActionEur</code>, <code>profitPerActionEur</code>. È una stima:
+              ricalcolala dopo il mining perché calore, polvere e tariffa cambiano.
+            </p>
+          </section>
+          <aside
+            class="guide-callout guide-callout-warning"
+            role="note"
+          >
+            <h3><app-icon name="info" /> <span>Stop termico</span></h3>
+            <p>
+              Se la GPU si surriscalda va in protezione. Riduci frequenza o migliora raffreddamento,
+              attendi che si raffreddi, poi usa <code>gpu.clearStop()</code>. Lo stop per usura
+              richiede manutenzione.
+            </p>
+          </aside>
+
+          <h3
+            id="gpu-care"
+            tabindex="-1"
+          >
+            Sporco, usura e banco
+          </h3>
+          <p>
+            Il mining accumula polvere e usura. La polvere fa salire il calore e, oltre una soglia,
+            accelera l'usura. L'overclock e temperature alte peggiorano entrambi i problemi. Se
+            l'usura arriva al 100%, la GPU non può lavorare.
+          </p>
+          <ol class="guide-steps">
+            <li>Fai doppio clic sulla GPU per portarla al banco.</li>
+            <li>
+              Pulisci la scheda e, quando disponibile, sostituisci pasta e pad o il kit ventole.
+            </li>
+            <li>Rimonta la GPU nel RIG prima di riprendere il mining.</li>
+          </ol>
+          <p class="guide-note">
+            Le GPU Hydro richiedono Hydro Tower nel RIG per il raffreddamento a liquido. Anche
+            Hybrid usa Hydro Tower per il beneficio del liquido.
+          </p>
+        </section>
+      }
+
+      @if (guideSection() === 'energy') {
+        <section
+          id="guide-page-energy"
+          class="guide-page guide-reference guide-markdown"
+          role="tabpanel"
+          aria-labelledby="guide-tab-energy"
+        >
+          <h2 id="guide-title">Corrente</h2>
+          <p class="dialog-intro">
+            Ogni azione di mining consuma energia. La spesa si accumula nella bolletta e viene
+            addebitata ogni 24 ore di gioco.
+          </p>
+          <h3>Come funziona</h3>
+          <p>
+            Energia consumata = watt ÷ 1000 × ore simulate. Contano GPU attive e standby delle
+            schede sbloccate e accese; una GPU in stop consuma zero. <code>wait()</code> e le pause
+            non fanno avanzare il mining. Ogni <code>mine()</code> completo simula
+            {{ balance.economy.simulatedHoursPerAction }} ora di lavoro, anche a velocità 2×.
+          </p>
+          <p>
+            La tariffa iniziale è {{ balance.economy.electricityPriceEurPerKwh }} €/kWh e può
+            cambiare dopo ogni bolletta. Controlla potenza e spesa prima di aumentare la frequenza.
+          </p>
+          <h3>Metodi di <code>electricity</code></h3>
+          <p>
+            L'oggetto <code>electricity</code> è sempre disponibile nel codice. Tutti i metodi qui
+            sotto non richiedono argomenti; puoi leggere gli stessi dati anche come attributi.
+          </p>
+          <div
+            class="guide-table-wrapper"
+            role="region"
+            aria-label="Metodi di electricity"
+            tabindex="0"
+          >
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th scope="col">Metodo</th>
+                  <th scope="col">Dato</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>electricity.getPowerWatts()</code></td>
+                  <td>Potenza attuale della farm, W.</td>
+                </tr>
+                <tr>
+                  <td><code>electricity.getEnergyKwh()</code></td>
+                  <td>Energia totale consumata dall'inizio, kWh.</td>
+                </tr>
+                <tr>
+                  <td><code>electricity.getPendingCostEur()</code></td>
+                  <td>Bolletta ancora da pagare, €.</td>
+                </tr>
+                <tr>
+                  <td><code>electricity.getTotalCostEur()</code></td>
+                  <td>Costi già pagati più bolletta pendente, €.</td>
+                </tr>
+                <tr>
+                  <td><code>electricity.getPricePerKwh()</code></td>
+                  <td>Tariffa attuale, €/kWh.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <section class="guide-static-section">
+            <h4>Attributi equivalenti</h4>
+            <p>
+              <code>electricity.powerWatts</code>, <code>energyKwh</code>,
+              <code>pendingCostEur</code>, <code>totalCostEur</code>, <code>pricePerKwh</code>. Sono
+              di sola lettura.
+            </p>
+          </section>
+          <app-guide-code [source]="guideCode.energyExample" />
+          <aside
+            class="guide-callout"
+            role="note"
+          >
+            <h3><app-icon name="info" /> <span>Pagamento giornaliero</span></h3>
+            <p>
+              La bolletta viene sottratta dal portafoglio ogni 24 ore di gioco. Se il saldo non
+              basta, resta un debito visibile. Fermare il programma non cancella la spesa già
+              accumulata.
+            </p>
+          </aside>
+        </section>
+      }
+
+      @if (guideSection() === 'wallet') {
+        <section
+          id="guide-page-wallet"
+          class="guide-page guide-reference guide-markdown"
+          role="tabpanel"
+          aria-labelledby="guide-tab-wallet"
+        >
+          <h2 id="guide-title">Saldo e criptovalute</h2>
+          <p class="dialog-intro">
+            Il saldo mostra il valore in euro delle criptovalute possedute, al netto di eventuali
+            debiti. Clicca l'indicatore del portafoglio per vedere quantità e valore di ogni valuta.
+          </p>
+          <h3>Guadagnare e spendere</h3>
+          <ol class="guide-steps">
+            <li>
+              Completa il blocco di una valuta con <code>mine()</code>. La ricompensa arriva una
+              sola volta quando il progresso raggiunge 100%.
+            </li>
+            <li>
+              Spendi il saldo nello Shop e nell'albero Ricerca. Gli acquisti riducono le
+              criptovalute possedute.
+            </li>
+            <li>
+              Ogni 24 ore di gioco paghi la corrente accumulata. Se non basta il saldo, il debito
+              resta visibile.
+            </li>
+          </ol>
+          <p>
+            I prezzi delle valute sono fissi e simulati. Cambiare valuta a una GPU non converte le
+            monete già possedute né cancella il progresso raggiunto. Ogni catena aumenta la
+            difficoltà dopo un blocco completato.
+          </p>
+          <h3>Sbloccare e assegnare una valuta</h3>
+          <p>
+            All'inizio le GPU minano DOGE. Sblocca una nuova valuta in Ricerca, poi assegnala a un
+            vettore di GPU con <code>setCrypto(gpus, "KAS")</code>. Le GPU coinvolte devono essere
+            sbloccate e non avere un'azione di mining in corso. <code>gpu.crypto</code> mostra
+            l'assegnazione, <code>progress("KAS")</code> il progresso di quella catena.
+          </p>
+          <app-guide-code [source]="guideCode.cryptoAssignment" />
+          <section class="guide-static-section">
+            <h4>Valute, premi e requisiti di ricerca</h4>
+            <p>
+              Ogni nuova valuta richiede la precedente e, quando indicato, un numero minimo di
+              blocchi completati.
+            </p>
+            <div
+              class="guide-table-wrapper"
+              role="region"
+              aria-label="Valute e ricerca"
+              tabindex="0"
+            >
+              <table class="guide-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Valuta</th>
+                    <th scope="col">Premio/blocco</th>
+                    <th scope="col">Ricerca</th>
+                    <th scope="col">Blocchi richiesti</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (crypto of cryptoConfig; track crypto.id) {
+                    <tr>
+                      <td>{{ crypto.symbol }}</td>
+                      <td>{{ crypto.coinsPerBlock * crypto.priceEur }} €</td>
+                      <td>{{ crypto.research.costEur }} €</td>
+                      <td>{{ crypto.research.requiredBlocks }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      }
+
       @if (guideSection() === 'examples') {
         <section
           id="guide-page-examples"
-          class="guide-page guide-reference"
+          class="guide-page guide-reference guide-markdown"
           role="tabpanel"
           aria-labelledby="guide-tab-examples"
         >
-          <h2 id="guide-title">Esempi di codice</h2>
+          <h2 id="guide-title">Esempi</h2>
           <p class="dialog-intro">
-            GPU disponibili all'avvio: {{ balance.world.startingGpuCount }}. Slot ancora bloccati:
-            {{ gpuCapacity - balance.world.startingGpuCount }}. Consulta un esempio oppure caricalo
-            nel file attivo.
+            Apri un esempio per leggerlo. Puoi caricarlo nel file attivo e avviarlo; gli esempi
+            avanzati richiedono GPU o valute sbloccate.
           </p>
-          <h3>Primi passi</h3>
-          <ol class="getting-started">
-            <li>
-              <strong>Scegli un esempio</strong>
-              <span>Aprilo per leggerlo; usa il pulsante per caricarlo nell'editor.</span>
-            </li>
-            <li>
-              <strong>Avvia il programma</strong>
-              <span
-                >Usa il pulsante a passo singolo o avvia tutto con il pulsante verde o Ctrl +
-                Invio.</span
-              >
-            </li>
-            <li>
-              <strong>Segui i risultati</strong>
-              <span
-                >La console mostra messaggi ed errori. Con tutte le GPU sbloccate e operative
-                servono circa {{ minesPerBlock }} chiamate a <code>mine()</code>.</span
-              >
-            </li>
-          </ol>
           <div class="guide-examples">
             @for (example of examples; track example.name) {
               <details class="guide-example">
@@ -326,1495 +1380,16 @@
             }
           </div>
           <p class="guide-note">
-            Ogni istruzione semplice finisce con <code>;</code>. Usa <code>//</code> per una riga e
-            <code>/* ... */</code> per un commento su più righe. Gli esempi dei cicli sono
-            alternativi: provali su un blocco nuovo.
+            Caricare un esempio sostituisce il contenuto del file attivo. La console indica la riga
+            se un programma genera un errore.
           </p>
-          <h3>Controlli del laboratorio</h3>
-          <p class="guide-note">
-            Trascina la scena per ruotarla e usa la rotella per ingrandire. Un clic sulla GPU o sul
-            suo pulsante la seleziona; seleziona anche un RIG per mostrare entrambi i dati nel HUD.
-            Un doppio clic apre il banco: puoi tenere una GPU e un RIG sui rispettivi banchi
-            insieme. Tasto destro su una GPU nel RIG per smontarla o sostituirla con una scheda in
-            magazzino. Passa il cursore sul modello 3D per temperatura, usura, sporco e consumo. Da
-            tastiera, Alt+Invio sul pulsante GPU la porta al banco. La farm ha
-            {{ rigCapacity }} quadrati di sblocco e {{ gpuCapacity }} alloggiamenti GPU; all'avvio
-            sono sbloccati {{ balance.world.startingRigCount }} RIG e
-            {{ balance.world.startingGpuCount }} GPU. Completare un blocco non sblocca RIG o GPU.
-            Usa “Torna al quadrato” per rimettere la scheda al suo posto. Trascina la barra del
-            titolo per spostare editor e console. Puoi agganciare la console sotto l'editor o
-            sganciarla per spostarla da sola. Ridimensiona le finestre dal manico nell'angolo. Per
-            la console agganciata, trascina il bordo inferiore.
-          </p>
-          <p class="guide-note">
-            Partita e file MineScript si salvano automaticamente in questo browser. Puoi scaricare o
-            importare un salvataggio dalle Impostazioni. Il programma in esecuzione si ferma quando
-            chiudi la pagina; la partita riprende dal progresso già completato.
-          </p>
-        </section>
-      }
-
-      @if (guideSection() === 'functions') {
-        <section
-          id="guide-page-functions"
-          class="guide-page guide-reference guide-markdown"
-          role="tabpanel"
-          aria-labelledby="guide-tab-functions"
-        >
-          <h2 id="guide-title">Azioni e strumenti</h2>
-          <p class="dialog-intro">
-            Qui trovi come avviare il mining, leggere i risultati e usare vettori, pile e code per
-            organizzare i dati.
-          </p>
-          <nav
-            class="guide-toc"
-            aria-label="In questa pagina"
-          >
-            <span>In questa pagina</span>
-            <a
-              href="#functions-program"
-              (click)="goToGuideHeading($event, 'functions-program')"
-              >Mining e risultati</a
-            >
-            <a
-              href="#functions-collections"
-              (click)="goToGuideHeading($event, 'functions-collections')"
-              >Vettori, pile e code</a
-            >
-            <a
-              href="#functions-example"
-              (click)="goToGuideHeading($event, 'functions-example')"
-              >Esempio completo</a
-            >
-          </nav>
-          <div
-            class="guide-callout"
-            role="note"
-          >
-            <h3>
-              <app-icon name="info" />
-              <span>Come leggere i comandi</span>
-            </h3>
-            <p>
-              Le parentesi contengono i valori da passare alla funzione. Se sono vuote, non serve
-              alcun valore. Un risultato restituito può essere salvato in una variabile o usato in
-              una condizione.
-            </p>
-          </div>
-          <h3
-            id="functions-program"
-            tabindex="-1"
-          >
-            Avviare mining e leggere i risultati
-          </h3>
-          <div
-            class="guide-table-wrapper"
-            role="region"
-            aria-label="Comandi di mining e controllo"
-            tabindex="0"
-          >
-            <table class="guide-table">
-              <thead>
-                <tr>
-                  <th scope="col">Comando</th>
-                  <th scope="col">Cosa fa</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <code>mine()</code><br />
-                    <code>mine(gpus)</code><br />
-                    <code>mine(gpus, "testo")</code><br />
-                    <code>mine(10)</code><br />
-                    <code>mine(gpus, "testo", 10)</code><br />
-                    <code>mine(gpus, false)</code><br />
-                    <code>mine("testo")</code> / <code>mine(false)</code>
-                  </td>
-                  <td>
-                    Senza vettore avvia tutte le GPU sbloccate e operative; con un vettore avvia
-                    solo quelle sbloccate indicate. Attende la fine del lavoro e i messaggi di
-                    progresso indicano la cripto minata. Il numero imposta l'intervallo percentuale
-                    dell'output (maggiore di 0 e fino a 100); il completamento resta sempre
-                    visibile. Il testo è aggiunto al messaggio;
-                    <code>false</code> nasconde progresso e ricompensa, lasciando visibili avvisi ed
-                    errori.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>progress()</code></td>
-                  <td>
-                    Restituisce il progresso del blocco DOGE. Passa una sigla, per esempio
-                    <code>progress("KAS")</code>, per leggere un'altra catena. Risultato da
-                    <strong>0 a 100</strong>, anche con decimali.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>print(valore)</code></td>
-                  <td>
-                    Scrive testo, numeri o risultati nella console. Usa <code>+</code> per unire
-                    testo e numeri.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>wait(ms)</code></td>
-                  <td>
-                    Attende da 0 a {{ balance.scripting.maxWaitMs }} millisecondi.
-                    <code>wait(1000)</code> equivale a un secondo.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p class="guide-note">
-            Durante <code>wait()</code> il mining non avanza. La velocità 2× non riduce l'attesa.
-          </p>
-          <aside
-            class="guide-callout guide-callout-tip"
-            role="note"
-          >
-            <h3>
-              <app-icon name="info" />
-              <span>Quando raggiungi il 100%</span>
-            </h3>
-            <p>
-              Ricevi il premio nelle cripto assegnate alle GPU una sola volta per blocco. La
-              corrente viene addebitata separatamente, ogni 24 ore di gioco. La chiamata successiva
-              a
-              <code>mine()</code>, oppure un nuovo avvio del programma, prepara il blocco seguente.
-              RIG e GPU rimangono gli stessi.
-            </p>
-          </aside>
-          <h3
-            id="functions-collections"
-            tabindex="-1"
-          >
-            Vettori, pile e code: organizzare i dati
-          </h3>
-          <p>
-            Usa un vettore per leggere e modificare valori in qualsiasi posizione. Usa una pila o
-            una coda per decidere in quale ordine recuperare i vettori. Ogni raccolta può contenere
-            al massimo <strong>1000 elementi</strong>.
-          </p>
-          <div class="guide-entry-list">
-            <article class="guide-entry">
-              <h4>Vettore: una lista di valori</h4>
-              <code class="guide-signature">vector()</code>
-              <p>
-                Crea una lista vuota e modificabile. Leggi un elemento con <code>[0]</code>; gli
-                indici partono da zero e arrivano a <code>length - 1</code>.
-              </p>
-              <details
-                class="guide-details"
-                open
-              >
-                <summary>Leggere, modificare e cercare valori</summary>
-                <p>
-                  Chiama i metodi dopo il nome del vettore e un punto. Gli attributi si leggono
-                  nello stesso modo, ma senza parentesi.
-                </p>
-                <dl class="guide-definition-list">
-                  <div>
-                    <dt><code>length</code> / <code>size</code></dt>
-                    <dd>
-                      Numero di elementi. Usa <code>size</code> o <code>size()</code>; vale anche
-                      per <code>length</code>.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>first</code> / <code>last</code></dt>
-                    <dd>
-                      Primo e ultimo valore; restituiscono <code>null</code> se la lista è vuota.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>push(valore)</code></dt>
-                    <dd>Aggiunge in fondo e restituisce il nuovo numero di elementi.</dd>
-                  </div>
-                  <div>
-                    <dt><code>pop()</code></dt>
-                    <dd>
-                      Toglie e restituisce l'ultimo valore; restituisce <code>null</code> se la
-                      lista è vuota.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>set(indice, valore)</code></dt>
-                    <dd>
-                      Sostituisce un valore esistente e restituisce il valore inserito. Usa questo
-                      metodo per modificare una posizione.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>insert(indice, valore)</code></dt>
-                    <dd>
-                      Inserisce nella posizione indicata e sposta avanti gli elementi successivi.
-                      Restituisce la nuova lunghezza; l'indice può essere uguale a
-                      <code>length</code> per aggiungere in fondo.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>remove(indice)</code></dt>
-                    <dd>
-                      Toglie e restituisce il valore indicato. Gli elementi successivi scalano di
-                      una posizione.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>contains(valore)</code></dt>
-                    <dd>
-                      Restituisce <code>true</code> se il valore è presente, altrimenti
-                      <code>false</code>.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>indexOf(valore)</code></dt>
-                    <dd>
-                      Restituisce l'indice della prima occorrenza, oppure <code>-1</code> se il
-                      valore manca.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>concat(vettore)</code></dt>
-                    <dd>
-                      Restituisce un nuovo vettore con gli elementi di entrambi, nello stesso
-                      ordine.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>slice(inizio, fine)</code></dt>
-                    <dd>
-                      Restituisce un nuovo vettore dalla posizione iniziale inclusa a quella finale
-                      esclusa. I due indici devono essere tra 0 e <code>length</code>, con fine
-                      maggiore o uguale a inizio.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>copy()</code></dt>
-                    <dd>
-                      Crea un nuovo vettore con gli stessi elementi. Eventuali vettori contenuti
-                      restano condivisi.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>reverse()</code> / <code>sort()</code></dt>
-                    <dd>
-                      Modificano il vettore e lo restituiscono: il primo inverte l'ordine, il
-                      secondo ordina in senso crescente. <code>sort()</code> richiede solo numeri
-                      oppure solo stringhe.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>clear()</code> / <code>isEmpty()</code></dt>
-                    <dd>
-                      Il primo svuota la lista. Il secondo restituisce <code>true</code> se è vuota,
-                      altrimenti <code>false</code>.
-                    </dd>
-                  </div>
-                </dl>
-                <p>Un indice fuori intervallo interrompe il programma con un errore.</p>
-              </details>
-            </article>
-            <article class="guide-entry">
-              <h4>Pila: recupera l'ultimo inserito</h4>
-              <code class="guide-signature">stack()</code>
-              <p>
-                Crea una pila vuota. Accetta solo vettori: l'ultimo che inserisci è il primo che
-                recuperi, come in una pila di piatti.
-              </p>
-              <details
-                class="guide-details"
-                open
-              >
-                <summary>Inserire e recuperare vettori dalla pila</summary>
-                <dl class="guide-definition-list">
-                  <div>
-                    <dt><code>push(vettore)</code></dt>
-                    <dd>Aggiunge in cima e restituisce il nuovo numero di vettori.</dd>
-                  </div>
-                  <div>
-                    <dt><code>pop()</code> / <code>peek()</code></dt>
-                    <dd>
-                      Leggono il vettore in cima. <code>pop()</code> lo toglie,
-                      <code>peek()</code> lo lascia nella pila. Se è vuota, restituiscono
-                      <code>null</code>.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>size</code> / <code>length</code></dt>
-                    <dd>
-                      Numero di vettori presenti. Disponibili anche come <code>size()</code> e
-                      <code>length()</code>.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>isEmpty()</code> / <code>clear()</code></dt>
-                    <dd>
-                      Il primo restituisce <code>true</code> se la pila è vuota, altrimenti
-                      <code>false</code>. Il secondo la svuota.
-                    </dd>
-                  </div>
-                </dl>
-              </details>
-            </article>
-            <article class="guide-entry">
-              <h4>Coda: recupera il primo inserito</h4>
-              <code class="guide-signature">queue()</code>
-              <p>
-                Crea una coda vuota. Accetta solo vettori: li recuperi nello stesso ordine in cui li
-                inserisci, come in una fila alla cassa.
-              </p>
-              <details
-                class="guide-details"
-                open
-              >
-                <summary>Inserire e recuperare vettori dalla coda</summary>
-                <dl class="guide-definition-list">
-                  <div>
-                    <dt><code>enqueue(vettore)</code></dt>
-                    <dd>Aggiunge in fondo e restituisce il nuovo numero di vettori.</dd>
-                  </div>
-                  <div>
-                    <dt><code>dequeue()</code></dt>
-                    <dd>
-                      Toglie e restituisce il primo vettore; restituisce <code>null</code> se la
-                      coda è vuota.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>peek()</code> / <code>front()</code> / <code>back()</code></dt>
-                    <dd>
-                      Leggono senza togliere: i primi due il vettore in testa, il terzo quello in
-                      fondo. Se la coda è vuota, restituiscono <code>null</code>.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>size</code> / <code>length</code></dt>
-                    <dd>
-                      Numero di vettori presenti. Disponibili anche come <code>size()</code> e
-                      <code>length()</code>.
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><code>isEmpty()</code> / <code>clear()</code></dt>
-                    <dd>
-                      Il primo restituisce <code>true</code> se la coda è vuota, altrimenti
-                      <code>false</code>. Il secondo la svuota.
-                    </dd>
-                  </div>
-                </dl>
-              </details>
-            </article>
-          </div>
-          <p>
-            <code>null</code> significa che non c'è un valore. Pile e code conservano i vettori
-            inseriti: modificare un vettore modifica anche quello presente nella raccolta.
-          </p>
-          <h3
-            id="functions-example"
-            tabindex="-1"
-          >
-            Esempio: minare e mostrare il progresso
-          </h3>
-          <app-guide-code [source]="guideCode.functionsExample" />
-          <p class="guide-note">
-            <code>mine()</code> avvia tutte le GPU sbloccate. <code>wait()</code> aggiunge una pausa
-            facoltativa.
-          </p>
-        </section>
-      }
-
-      @if (guideSection() === 'gpu') {
-        <section
-          id="guide-page-gpu"
-          class="guide-page guide-reference guide-markdown"
-          role="tabpanel"
-          aria-labelledby="guide-tab-gpu"
-        >
-          <h2 id="guide-title">Gestire la GPU</h2>
-          <p class="dialog-intro">
-            Una GPU è la scheda che esegue il mining. Dal programma puoi leggere se è disponibile,
-            quanto consuma e come cambiano temperatura e ventole. Puoi impostare la frequenza,
-            controllare l'usura e fermarla.
-          </p>
-          <nav
-            class="guide-toc"
-            aria-label="In questa pagina"
-          >
-            <span>In questa pagina</span>
-            <a
-              href="#gpu-location"
-              (click)="goToGuideHeading($event, 'gpu-location')"
-              >Farm</a
-            >
-            <a
-              href="#gpu-mining"
-              (click)="goToGuideHeading($event, 'gpu-mining')"
-              >Mining</a
-            >
-            <a
-              href="#gpu-state"
-              (click)="goToGuideHeading($event, 'gpu-state')"
-              >Stato</a
-            >
-            <a
-              href="#gpu-telemetry"
-              (click)="goToGuideHeading($event, 'gpu-telemetry')"
-              >Telemetria</a
-            >
-            <a
-              href="#gpu-overclock"
-              (click)="goToGuideHeading($event, 'gpu-overclock')"
-              >Overclock</a
-            >
-            <a
-              href="#gpu-maintenance"
-              (click)="goToGuideHeading($event, 'gpu-maintenance')"
-              >Manutenzione</a
-            >
-            <a
-              href="#gpu-rigs"
-              (click)="goToGuideHeading($event, 'gpu-rigs')"
-              >Plot e RIG</a
-            >
-            <a
-              href="#gpu-example"
-              (click)="goToGuideHeading($event, 'gpu-example')"
-              >Esempio</a
-            >
-          </nav>
-          <h3
-            id="gpu-location"
-            tabindex="-1"
-          >
-            Trovare una scheda nella farm
-          </h3>
-          <p>
-            La farm è divisa in <strong>{{ plotCapacity }} plot</strong>, cioè aree. Ogni area
-            contiene <strong>{{ rigsPerPlot }} RIG</strong>, le strutture che ospitano le schede.
-            Ogni RIG ha <strong>4 oppure 8 slot GPU</strong>, fino a {{ gpuCapacity }} posti.
-          </p>
-          <app-guide-code [source]="guideCode.gpuLocation" />
-          <ol class="guide-steps">
-            <li>
-              <code>plots[0]</code> sceglie la prima area. Indici validi: da 0 a
-              {{ plotCapacity - 1 }}.
-            </li>
-            <li>
-              <code>rigs[0]</code> sceglie il primo RIG di quell'area. Indici validi: da 0 a
-              {{ rigsPerPlot - 1 }}.
-            </li>
-            <li>
-              <code>gpus[0]</code> sceglie il primo slot di quel RIG. Indici validi: da 0 a
-              <code>gpus.size() - 1</code>.
-            </li>
-          </ol>
-          <p>
-            Gli indici partono da zero; gli identificativi <code>id</code> partono da uno. Tutti i
-            vettori usano la stessa sintassi con parentesi quadre. Per contarli usa
-            <code>plots.size()</code>, <code>plots[0].rigs.size()</code> o
-            <code>plots[0].rigs[0].gpus.size()</code>.
-          </p>
-          <aside
-            class="guide-callout"
-            role="note"
-          >
-            <h3>
-              <app-icon name="info" />
-              <span>GPU disponibili all'inizio: {{ balance.world.startingGpuCount }}</span>
-            </h3>
-            <p>
-              Sono sbloccati {{ balance.world.startingRigCount }} RIG e
-              {{ balance.world.startingGpuCount }} GPU. Puoi leggere anche gli slot bloccati, ma non
-              usarli per minare. Compra GPU e telai nello shop, poi montali dal magazzino. La
-              ricerca rende disponibili nuovi modelli, senza includere l'acquisto dei pezzi.
-            </p>
-          </aside>
-          <h3
-            id="gpu-mining"
-            tabindex="-1"
-          >
-            Minare nella farm
-          </h3>
-          <p>
-            Parti con una GPU passiva e Dogecoin (DOGE), la valuta meno redditizia. Compra altre
-            schede, ricerca hardware e nuove crypto, poi adatta frequenza e raffreddamento. La
-            potenza nominale dipende dal modello. Il progresso per azione scala col quadrato del
-            rapporto tra frequenza effettiva e nominale, poi si divide per la difficoltà della
-            crypto. Calore e polvere riducono la frequenza effettiva; il consumo cresce col quadrato
-            dello stesso rapporto.
-          </p>
-          <p>
-            Ogni catena aumenta la difficoltà dopo ciascun blocco, fino al proprio massimo. Cambiare
-            crypto o GPU conserva il lavoro già fatto e non azzera la difficoltà. La ricompensa
-            resta fissa: una catena matura richiede più potenza per mantenere il margine.
-          </p>
-          <app-guide-code [source]="guideCode.gpuMining" />
-          <p>
-            Sul primo blocco, alla frequenza di base servono circa {{ minesPerBlock }} chiamate a
-            <code>mine()</code> per completare un blocco. Ogni chiamata dura
-            {{ balance.mining.actionDurationMs }} ms, oppure
-            {{ balance.mining.actionDurationMs / 2 }} ms a velocità 2×. Contano GPU sbloccate,
-            operative e montate nei RIG; le schede in stop vengono saltate.
-            <code>progress()</code> legge DOGE; usa <code>progress("KAS")</code> per leggere
-            un'altra cripto.
-          </p>
-          <h3
-            id="gpu-state"
-            tabindex="-1"
-          >
-            Identità e stato
-          </h3>
-          <div class="guide-entry-list">
-            <article class="guide-entry">
-              <h4>Identificare la scheda</h4>
-              <p>
-                <code>gpu.id</code>, <code>gpu.rigId</code> e <code>gpu.plotId</code> identificano
-                scheda, RIG e plot.
-              </p>
-              <p><code>gpu.type</code> restituisce <code>GPU</code>.</p>
-            </article>
-            <article class="guide-entry">
-              <h4>Sapere se può minare</h4>
-              <p>
-                <code>gpu.unlocked</code> indica che GPU e RIG sono sbloccati.
-                <code>gpu.working</code> e <code>gpu.isWorking()</code> richiedono anche assenza di
-                stop e usura inferiore al 100%.
-              </p>
-              <p>
-                <strong>Attenzione al nome:</strong> <code>working</code> indica la disponibilità,
-                non un mining in corso.
-              </p>
-            </article>
-            <article class="guide-entry">
-              <h4>Sapere se è selezionata</h4>
-              <p>
-                <code>gpu.selected</code> e <code>gpu.isSelected()</code> indicano la selezione
-                corrente: <code>true</code> per la GPU selezionata con un clic,
-                <code>false</code> per le altre. Il trasferimento al banco richiede un doppio clic.
-              </p>
-            </article>
-            <article class="guide-entry">
-              <h4>Modello</h4>
-              <p>
-                Restituisce il nome della scheda: <code>{{ idleGpu.model }}</code
-                >.
-              </p>
-              <code class="guide-signature">gpu.getModel()</code>
-              <p class="guide-property">Attributo: <code>gpu.model</code></p>
-            </article>
-          </div>
-          <h3
-            id="gpu-telemetry"
-            tabindex="-1"
-          >
-            Frequenza, consumo e raffreddamento
-          </h3>
-          <p>
-            Ogni scheda ha stato e telemetria propri. Frequenza e potenza salgono solo sulla GPU che
-            mina; temperatura e usura crescono con il lavoro. A riposo la scheda raffredda in
-            {{ balance.gpu.cooldownMs }} ms, ma l'usura resta. Non misurano l'hardware del tuo
-            computer. I valori sotto descrivono il profilo base: l'overclock li modifica.
-          </p>
-          <p>
-            GPU Hydro richiede Hydro Tower nel RIG. Senza dissipazione a liquido supera
-            {{ balance.gpu.liquidWithoutPump.criticalTemperatureCelsius }} °C al primo lavoro e va
-            in protezione dopo circa 3 secondi di mining continuo. Con Hydro Tower, i tubi della
-            scheda si collegano alla pompa. Anche Hybrid richiede Hydro Tower per il beneficio
-            liquido: senza pompa resta attiva la ventola, ma la scheda scalda di più.
-          </p>
-          <p>
-            Puoi leggere ogni dato con un metodo, che usa le parentesi, oppure con il relativo
-            attributo, senza parentesi. Entrambi restituiscono lo stesso valore al momento della
-            lettura.
-          </p>
-          <div class="guide-entry-list">
-            <article class="guide-entry">
-              <h4>Frequenza</h4>
-              <p>Velocità di lavoro della scheda, in gigahertz (GHz).</p>
-              <ul class="guide-facts">
-                <li>
-                  A riposo: <strong>{{ idleGpu.frequencyGhz }} GHz</strong>
-                </li>
-                <li>
-                  Durante il mining: <strong>{{ miningGpu.frequencyGhz }} GHz</strong>
-                </li>
-                <li>
-                  Massimo del modello: <strong>{{ miningGpu.maxFrequencyGhz }} GHz</strong>
-                </li>
-              </ul>
-              <details
-                class="guide-details"
-                open
-              >
-                <summary>Leggere frequenza attuale e massima</summary>
-                <code class="guide-signature">gpu.getFrequencyGhz()</code>
-                <p>Attributo equivalente: <code>gpu.frequencyGhz</code>.</p>
-                <code class="guide-signature">gpu.getMaxFrequencyGhz()</code>
-                <p>Attributo equivalente: <code>gpu.maxFrequencyGhz</code>.</p>
-              </details>
-            </article>
-            <article class="guide-entry">
-              <h4>Consumo</h4>
-              <p>Potenza assorbita dalla scheda, in watt (W).</p>
-              <ul class="guide-facts">
-                <li>
-                  A riposo: <strong>{{ idleGpu.powerWatts }} W</strong>
-                </li>
-                <li>
-                  Durante il mining: <strong>{{ miningGpu.powerWatts }} W</strong>
-                </li>
-              </ul>
-              <details
-                class="guide-details"
-                open
-              >
-                <summary>Leggere il consumo attuale</summary>
-                <code class="guide-signature">gpu.getPowerWatts()</code>
-                <p>Attributo equivalente: <code>gpu.powerWatts</code>.</p>
-              </details>
-            </article>
-            <article class="guide-entry">
-              <h4>Temperatura</h4>
-              <p>Temperatura della scheda, in gradi Celsius (°C).</p>
-              <ul class="guide-facts">
-                <li>
-                  A riposo: <strong>{{ idleGpu.temperatureCelsius }} °C</strong>
-                </li>
-                <li>
-                  Durante il mining: <strong>{{ miningGpu.temperatureCelsius }} °C</strong>
-                </li>
-                <li>
-                  Massimo del modello: <strong>{{ miningGpu.maxTemperatureCelsius }} °C</strong>
-                </li>
-              </ul>
-              <details
-                class="guide-details"
-                open
-              >
-                <summary>Leggere temperatura attuale e massima</summary>
-                <code class="guide-signature">gpu.getTemperatureCelsius()</code>
-                <p>Attributo equivalente: <code>gpu.temperatureCelsius</code>.</p>
-                <code class="guide-signature">gpu.getMaxTemperatureCelsius()</code>
-                <p>Attributo equivalente: <code>gpu.maxTemperatureCelsius</code>.</p>
-              </details>
-            </article>
-            <article class="guide-entry">
-              <h4>Ventole</h4>
-              <p>Velocità di rotazione, in percentuale o in giri al minuto (RPM).</p>
-              <ul class="guide-facts">
-                <li>
-                  A riposo:
-                  <strong>{{ idleGpu.fanSpeed }}% · {{ idleGpu.currentFanSpeedRpm }} RPM</strong>
-                </li>
-                <li>
-                  Durante il mining:
-                  <strong
-                    >{{ miningGpu.fanSpeed }}% · {{ miningGpu.currentFanSpeedRpm }} RPM</strong
-                  >
-                </li>
-                <li>
-                  Massimo del modello: <strong>{{ miningGpu.maxFanSpeedRpm }} RPM</strong>
-                </li>
-              </ul>
-              <details
-                class="guide-details"
-                open
-              >
-                <summary>Leggere percentuale e giri al minuto</summary>
-                <code class="guide-signature">gpu.getFanSpeed()</code>
-                <p>Percentuale, da 0 a 100. Attributo: <code>gpu.fanSpeed</code>.</p>
-                <code class="guide-signature">gpu.getCurrentFanSpeedRpm()</code>
-                <p>
-                  RPM attuali, calcolati dalla percentuale. Attributo:
-                  <code>gpu.currentFanSpeedRpm</code>.
-                </p>
-                <code class="guide-signature">gpu.getMaxFanSpeedRpm()</code>
-                <p>RPM massimi. Attributo: <code>gpu.maxFanSpeedRpm</code>.</p>
-              </details>
-            </article>
-          </div>
-          <aside
-            class="guide-callout guide-callout-warning"
-            role="note"
-          >
-            <h3>
-              <app-icon name="info" />
-              <span>Impostazioni e telemetria</span>
-            </h3>
-            <p>
-              Gli attributi sono di sola lettura. Imposta frequenza con
-              <code>setFrequencyGhz()</code> e ventole con <code>setFanSpeed()</code>; chiama
-              <code>setFanSpeedAuto()</code> per tornare alla regolazione automatica. Le ventole
-              manuali cambiano raffreddamento e temperatura. I comandi restituiscono
-              <code>null</code>; i getter restituiscono numeri, salvo modello e motivo di stop.
-            </p>
-          </aside>
-          <h3
-            id="gpu-overclock"
-            tabindex="-1"
-          >
-            Overclock e limiti
-          </h3>
-          <div class="guide-sections">
-            <article>
-              <h4>Impostare la frequenza</h4>
-              <code>gpu.setFrequencyGhz(2.1);</code>
-              <p>
-                Accetta un numero finito in GHz, almeno {{ balance.gpu.limits.minFrequencyGhz }}.
-                Valori più bassi o di tipo errato producono un errore senza modificare la scheda. Si
-                usa tra due chiamate a <code>mine()</code>, anche su una GPU ferma.
-              </p>
-              <p>
-                Più GHz aumentano progresso e potenza col quadrato del rapporto con la frequenza
-                base. Oltre il massimo del modello aumenta il rischio di surriscaldamento. A
-                {{ balance.gpu.limits.temperatureCelsius }} °C la GPU va in stop: l'azione che causa
-                il guasto consuma corrente e usura, senza assegnare progresso.
-              </p>
-            </article>
-            <article>
-              <h4>Impostare le ventole</h4>
-              <code>gpu.setFanSpeed(80);</code>
-              <p>
-                Imposta velocità tra 0 e 100 percento. Più velocità raffredda di più; una velocità
-                bassa fa salire la temperatura. Usa <code>gpu.setFanSpeedAuto();</code> per
-                ripristinare la regolazione automatica. Leggi velocità effettiva con
-                <code>getFanSpeed()</code> o il valore impostato con
-                <code>getTargetFanSpeedPercent()</code>.
-              </p>
-            </article>
-            <article>
-              <h4>Leggere i limiti della GPU</h4>
-              <code>gpu.getMinFrequencyGhz()</code>
-              <p>
-                Minimo: {{ balance.gpu.limits.minFrequencyGhz }} GHz. Attributo:
-                <code>minFrequencyGhz</code>.
-              </p>
-              <code>gpu.getMaxFrequencyGhz()</code>
-              <p>
-                Massimo nominale: {{ balance.gpu.limits.frequencyGhz }} GHz. Attributo:
-                <code>maxFrequencyGhz</code>.
-              </p>
-              <code>gpu.getAbsoluteMaxFrequencyGhz()</code>
-              <p>
-                Limite assoluto incluso: {{ balance.gpu.limits.absoluteFrequencyGhz }} GHz.
-                Attributo: <code>absoluteMaxFrequencyGhz</code>. Un tentativo superiore attiva lo
-                stop e conserva l'ultima frequenza valida. Questo limite non garantisce una
-                temperatura sicura.
-              </p>
-              <code>gpu.getTargetFrequencyGhz()</code>
-              <p>
-                Frequenza impostata, conservata anche a riposo o in stop. Attributo:
-                <code>targetFrequencyGhz</code>. <code>getFrequencyGhz()</code> indica invece quella
-                attuale: {{ balance.gpu.idle.frequencyGhz }} GHz a riposo, zero in stop. Da 82 °C il
-                thermal throttling riduce gradualmente la frequenza effettiva fino al minimo al
-                limite termico. Frequenza e sporco accelerano la salita termica; regola
-                <code>heatingResponse.frequencyExponent</code> in <code>config/gpu-config.ts</code>.
-              </p>
-            </article>
-          </div>
-          <h3
-            id="gpu-maintenance"
-            tabindex="-1"
-          >
-            Usura e stop persistente
-          </h3>
-          <div class="guide-sections">
-            <article>
-              <h4>Leggere l'usura</h4>
-              <code>gpu.getWearPercent()</code>
-              <p>
-                Numero da 0 (nuova) a 100 (esaurita), attributo <code>wearPercent</code>. Il lavoro
-                aumenta l'usura; overclock e temperature alte la accelerano. Raffreddamento, stop e
-                nuova esecuzione non la azzerano. Al 100% portala al banco e sostituisci pasta e
-                pad: l'intervento riduce l'usura accumulata dello
-                {{ balance.gpu.maintenance.thermalServiceWearReductionPercent }}%, lasciando la GPU
-                ancora usurata; se era ferma per usura, può ripartire subito. Normalmente puoi
-                ripetere l'intervento ogni {{ balance.gpu.maintenance.thermalServiceIntervalHours }}
-                ore simulate di utilizzo.
-              </p>
-            </article>
-            <article>
-              <h4>Sporco e manutenzione</h4>
-              <code>gpu.getDustPercent()</code>
-              <p>
-                Numero da 0 (pulita) a 100, attributo <code>dustPercent</code>. La polvere si
-                accumula con il mining e accelera il riscaldamento. Oltre il
-                {{ balance.gpu.dustDamage.wearThresholdPercent }}% aumenta anche l'usura. Il
-                pannello a destra del banco permette di pulire la scheda, sostituire pasta e pad,
-                scegliere il kit ventole e regolarne la velocità. Rimonta la GPU nel RIG prima di
-                minare: l'attesa sul banco non riduce il tempo richiesto tra i cambi di pasta.
-              </p>
-            </article>
-            <article>
-              <h4>Fermare e riabilitare</h4>
-              <code>gpu.stop();</code>
-              <code>gpu.isStopped()</code>
-              <code>gpu.getStopReason()</code>
-              <code>gpu.clearStop();</code>
-              <p>
-                <code>stop()</code> è ripetibile e mantiene la GPU ferma tra le esecuzioni.
-                <code>isStopped()</code> restituisce un booleano (attributo <code>stopped</code>);
-                <code>getStopReason()</code> restituisce il motivo o una stringa vuota (attributo
-                <code>stopReason</code>).
-              </p>
-              <p>
-                <code>clearStop()</code> rimuove lo stop senza avviare il mining: serve poi
-                <code>mine()</code>. Fallisce se la GPU è ancora troppo calda o esaurita. Abbassare
-                la frequenza da solo non annulla lo stop.
-              </p>
-              <p>
-                Stop e riabilitazione della GPU si comandano solo dal codice, con
-                <code>gpu.stop()</code> e <code>gpu.clearStop()</code>. Gli script sono sequenziali:
-                una chiamata a <code>mine()</code> termina prima di eseguire la riga successiva. Il
-                pannello GPU mostra le specifiche della scheda selezionata nel RIG. Il pulsante Stop
-                dell'editor interrompe il programma senza impostare lo stop della GPU: l'azione
-                interrotta conserva energia e usura parziali, senza progresso o premio.
-              </p>
-            </article>
-          </div>
-          <h3
-            id="gpu-rigs"
-            tabindex="-1"
-          >
-            Consultare plot e RIG
-          </h3>
-          <p>
-            <code>gpuCount</code> conta le GPU utilizzabili, con scheda e RIG sbloccati.
-            <code>gpuCapacity</code> conta tutti gli slot, anche quelli bloccati. Le raccolte
-            <code>plots</code>, <code>rigs</code> e <code>gpus</code> sono di sola lettura.
-          </p>
-          <details
-            class="guide-details"
-            open
-          >
-            <summary>Attributi di plot e RIG</summary>
-            <dl class="guide-definition-list">
-              <div>
-                <dt>Plot: <code>id</code>, <code>type</code></dt>
-                <dd>Identificativo dell'area e tipo dell'oggetto, che vale <code>plot</code>.</dd>
-              </div>
-              <div>
-                <dt>Plot: <code>rigs</code></dt>
-                <dd>Vettore dei RIG; scegli un elemento con <code>rigs[indice]</code>.</dd>
-              </div>
-              <div>
-                <dt>
-                  Plot: <code>rigCount</code>, <code>gpuCount</code>, <code>gpuCapacity</code>
-                </dt>
-                <dd>
-                  Numero totale di RIG ({{ rigsPerPlot }}), GPU utilizzabili e slot totali dei RIG
-                  presenti.
-                </dd>
-              </div>
-              <div>
-                <dt>RIG: <code>id</code>, <code>plotId</code>, <code>type</code></dt>
-                <dd>
-                  Identificativi del RIG e dell'area a cui appartiene. Il tipo vale
-                  <code>rig</code>.
-                </dd>
-              </div>
-              <div>
-                <dt>RIG: <code>unlocked</code></dt>
-                <dd><code>true</code> se il RIG è sbloccato, <code>false</code> altrimenti.</dd>
-              </div>
-              <div>
-                <dt>RIG: <code>gpus</code></dt>
-                <dd>Vettore degli slot GPU; scegli una scheda con <code>gpus[indice]</code>.</dd>
-              </div>
-              <div>
-                <dt>RIG: <code>gpuCount</code>, <code>gpuCapacity</code></dt>
-                <dd>Numero di GPU utilizzabili e slot totali (4 oppure 8, secondo il modello).</dd>
-              </div>
-            </dl>
-          </details>
-          <h3
-            id="gpu-example"
-            tabindex="-1"
-          >
-            Esempio: leggere modello e telemetria
-          </h3>
-          <app-guide-code [source]="guideCode.gpuExample" />
-        </section>
-      }
-
-      @if (guideSection() === 'energy') {
-        <section
-          id="guide-page-energy"
-          class="guide-page guide-reference guide-markdown"
-          role="tabpanel"
-          aria-labelledby="guide-tab-energy"
-        >
-          <h2 id="guide-title">Corrente e portafoglio</h2>
-          <p class="dialog-intro">
-            Controlla la potenza della farm. Il consumo si accumula durante il mining e la bolletta
-            viene addebitata ogni 24 ore di gioco. Il portafoglio mostra il totale in euro: cliccalo
-            per vedere quantità e valore in euro di ogni cripto posseduta. Gli acquisti usano prima
-            le cripto e ne riducono la quantità mostrata.
-          </p>
-          <nav
-            class="guide-toc"
-            aria-label="In questa pagina"
-          >
-            <span>In questa pagina</span>
-            <a
-              href="#energy-overview"
-              (click)="goToGuideHeading($event, 'energy-overview')"
-              >Economia</a
-            >
-            <a
-              href="#energy-methods"
-              (click)="goToGuideHeading($event, 'energy-methods')"
-              >Metodi</a
-            >
-            <a
-              href="#energy-payment"
-              (click)="goToGuideHeading($event, 'energy-payment')"
-              >Pagamento</a
-            >
-          </nav>
-          <aside
-            class="guide-callout"
-            role="note"
-          >
-            <h3
-              id="energy-overview"
-              tabindex="-1"
-            >
-              Economia simulata
-            </h3>
-            <p>
-              Le ricompense e i prezzi sono configurati per ogni cripto. Tariffa elettrica iniziale:
-              {{ balance.economy.electricityPriceEurPerKwh }} €/kWh. Dopo la bolletta, la tariffa
-              successiva viene estratta dall'intervallo associato ai kWh consumati nel giorno appena
-              concluso. Soglie e intervalli sono in <code>config/economy-config.ts</code>. Ogni
-              <code>mine()</code> completo simula {{ balance.economy.simulatedHoursPerAction }} ora
-              di lavoro, anche a velocità 2×. Il clock avanza di
-              {{ 1000 / balance.clock.millisecondsPerGameMinute }} minuti di gioco al secondo e la
-              bolletta scatta ogni 24 ore. Pause, <code>wait()</code> ed editor inattivo non
-              aggiungono consumo.
-            </p>
-          </aside>
-          <p>
-            Energia = watt / 1000 × ore simulate. Paghi le GPU attive e lo standby delle altre
-            schede sbloccate e accese. Le GPU in stop consumano zero. Abbassare la frequenza riduce
-            la potenza e la resa; alzarla aumenta la potenza più rapidamente della resa.
-          </p>
-          <h3
-            id="energy-methods"
-            tabindex="-1"
-          >
-            Metodi di electricity
-          </h3>
-          <p>
-            L'oggetto globale <code>electricity</code> è sempre disponibile. Tutti i metodi sotto
-            richiedono zero argomenti e restituiscono numeri. Gli attributi equivalenti sono di sola
-            lettura; la tariffa cambia dopo l'addebito giornaliero.
-          </p>
-          <div
-            class="guide-table-wrapper"
-            role="region"
-            aria-label="Metodi di electricity"
-            tabindex="0"
-          >
-            <table class="guide-table">
-              <thead>
-                <tr>
-                  <th scope="col">Metodo / attributo</th>
-                  <th scope="col">Valore restituito</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>electricity.getPowerWatts()</code><small>powerWatts</small></td>
-                  <td>
-                    <strong>Potenza · W</strong><br />Consumo attuale della farm, incluso lo standby
-                    delle GPU sbloccate e accese.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>electricity.getEnergyKwh()</code><small>energyKwh</small></td>
-                  <td>
-                    <strong>Energia · kWh</strong><br />Totale dall'inizio della partita, inclusi
-                    consumi già pagati e lavoro interrotto.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>electricity.getPendingCostEur()</code><small>pendingCostEur</small></td>
-                  <td>
-                    <strong>Bolletta pendente · €</strong><br />Costo da saldare al prossimo
-                    addebito giornaliero. Si azzera al pagamento.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>electricity.getTotalCostEur()</code><small>totalCostEur</small></td>
-                  <td>
-                    <strong>Costo totale · €</strong><br />Importi già pagati più bolletta pendente.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>electricity.getPricePerKwh()</code><small>pricePerKwh</small></td>
-                  <td>
-                    <strong>Tariffa · €/kWh</strong><br />Prezzo attuale, valido fino alla prossima
-                    bolletta.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <h3>Assegnare una cripto alle GPU</h3>
-          <p>
-            <code>setCrypto(gpus, "KAS")</code> assegna una cripto a un vettore di GPU sbloccate.
-            Per una sola scheda usa <code>setCrypto(gpus.slice(0, 1), "LTC")</code>. Sigle
-            disponibili: BTC, ETC, LTC, DOGE, XMR, RVN, ERG, KAS. <code>gpu.crypto</code> legge
-            l'assegnazione corrente. Non puoi modificarla durante il mining delle schede coinvolte.
-            Sblocca ogni cripto nell'albero ricerca prima di assegnarla. <code>mine()</code> avvia
-            tutte le GPU operative e ciascuna mina la propria cripto; l'output indica sigla e GPU.
-            Il vettore deve contenere almeno una GPU; input non validi annullano tutta
-            l'assegnazione.
-          </p>
-          <app-guide-code [source]="guideCode.cryptoAssignment" />
-          <h3>Progressione delle crypto</h3>
-          <p>Ogni ricerca richiede la valuta precedente e il numero totale di blocchi indicato.</p>
-          <div
-            class="guide-table-wrapper"
-            role="region"
-            aria-label="Progressione delle crypto"
-            tabindex="0"
-          >
-            <table class="guide-table">
-              <thead>
-                <tr>
-                  <th>Crypto</th>
-                  <th>Premio</th>
-                  <th>Difficoltà iniziale → massima</th>
-                  <th>Aumento/blocco</th>
-                  <th>Ricerca</th>
-                  <th>Blocchi</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (crypto of cryptoConfig; track crypto.id) {
-                  <tr>
-                    <td>{{ crypto.symbol }}</td>
-                    <td>{{ crypto.coinsPerBlock * crypto.priceEur }} €</td>
-                    <td>
-                      {{ crypto.difficulty.startingMultiplier }} →
-                      {{ crypto.difficulty.maxMultiplier }}
-                    </td>
-                    <td>+{{ crypto.difficulty.increasePerMinedBlock }}</td>
-                    <td>{{ crypto.research.costEur }} €</td>
-                    <td>{{ crypto.research.requiredBlocks }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          <h3>Stimare e ottimizzare il margine</h3>
-          <p>
-            <code>gpu.estimate()</code> fotografa la stima corrente.
-            <code>gpu.estimate("DOGE", 1.1)</code> confronta una crypto e una frequenza senza
-            modificarle. Sono accettate sigla, nome o ID; frequenza nei limiti della scheda. Puoi
-            confrontare anche crypto bloccate, ma devi ricercarle prima di assegnarle.
-          </p>
-          <p>
-            Campi disponibili: <code>crypto</code>, <code>unlocked</code>, <code>difficulty</code>,
-            <code>maxDifficulty</code>, <code>rewardEur</code>, <code>progressPerAction</code> (%),
-            <code>powerWatts</code>, <code>energyCostPerActionEur</code>,
-            <code>revenuePerActionEur</code>, <code>profitPerActionEur</code>. Il margine sottrae la
-            corrente della scheda e la sua quota dei moduli RIG. Non include acquisti, manutenzione
-            o standby delle altre GPU. Ricavo stimato sul lavoro: nessun accredito parziale.
-            Ricalcola dopo ogni azione: calore, polvere e tariffa cambiano. GPU ferme, bloccate o al
-            banco producono una stima nulla. A blocco concluso la stima usa la difficoltà del
-            prossimo.
-          </p>
-          <app-guide-code [source]="guideCode.optimization" />
-          <p>
-            Il messaggio è facoltativo: <code>mine(gpus, "testo")</code> aggiunge il testo alle
-            righe di progresso e ricompensa; <code>mine(gpus, false)</code> le nasconde. Puoi
-            omettere il vettore per applicare l'opzione a tutta la farm, ad esempio
-            <code>mine("Mining avviato")</code> o <code>mine(false)</code>. Imposta l'intervallo con
-            <code>mine(10)</code> oppure <code>mine(gpus, "testo", 10)</code>: output ogni 10% per
-            ciascuna cripto. Gli avvisi sulle GPU ferme o non operative restano visibili.
-          </p>
-          <p>
-            Ogni cripto paga il proprio premio quando la sua catena raggiunge il 100%. I prezzi sono
-            fissi e simulati. Cambiare assegnazione non converte cripto già possedute e non cambia
-            il lavoro già accumulato.
-          </p>
-          <h3
-            id="energy-payment"
-            tabindex="-1"
-          >
-            Pagamento e riepilogo
-          </h3>
-          <p>
-            Al 100% il gioco accredita il premio del blocco una sola volta. Ogni 24 ore di gioco
-            addebita la corrente accumulata alle cripto possedute. Euro disponibili vengono
-            distribuiti fra le cripto ai prezzi fissi; euro insufficienti lasciano debito visibile.
-            La console riporta la bolletta e poi la nuova tariffa.
-          </p>
-          <p>
-            Fermare il codice o lasciare un blocco incompleto conserva la bolletta. In caso di
-            addebiti superiori al saldo disponibile, il saldo può diventare negativo: il debito
-            resta visibile. La nuova partita azzera consumi, saldo e stato GPU.
-          </p>
-          <app-guide-code [source]="guideCode.energyExample" />
-        </section>
-      }
-
-      @if (guideSection() === 'constructs') {
-        <section
-          id="guide-page-constructs"
-          class="guide-page guide-reference guide-markdown"
-          role="tabpanel"
-          aria-labelledby="guide-tab-constructs"
-        >
-          <h2 id="guide-title">Scrivere il programma</h2>
-          <p class="dialog-intro">
-            Salva valori nelle variabili, ripeti comandi con i cicli, scegli cosa eseguire con
-            <code>if</code> e <code>else</code>, e riusa il codice con <code>def</code>.
-            <code>parallel</code> avvia più impostazioni insieme.
-          </p>
-          <nav
-            class="guide-toc"
-            aria-label="In questa pagina"
-          >
-            <span>In questa pagina</span>
-            <a
-              href="#constructs-functions"
-              (click)="goToGuideHeading($event, 'constructs-functions')"
-              >Funzioni e import</a
-            >
-            <a
-              href="#constructs-variables"
-              (click)="goToGuideHeading($event, 'constructs-variables')"
-              >Variabili</a
-            >
-            <a
-              href="#constructs-repeat"
-              (click)="goToGuideHeading($event, 'constructs-repeat')"
-              >repeat: conteggio</a
-            >
-            <a
-              href="#constructs-while"
-              (click)="goToGuideHeading($event, 'constructs-while')"
-              >while: condizione</a
-            >
-            <a
-              href="#constructs-for"
-              (click)="goToGuideHeading($event, 'constructs-for')"
-              >for: contatore</a
-            >
-            <a
-              href="#constructs-parallel"
-              (click)="goToGuideHeading($event, 'constructs-parallel')"
-              >parallel: insieme</a
-            >
-            <a
-              href="#constructs-if"
-              (click)="goToGuideHeading($event, 'constructs-if')"
-              >if / else: scelta</a
-            >
-            <a
-              href="#constructs-operators"
-              (click)="goToGuideHeading($event, 'constructs-operators')"
-              >Operatori e confronti</a
-            >
-            <a
-              href="#constructs-example"
-              (click)="goToGuideHeading($event, 'constructs-example')"
-              >Esempio completo</a
-            >
-          </nav>
-          <aside
-            class="guide-callout"
-            role="note"
-          >
-            <h3>
-              <app-icon name="info" />
-              <span>Regole comuni a ogni script</span>
-            </h3>
-            <ul class="guide-facts">
-              <li>Termina ogni istruzione semplice con <code>;</code>.</li>
-              <li>
-                Racchiudi il corpo di un ciclo o di una condizione tra
-                <code>&lbrace; &rbrace;</code>.
-              </li>
-              <li>
-                In <code>parallel</code> scrivi un comando semplice per riga. Si avviano insieme e
-                il programma prosegue quando hanno finito tutti.
-              </li>
-              <li>
-                Scrivi <code>//</code> per aggiungere un commento: il resto della riga viene
-                ignorato.
-              </li>
-              <li>
-                Racchiudi testo o codice tra <code>/*</code> e <code>*/</code> per un commento
-                lungo, anche su più righe.
-              </li>
-              <li>
-                Nell'editor, <kbd>Ctrl / Cmd</kbd> + <kbd>/</kbd> alterna commento riga;
-                <kbd>Ctrl / Cmd</kbd> + <kbd>Alt / Option</kbd> + <kbd>A</kbd> alterna commento
-                lungo sulla selezione.
-              </li>
-            </ul>
-          </aside>
-          <div class="guide-sections">
-            <article>
-              <h3
-                id="constructs-functions"
-                tabindex="-1"
-              >
-                Funzioni e file
-              </h3>
-              <p>
-                Definisci una funzione con <code>def nome(parametri) &lbrace; ... &rbrace;</code> e
-                richiamala con <code>nome(valori)</code>. I parametri sono locali alla chiamata;
-                <code>return</code> restituisce un valore. Senza <code>return</code> il risultato è
-                <code>null</code>. Puoi passare anche vettori, pile, code e oggetti della farm: la
-                funzione riceve lo stesso oggetto. Scrivi <code>def</code> al livello principale del
-                file.
-              </p>
-              <p><strong>Esempio in un file: stampa 6.</strong></p>
-              <app-guide-code [source]="guideCode.functionDefinition" />
-              <p><strong>Esempio con vettore: stampa 1 e 8.</strong></p>
-              <app-guide-code [source]="guideCode.collectionParameters" />
-              <p>
-                Il pulsante <code>&lt;/&gt;</code> in alto a destra gestisce i file. Il
-                <code>+</code> aggiunge una scheda all'editor. Trascina la scheda su un altro editor
-                per spostarla, oppure fuori dagli editor per aprire una finestra. Spostare o
-                sovrapporre finestre non unisce le schede. La X della scheda la chiude senza
-                eliminare il file. Puoi avviare un solo file alla volta. Scrivi gli import al
-                livello principale del file avviato.
-                <code>import &lbrace; nome &rbrace; from "file.mine";</code> importa una o più
-                funzioni per nome; <code>import * from "file.mine";</code> le importa tutte. Anche
-                <code>import "file.mine";</code> importa tutto. Il nome del file deve coincidere,
-                maiuscole comprese. Un file importato può contenere solo <code>def</code> e
-                <code>import</code>: il corpo di una funzione importata viene eseguito solo quando
-                la richiami. Gli import possono essere concatenati tra file, ma non circolari.
-              </p>
-              <p><strong>1. Crea utilita.mine con queste due funzioni:</strong></p>
-              <app-guide-code [source]="guideCode.fileLibrary" />
-              <p>
-                <strong
-                  >2. Nel file principale, importa tutte le funzioni e avvia solo questo file:
-                  stampa 6 e 9.</strong
-                >
-              </p>
-              <app-guide-code [source]="guideCode.fileImport" />
-              <p>
-                <strong>Per usarne solo una, sostituisci il codice del file principale con:</strong>
-              </p>
-              <app-guide-code [source]="guideCode.fileImportSelected" />
-            </article>
-            <article>
-              <h3
-                id="constructs-variables"
-                tabindex="-1"
-              >
-                Variabili: salvare e aggiornare valori
-              </h3>
-              <p>
-                Una variabile associa un nome a un valore. Creala con <code>let</code>; usa
-                <code>=</code> per assegnarle un valore nuovo.
-              </p>
-              <app-guide-code [source]="guideCode.variable" />
-              <p>
-                <code>++</code> aumenta di uno; <code>--</code> diminuisce di uno. Le variabili
-                valgono per tutta l'esecuzione, anche fuori dal blocco in cui sono dichiarate, e si
-                azzerano al prossimo avvio. Un altro <code>let</code> con lo stesso nome ne
-                sostituisce il valore.
-              </p>
-              <details
-                class="guide-details"
-                open
-              >
-                <summary>Valori disponibili e nomi delle variabili</summary>
-                <ul class="guide-facts">
-                  <li><strong>Numeri:</strong> interi o decimali, scritti con il punto.</li>
-                  <li><strong>Stringhe:</strong> testo tra virgolette singole o doppie.</li>
-                  <li>
-                    <strong>Booleani:</strong> <code>true</code> (vero) e
-                    <code>false</code> (falso).
-                  </li>
-                  <li><strong>Valore assente:</strong> <code>null</code>.</li>
-                  <li>
-                    <strong>Raccolte:</strong> vettori, pile e code, descritte in Azioni e
-                    strumenti.
-                  </li>
-                  <li>
-                    <strong>Oggetti della farm:</strong> plot, RIG e schede, descritti in GPU.
-                  </li>
-                </ul>
-                <p>
-                  Nei nomi usa lettere da A a Z, cifre e <code>_</code>, senza iniziare con una
-                  cifra. Maiuscole e minuscole sono diverse. Dichiara una variabile prima di usarla.
-                </p>
-              </details>
-            </article>
-            <article>
-              <h3
-                id="constructs-repeat"
-                tabindex="-1"
-              >
-                <code>repeat</code>: ripetere un numero preciso di volte
-              </h3>
-              <p>
-                Usalo quando sai già quante ripetizioni servono. Accetta un numero intero da 0 a
-                1000.
-              </p>
-              <code>repeat (5) &lbrace; ... &rbrace;</code>
-              <p>Il corpo viene eseguito cinque volte. Con zero ripetizioni viene saltato.</p>
-            </article>
-            <article>
-              <h3
-                id="constructs-while"
-                tabindex="-1"
-              >
-                <code>while</code>: ripetere finché la condizione è vera
-              </h3>
-              <p>Usalo quando devi raggiungere un risultato, come completare il blocco attivo.</p>
-              <code>while (progress() &lt; 100) &lbrace; ... &rbrace;</code>
-              <p>
-                Controlla la condizione prima di ogni ripetizione. Se è falsa, il ciclo termina; se
-                è già falsa all'inizio, il corpo non viene eseguito.
-              </p>
-              <p>
-                Il corpo deve far avanzare il lavoro: qui serve <code>mine()</code>. Leggere il
-                progresso o aspettare non lo fa aumentare.
-              </p>
-            </article>
-            <article>
-              <h3
-                id="constructs-for"
-                tabindex="-1"
-              >
-                <code>for</code>: ripetere usando un contatore
-              </h3>
-              <p>
-                Usalo quando vuoi conoscere il numero della ripetizione o scorrere una raccolta.
-              </p>
-              <code>for (let i = 0; i &lt; 5; i++) &lbrace; ... &rbrace;</code>
-              <ol class="guide-steps">
-                <li><code>let i = 0</code> crea il contatore una sola volta.</li>
-                <li>
-                  <code>i &lt; 5</code> decide se eseguire il corpo, prima di ogni ripetizione.
-                </li>
-                <li><code>i++</code> aggiorna il contatore dopo il corpo.</li>
-              </ol>
-              <p>Il corpo viene eseguito cinque volte, con <code>i</code> da 0 a 4.</p>
-            </article>
-            <article>
-              <h3
-                id="constructs-parallel"
-                tabindex="-1"
-              >
-                <code>parallel</code>: avviare più comandi insieme
-              </h3>
-              <p>
-                Prepara una variabile per ogni GPU, poi metti una chiamata per riga. Puoi chiamare
-                anche funzioni definite con <code>def</code>. Partono insieme; il programma aspetta
-                che abbiano finito prima di continuare.
-              </p>
-              <app-guide-code [source]="guideCode.parallel" />
-              <p>
-                Usa una volta sola ogni GPU nel blocco. <code>mine()</code> avvia già tutta la farm.
-              </p>
-            </article>
-            <article>
-              <h3
-                id="constructs-if"
-                tabindex="-1"
-              >
-                <code>if</code> e <code>else</code>: scegliere cosa eseguire
-              </h3>
-              <p>
-                <code>if</code> esegue il suo blocco quando la condizione è vera.
-                <code>else</code> esegue l'alternativa quando è falsa; puoi ometterlo.
-              </p>
-              <app-guide-code [source]="guideCode.condition" />
-              <p>
-                <code>==</code> confronta due valori; <code>=</code> assegna un valore a una
-                variabile. Sono operazioni diverse.
-              </p>
-            </article>
-            <article>
-              <h3
-                id="constructs-operators"
-                tabindex="-1"
-              >
-                Operatori: calcoli, confronti e condizioni
-              </h3>
-              <code>+ - * / %</code>
-              <p>
-                Somma, sottrazione, moltiplicazione, divisione e resto della divisione.
-                <code>+</code> unisce i valori come testo se uno dei due è una stringa. Dividere per
-                zero, anche con <code>%</code>, causa un errore.
-              </p>
-              <code>== != &lt; &lt;= &gt; &gt;=</code>
-              <p>
-                Uguale, diverso, minore, minore o uguale, maggiore, maggiore o uguale. Restituiscono
-                <code>true</code> oppure <code>false</code>. I confronti di ordine richiedono
-                numeri; <code>==</code> e <code>!=</code>
-                confrontano anche il tipo, senza convertire testo in numero.
-              </p>
-              <code>&amp;&amp; || !</code>
-              <ul class="guide-facts">
-                <li>
-                  <code>&amp;&amp;</code> significa “e”: entrambe le condizioni devono essere vere.
-                </li>
-                <li><code>||</code> significa “o”: basta che una condizione sia vera.</li>
-                <li><code>!</code> significa “non”: inverte il valore della condizione.</li>
-              </ul>
-              <p>
-                Usa le parentesi tonde per rendere esplicito l'ordine dei calcoli e dei confronti.
-              </p>
-            </article>
-          </div>
-          <h3
-            id="constructs-example"
-            tabindex="-1"
-          >
-            Esempio completo: controllare il mining
-          </h3>
-          <app-guide-code [source]="languageGuideExample" />
-          <details
-            class="guide-details"
-            open
-          >
-            <summary>Se il programma si interrompe</summary>
-            <p>
-              La console indica l'errore e la riga da controllare. Verifica prima punti e virgola,
-              parentesi, nomi delle variabili e valori passati ai comandi.
-            </p>
-            <ul class="guide-facts">
-              <li>
-                Un programma può contenere al massimo 20.000 caratteri e 64 livelli di annidamento.
-              </li>
-              <li>
-                Ogni esecuzione si ferma oltre 10.000 operazioni. Anche condizioni e calcoli
-                contano: non è il numero di righe né quello delle chiamate a
-                <code>mine()</code>.
-              </li>
-              <li>
-                La console conserva gli ultimi 100 messaggi, ciascuno lungo al massimo 2000
-                caratteri.
-              </li>
-              <li>Un errore durante l'esecuzione conserva il lavoro già completato.</li>
-              <li>
-                Interrompere il programma annulla il mining ancora in corso, senza assegnarne
-                progresso o premio.
-              </li>
-            </ul>
-          </details>
         </section>
       }
 
       @if (guideSection() === 'shortcuts') {
         <section
           id="guide-page-shortcuts"
-          class="guide-page"
+          class="guide-page guide-reference guide-markdown"
           role="tabpanel"
           aria-labelledby="guide-tab-shortcuts"
         >
@@ -1826,8 +1401,8 @@
                 <h3>{{ group.name }}</h3>
                 @for (shortcut of group.shortcuts; track shortcut.action) {
                   <div class="shortcut-row">
-                    <span>{{ shortcut.action }}</span>
-                    <span
+                    <span>{{ shortcut.action }}</span
+                    ><span
                       class="shortcut-keys"
                       aria-label="Combinazione di tasti"
                     >

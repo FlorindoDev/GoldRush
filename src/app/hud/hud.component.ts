@@ -40,7 +40,7 @@ import { ResearchTreeComponent } from './research-tree/research-tree.component';
 import { ComputerComponent } from './computer/computer.component';
 import { HudWindowLayout } from './hud-window-layout';
 
-type GuideSection = 'examples' | 'functions' | 'gpu' | 'energy' | 'constructs' | 'shortcuts';
+type GuideSection = 'intro' | 'language' | 'gpu' | 'energy' | 'wallet' | 'examples' | 'shortcuts';
 type EditorWindow = { id: string; fileIds: readonly string[]; activeFileId: string };
 type DraggedTab = { fileId: string; sourceWindowId: string };
 
@@ -93,9 +93,13 @@ const SHORTCUT_GROUPS = [
   templateUrl: './hud.component.html',
   styleUrl: './hud.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'handleEscape($event)' },
+  host: {
+    '(document:keydown.escape)': 'handleEscape($event)',
+    '(window:resize)': 'onViewportResize()',
+  },
 })
 export class HudComponent implements OnDestroy {
+  private readonly hostElement: ElementRef<HTMLElement> = inject(ElementRef);
   readonly game = inject(GameService);
   readonly gameSave = new GameSaveManager(this.game);
   readonly saveMessage = signal('');
@@ -139,7 +143,7 @@ export class HudComponent implements OnDestroy {
   readonly examples = EXAMPLES;
   readonly guideCode = GUIDE_CODE;
   readonly languageGuideExample = LANGUAGE_GUIDE_EXAMPLE;
-  readonly guideSection = signal<GuideSection>('examples');
+  readonly guideSection = signal<GuideSection>('intro');
   readonly shortcutGroups = SHORTCUT_GROUPS;
   readonly guide = viewChild.required<ElementRef<HTMLDialogElement>>('guide');
   readonly scene = viewChild.required<SceneComponent>('scene');
@@ -166,6 +170,15 @@ export class HudComponent implements OnDestroy {
       event.preventDefault();
       this.game.setPaused(false);
     }
+  }
+
+  onViewportResize(): void {
+    this.hostElement.nativeElement
+      .querySelectorAll<HTMLElement>('.floating-window')
+      .forEach((element) => {
+        const name = element.dataset['editorWindowId'] ?? 'console';
+        this.windowLayout.fitWindowToViewport(name, element);
+      });
   }
 
   openFile(id: string): void {
@@ -493,7 +506,7 @@ export class HudComponent implements OnDestroy {
 
   openGuide(): void {
     this.guide().nativeElement.showModal();
-    this.selectGuideSection('examples');
+    this.selectGuideSection('intro');
   }
 
   selectGuideSection(section: GuideSection): void {

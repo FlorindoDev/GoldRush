@@ -157,12 +157,25 @@ describe('Shop e magazzino', () => {
     expect(getGpu(mounted, 2).unlocked).toBe(true);
     expect(mounted.inventory.items).toHaveLength(1);
   });
-  it('rejects moving hardware while mining and clears stock on a new game', () => {
+  it('changes idle GPU slots while another GPU mines, then clears stock on a new game', () => {
     const game = new GameService();
-    game.world.set(buy(funded()));
+    game.world.set(buy(funded(), 2));
     game.running.set(true);
-    expect(() => game.moveGpuToStock(1)).toThrow('Ferma');
-    expect(() => game.mountStockGpu(1, 1)).toThrow('Ferma');
+    game.miningActions.set([{ gpuId: 1, startedAt: 0, durationMs: 1000, pauseDurationAtStart: 0 }]);
+    const miningWorld = game.world();
+    expect(() => game.moveGpuToStock(1)).toThrow('termini mine()');
+    expect(() => game.replaceGpuFromStock(1, 1)).toThrow('termini mine()');
+    expect(game.world()).toBe(miningWorld);
+
+    game.mountStockGpu(1, 1, 2);
+    game.replaceGpuFromStock(2, 2);
+    game.moveGpuToStock(2);
+    expect(getGpu(game.world(), 1).unlocked).toBe(true);
+    expect(getGpu(game.world(), 2).unlocked).toBe(false);
+
+    game.miningActions.set([]);
+    game.moveGpuToStock(1);
+    expect(getGpu(game.world(), 1).unlocked).toBe(false);
     game.running.set(false);
     game.computerOpen.set(true);
     game.reset();

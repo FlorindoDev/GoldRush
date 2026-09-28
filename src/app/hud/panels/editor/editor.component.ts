@@ -11,10 +11,12 @@ import {
 } from '@angular/core';
 import { GameService } from '../../../game/game.service';
 import { IconComponent } from '../../icons/icon.component';
+import { getCompletions, type Completion, type CompletionItem } from './completion';
 import { highlight } from './highlight';
 import { autoIndent } from './indentation';
 
 const INDENTATION = '  ';
+let nextCompletionId = 0;
 
 interface CursorPosition {
   line: number;
@@ -35,6 +37,7 @@ interface TextEdit {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditorComponent {
+  readonly completionListId = `editor-completions-${++nextCompletionId}`;
   readonly game = inject(GameService);
   readonly fileIds = input.required<readonly string[]>();
   readonly activeFileId = input.required<string>();
@@ -76,11 +79,32 @@ export class EditorComponent {
   );
   readonly editor = viewChild.required<ElementRef<HTMLTextAreaElement>>('editor');
   readonly overlay = viewChild.required<ElementRef<HTMLElement>>('overlay');
+  readonly caretMirror = viewChild.required<ElementRef<HTMLElement>>('caretMirror');
+  readonly caretText = viewChild.required<ElementRef<HTMLElement>>('caretText');
+  readonly caretAnchor = viewChild.required<ElementRef<HTMLElement>>('caretAnchor');
+  readonly caretAfter = viewChild.required<ElementRef<HTMLElement>>('caretAfter');
   readonly cursor = signal<CursorPosition>({ line: 1, column: 1 });
+  readonly completion = signal<Completion | null>(null);
+  readonly selectedCompletion = signal(0);
+  readonly completionPosition = signal({ left: 0, top: 0 });
   private capturesTabKey = true;
+  private suppressCompletion = false;
 
   onInput(event: Event): void {
+    this.suppressCompletion = false;
     this.game.updateFileCode(this.fileId(), (event.target as HTMLTextAreaElement).value);
+    this.updateCursor();
+  }
+
+  onKeyup(event: KeyboardEvent): void {
+    if ((event.ctrlKey || event.metaKey) && event.code === 'Space') return;
+    if (this.suppressCompletion && ['Escape', 'Enter', 'Tab'].includes(event.key)) return;
+    this.suppressCompletion = false;
+    this.updateCursor();
+  }
+
+  onClick(): void {
+    this.suppressCompletion = false;
     this.updateCursor();
   }
 
@@ -93,15 +117,51 @@ export class EditorComponent {
       line: linesBeforeCursor.length,
       column: currentLine.length + 1,
     });
+    this.refreshCompletion();
   }
 
   syncScroll(): void {
     const editor = this.editor().nativeElement;
     this.overlay().nativeElement.scrollTop = editor.scrollTop;
     this.overlay().nativeElement.scrollLeft = editor.scrollLeft;
+    if (this.completion()) this.placeCompletion();
   }
 
   keydown(event: KeyboardEvent): void {
+    if (this.completion()) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        const length = this.completion()!.items.length;
+        this.selectedCompletion.update(
+          (index) => (index + (event.key === 'ArrowDown' ? 1 : -1) + length) % length,
+        );
+        requestAnimationFrame(() =>
+          this.editor()
+            .nativeElement.parentElement?.querySelector('.completion-item.selected')
+            ?.scrollIntoView({ block: 'nearest' }),
+        );
+        return;
+      }
+      if (
+        (event.key === 'Enter' && !event.ctrlKey && !event.metaKey) ||
+        (event.key === 'Tab' && !event.shiftKey)
+      ) {
+        event.preventDefault();
+        this.acceptCompletion(this.completion()!.items[this.selectedCompletion()]);
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.completion.set(null);
+        this.suppressCompletion = true;
+        return;
+      }
+    }
+    if ((event.ctrlKey || event.metaKey) && event.code === 'Space') {
+      event.preventDefault();
+      this.refreshCompletion(true);
+      return;
+    }
     if ((event.ctrlKey || event.metaKey) && (event.key === '/' || event.code === 'Slash')) {
       event.preventDefault();
       this.toggleLineComments();
@@ -137,6 +197,65 @@ export class EditorComponent {
 
   focus(): void {
     this.capturesTabKey = true;
+  }
+
+  closeCompletion(): void {
+    this.completion.set(null);
+  }
+
+  acceptCompletion(item: CompletionItem): void {
+    const completion = this.completion();
+    if (!completion || this.game.running()) return;
+    const textarea = this.editor().nativeElement;
+    const end = textarea.selectionStart;
+    const callable = item.kind === 'metodo' || item.kind === 'funzione';
+    const hasParenthesis = callable && textarea.value[end] === '(';
+    const suffix = callable && !hasParenthesis ? '()' : '';
+    const replacement = item.label + suffix;
+    const cursor = completion.start + item.label.length + (suffix ? 1 : 0);
+    this.completion.set(null);
+    this.suppressCompletion = true;
+    this.applyCodeEdit(completion.start, end, replacement, cursor, cursor);
+  }
+
+  private refreshCompletion(explicit = false): void {
+    const textarea = this.editor().nativeElement;
+    if (
+      (this.suppressCompletion && !explicit) ||
+      this.game.running() ||
+      textarea.selectionStart !== textarea.selectionEnd
+    ) {
+      this.completion.set(null);
+      return;
+    }
+    const next = getCompletions(textarea.value, textarea.selectionStart, explicit);
+    const previous = this.completion();
+    const selectedItem = previous?.items[this.selectedCompletion()];
+    this.completion.set(next);
+    this.selectedCompletion.set(
+      Math.max(
+        0,
+        next?.items.findIndex(
+          (item) => item.label === selectedItem?.label && item.kind === selectedItem.kind,
+        ) ?? 0,
+      ),
+    );
+    if (next) this.placeCompletion();
+  }
+
+  private placeCompletion(): void {
+    const textarea = this.editor().nativeElement;
+    const mirror = this.caretMirror().nativeElement;
+    this.caretText().nativeElement.textContent = textarea.value.slice(0, textarea.selectionStart);
+    this.caretAfter().nativeElement.textContent = textarea.value.slice(textarea.selectionStart);
+    mirror.scrollTop = textarea.scrollTop;
+    mirror.scrollLeft = textarea.scrollLeft;
+    const anchor = this.caretAnchor().nativeElement.getBoundingClientRect();
+    const area = textarea.parentElement!.getBoundingClientRect();
+    const left = Math.max(4, Math.min(anchor.left - area.left, area.width - 260));
+    const below = anchor.bottom - area.top + 3;
+    const top = below + 190 < area.height ? below : Math.max(4, anchor.top - area.top - 190);
+    this.completionPosition.set({ left, top });
   }
 
   insert(text: string): void {

@@ -312,6 +312,10 @@ export class ComputerComponent implements OnDestroy {
         ?.gpus.filter((gpu) => gpu.unlocked).length ?? 0
     );
   }
+  isRigMining(entry: InventoryEntry): boolean {
+    const rigId = this.mountedRigId(entry);
+    return rigId !== null && this.game.isRigMining(rigId);
+  }
   sell(entry: InventoryEntry): void {
     if (entry.stockId === undefined || this.game.running()) return;
     this.performEntryAction(
@@ -324,7 +328,7 @@ export class ComputerComponent implements OnDestroy {
     );
   }
   store(entry: InventoryEntry): void {
-    if (entry.gpuId === undefined || this.game.running()) return;
+    if (entry.gpuId === undefined || this.game.isGpuMining(entry.gpuId)) return;
     this.performEntryAction(
       entry,
       () => this.game.moveGpuToStock(entry.gpuId!),
@@ -333,7 +337,7 @@ export class ComputerComponent implements OnDestroy {
   }
   storeRig(entry: InventoryEntry): void {
     const rigId = this.mountedRigId(entry);
-    if (rigId === null || this.game.running()) return;
+    if (rigId === null || this.game.isRigMining(rigId)) return;
     this.performEntryAction(
       entry,
       () => this.game.moveRigToStock(rigId),
@@ -342,12 +346,7 @@ export class ComputerComponent implements OnDestroy {
   }
   mountRig(entry: InventoryEntry): void {
     const targetRigId = this.selectedRigSlotId();
-    if (
-      entry.product.category !== 'rig' ||
-      entry.stockId === undefined ||
-      targetRigId === null ||
-      this.game.running()
-    )
+    if (entry.product.category !== 'rig' || entry.stockId === undefined || targetRigId === null)
       return;
     this.performEntryAction(
       entry,
@@ -359,7 +358,7 @@ export class ComputerComponent implements OnDestroy {
   replaceRig(entry: InventoryEntry): void {
     const rigId = this.mountedRigId(entry);
     const stockId = this.selectedReplacementRigStockId();
-    if (rigId === null || stockId === null || this.game.running()) return;
+    if (rigId === null || stockId === null || this.game.isRigMining(rigId)) return;
     this.performEntryAction(
       entry,
       () => this.game.replaceRigFromStock(rigId, stockId),
@@ -380,7 +379,6 @@ export class ComputerComponent implements OnDestroy {
       entry.stockId === undefined ||
       entry.condition === 'broken' ||
       !entry.gpu ||
-      this.game.running() ||
       !this.hasFreeSlot(this.targetRigId())
     )
       return;
@@ -391,7 +389,7 @@ export class ComputerComponent implements OnDestroy {
     );
   }
   inspect(entry: InventoryEntry): void {
-    if (entry.gpuId === undefined || this.game.running()) return;
+    if (entry.gpuId === undefined || this.game.isGpuMining(entry.gpuId)) return;
     this.game.inspectGpu(entry.gpuId);
     this.close();
   }

@@ -191,11 +191,15 @@ class Interpreter {
         }
         break;
       case 'for':
-        await this.executeStatement(statement.initializer);
+        for (const initializer of statement.initializers) {
+          await this.executeStatement(initializer);
+        }
         while (await this.evaluateExpression(statement.condition)) {
           await this.checkExecutionLimit(statement.line);
           await this.run(statement.body);
-          await this.executeStatement(statement.increment);
+          for (const increment of statement.increments) {
+            await this.executeStatement(increment);
+          }
         }
         break;
       case 'if':

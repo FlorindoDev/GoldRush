@@ -198,23 +198,23 @@ export class GameService {
   }
 
   moveGpuToStock(id: number): void {
-    if (this.running()) throw new Error('Ferma il programma prima di smontare una GPU.');
+    if (this.isGpuMining(id)) throw new Error('Attendi che questa GPU termini mine().');
     this.world.update((world) => storeGpu(world, id));
     if (this.selectedGpuId() === id) this.selectedGpuId.set(null);
   }
 
   mountStockGpu(id: number, rigId: number, slotGpuId?: number): void {
-    if (this.running()) throw new Error('Ferma il programma prima di montare una GPU.');
     this.world.update((world) => installStockGpu(world, id, rigId, slotGpuId));
   }
 
   replaceGpuFromStock(gpuId: number, stockId: number): void {
-    if (this.running()) throw new Error('Ferma il programma prima di sostituire una GPU.');
+    if (this.isGpuMining(gpuId)) throw new Error('Attendi che questa GPU termini mine().');
     this.world.update((world) => replaceInstalledGpu(world, gpuId, stockId));
   }
 
   moveRigToStock(rigId: number): void {
-    if (this.running()) throw new Error('Ferma il programma prima di spostare un RIG.');
+    if (this.isRigMining(rigId))
+      throw new Error('Attendi che le GPU di questo RIG terminino mine().');
     this.assertRigOffWorkbench(rigId);
     const gpuIds = getRig(this.world(), rigId).gpus.map((gpu) => gpu.id);
     this.world.update((world) => storeRig(world, rigId));
@@ -223,7 +223,6 @@ export class GameService {
   }
 
   mountStockRig(stockId: number, rigId: number): void {
-    if (this.running()) throw new Error('Ferma il programma prima di montare un RIG.');
     this.world.update((world) => installStockRig(world, stockId, rigId));
     this.selectedGpuId.set(null);
     this.selectedRigId.set(rigId);
@@ -232,7 +231,8 @@ export class GameService {
   }
 
   replaceRigFromStock(rigId: number, stockId: number): void {
-    if (this.running()) throw new Error('Ferma il programma prima di sostituire un RIG.');
+    if (this.isRigMining(rigId))
+      throw new Error('Attendi che le GPU di questo RIG terminino mine().');
     this.assertRigOffWorkbench(rigId);
     this.world.update((world) => replaceRig(world, rigId, stockId));
     this.selectedGpuId.set(null);
@@ -303,7 +303,7 @@ export class GameService {
     );
   }
 
-  private activeTimeNow(): number {
+  activeTimeNow(): number {
     return performance.now() - this.pausedMillisecondsNow();
   }
 
@@ -326,6 +326,7 @@ export class GameService {
       await delay(Math.min(remaining, 25), signal);
       remaining -= this.activeTimeNow() - activeStart;
     }
+    await this.waitUntilUnpaused(signal);
   }
 
   createSave(): GameSave {
@@ -555,6 +556,7 @@ export class GameService {
             this.world(),
             {
               getGpu: (id) => getGpu(this.world(), id),
+              getRig: (id) => getRig(this.world(), id),
               getTelemetry: (id) => this.gpuTelemetry(id),
               getCryptoProgress: (cryptoId) => getCryptoProgress(this.world(), cryptoId),
               estimateMining: (id, crypto, frequency) =>

@@ -140,7 +140,7 @@ while (progress() < 100) {
 - `wait(ms)`: pausa interrompibile entro il limite configurato. La velocità 2× accelera le azioni `mine()`.
 - `repeat(n) { ... }`: intero non negativo entro il limite configurato.
 - `parallel`: lancia insieme comandi semplici e chiamate a funzioni definite con `def`. `mine()` coordina già tutte le GPU sbloccate.
-- `for (let i = 0; i < 5; i++) { ... }`, `while (...) { ... }`, `if (...) { ... } else { ... }`.
+- `for (let i = 0; i < 5; i++) { ... }` e `for (let i = 0, j = 4; i < j; i++, j--) { ... }`, `while (...) { ... }`, `if (...) { ... } else { ... }`.
 - `def nome(parametri) { ... }` definisce una funzione; `return valore;` restituisce il risultato. Puoi chiamarla con `nome(valori)` e passare vettori, pile, code e oggetti della farm. Le strutture dati sono passate per riferimento.
 - `import { nome } from "utilita.mine";` importa le funzioni indicate da un altro file. `import * from "utilita.mine";` e `import "utilita.mine";` importano tutte le sue funzioni. I file importati contengono solo `def` e `import`; avvii un solo file alla volta. La guida nel gioco mostra esempi completi.
 - Variabili `let`, assegnazione, `++`, `--`, numeri, stringhe, booleani, vettori, attributi, metodi, `+ - * / %`, confronti `== != < <= > >=`, `&& || !` e parentesi.

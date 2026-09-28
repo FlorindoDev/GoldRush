@@ -216,17 +216,25 @@ describe('RIG inventory domain', () => {
     expect(cryptoValueEur(game.world().holdings)).toBeCloseTo(balanceBeforeSale + expectedSale);
   });
 
-  it('rejects running and workbench transitions without changing the world', () => {
-    const purchased = purchaseCart(fundedWorld(), [{ productId: 'rig-gameplay', quantity: 1 }]);
+  it('blocks active RIGs, but mounts an empty RIG while another mines', () => {
+    const purchased = purchaseCart(fundedWorld(), [{ productId: 'rig-gameplay', quantity: 2 }]);
     const game = new GameService();
     game.world.set(purchased);
     game.running.set(true);
-    const runningWorld = game.world();
-    expect(() => game.moveRigToStock(1)).toThrow('Ferma');
-    expect(() => game.mountStockRig(1, 3)).toThrow('Ferma');
-    expect(() => game.replaceRigFromStock(1, 1)).toThrow('Ferma');
-    expect(game.world()).toBe(runningWorld);
+    game.miningActions.set([{ gpuId: 1, startedAt: 0, durationMs: 1000, pauseDurationAtStart: 0 }]);
+    const miningWorld = game.world();
+    expect(() => game.moveRigToStock(1)).toThrow('terminino mine()');
+    expect(() => game.replaceRigFromStock(1, 1)).toThrow('terminino mine()');
+    expect(game.world()).toBe(miningWorld);
 
+    game.mountStockRig(1, 3);
+    expect(getRig(game.world(), 3).unlocked).toBe(true);
+    game.replaceRigFromStock(3, 2);
+    expect(getRig(game.world(), 3).unlocked).toBe(true);
+    game.moveRigToStock(3);
+    expect(getRig(game.world(), 3).unlocked).toBe(false);
+
+    game.miningActions.set([]);
     game.running.set(false);
     game.inspectRig(1);
     const rigBenchWorld = game.world();

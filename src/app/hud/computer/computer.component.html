@@ -447,7 +447,7 @@
                   <app-icon name="tool" />Esamina sul banco
                 </button>
                 <button
-                  [disabled]="game.running() || entry.gpu?.onWorkbench"
+                  [disabled]="game.isGpuMining(entry.gpuId) || entry.gpu?.onWorkbench"
                   (click)="store(entry)"
                 >
                   Sposta in magazzino<app-icon name="box" />
@@ -460,7 +460,6 @@
                       >Monta in<select
                         aria-label="Slot RIG di destinazione"
                         [value]="selectedRigSlotId() ?? ''"
-                        [disabled]="game.running()"
                         (change)="setRigSlotTarget($any($event.target).value)"
                       >
                         @for (rig of rigSlots(); track rig.id) {
@@ -470,7 +469,7 @@
                     >
                     <button
                       class="primary"
-                      [disabled]="game.running() || selectedRigSlotId() === null"
+                      [disabled]="selectedRigSlotId() === null"
                       (click)="mountRig(entry)"
                     >
                       Monta RIG<app-icon name="arrow" />
@@ -484,7 +483,6 @@
                     >Monta in<select
                       aria-label="RIG di destinazione"
                       [value]="targetRigId()"
-                      [disabled]="game.running()"
                       (change)="targetRigId.set(+$any($event.target).value)"
                     >
                       @for (rig of rigs(); track rig.id) {
@@ -500,7 +498,7 @@
                   >
                   <button
                     class="primary"
-                    [disabled]="game.running() || !hasFreeSlot(targetRigId())"
+                    [disabled]="!hasFreeSlot(targetRigId())"
                     (click)="mount(entry)"
                   >
                     Monta GPU<app-icon name="arrow" />
@@ -537,7 +535,7 @@
               }
               @if (entry.product.category === 'rig' && entry.stockId === undefined) {
                 <button
-                  [disabled]="game.running()"
+                  [disabled]="isRigMining(entry)"
                   (click)="storeRig(entry)"
                 >
                   Sposta RIG in magazzino<app-icon name="box" />
@@ -547,7 +545,6 @@
                     >Sostituisci con<select
                       aria-label="RIG di ricambio"
                       [value]="selectedReplacementRigStockId() ?? ''"
-                      [disabled]="game.running()"
                       (change)="setReplacementRigStock($any($event.target).value)"
                     >
                       @for (stockRig of rigStockEntries(); track stockRig.stockId) {
@@ -559,7 +556,7 @@
                   >
                   <button
                     class="primary"
-                    [disabled]="game.running() || selectedReplacementRigStockId() === null"
+                    [disabled]="isRigMining(entry) || selectedReplacementRigStockId() === null"
                     (click)="replaceRig(entry)"
                   >
                     Sostituisci RIG<app-icon name="arrow" />
@@ -567,7 +564,10 @@
                 }
               }
               @if (game.running()) {
-                <small>Ferma il programma per spostare, montare o vendere componenti.</small>
+                <small
+                  >GPU in mining e RIG che le contengono bloccati. Ferma il programma per
+                  vendere.</small
+                >
               }
             </div>
             @if (selectedGroup(); as group) {

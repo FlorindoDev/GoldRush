@@ -121,6 +121,13 @@
         #editor
         aria-label="Codice MineScript"
         aria-describedby="editor-shortcuts"
+        role="combobox"
+        aria-autocomplete="list"
+        [attr.aria-controls]="completionListId"
+        [attr.aria-expanded]="completion() !== null"
+        [attr.aria-activedescendant]="
+          completion() ? completionListId + '-' + selectedCompletion() : null
+        "
         spellcheck="false"
         autocapitalize="off"
         autocomplete="off"
@@ -131,10 +138,44 @@
         (input)="onInput($event)"
         (scroll)="syncScroll()"
         (keydown)="keydown($event)"
-        (click)="updateCursor()"
-        (keyup)="updateCursor()"
+        (click)="onClick()"
+        (keyup)="onKeyup($event)"
         (focus)="focus()"
+        (blur)="closeCompletion()"
       ></textarea>
+      <div
+        #caretMirror
+        class="caret-mirror"
+        aria-hidden="true"
+      >
+        <span #caretText></span><span #caretAnchor>&#8203;</span><span #caretAfter></span>
+      </div>
+      @if (completion(); as suggestions) {
+        <div
+          [id]="completionListId"
+          class="completion-menu"
+          role="listbox"
+          aria-label="Suggerimenti MineScript"
+          [style.left.px]="completionPosition().left"
+          [style.top.px]="completionPosition().top"
+        >
+          @for (item of suggestions.items; track item.kind + item.label; let index = $index) {
+            <button
+              type="button"
+              role="option"
+              class="completion-item"
+              [id]="completionListId + '-' + index"
+              [attr.aria-selected]="index === selectedCompletion()"
+              [class.selected]="index === selectedCompletion()"
+              (mousedown)="$event.preventDefault()"
+              (click)="acceptCompletion(item)"
+            >
+              <span>{{ item.label }}</span>
+              <small>{{ item.kind }}</small>
+            </button>
+          }
+        </div>
+      }
     </div>
   </div>
   <div class="editor-status mono">
@@ -167,6 +208,8 @@
   >
     Control Invio esegue il codice. Tab inserisce due spazi. Control o Cmd con barra alterna
     commento riga; Control o Cmd, Alt o Option e A alternano il commento lungo. Premi Escape, poi
-    Tab, per uscire dall’editor.
+    Tab, per uscire dall’editor. Con i suggerimenti aperti, usa frecce, Invio o Tab per scegliere;
+    Escape chiude la lista. Premi ancora Escape, poi Tab, per uscire. Control o Cmd e Spazio mostra
+    i suggerimenti.
   </span>
 </section>

@@ -5,32 +5,39 @@ import { GpuScriptObject, type GpuScriptControls } from './gpu-script-object';
 
 export class RigScriptObject implements ScriptObject {
   readonly objectType = 'rig';
-  readonly gpus: VectorValue;
+  private readonly rigId: number;
 
   constructor(
-    private readonly rig: MiningRig,
-    controls: GpuScriptControls,
+    rig: MiningRig,
+    private readonly controls: GpuScriptControls,
   ) {
-    this.gpus = new VectorValue(
-      rig.gpus.map((gpu) => new GpuScriptObject(gpu.id, rig.unlocked, controls)),
+    this.rigId = rig.id;
+  }
+
+  get gpus(): VectorValue {
+    return new VectorValue(
+      this.controls
+        .getRig(this.rigId)
+        .gpus.map((gpu) => new GpuScriptObject(gpu.id, this.controls)),
       true,
     );
   }
 
   getAttribute(name: string, line: number): Value {
+    const rig = this.controls.getRig(this.rigId);
     switch (name) {
       case 'id':
-        return this.rig.id;
+        return rig.id;
       case 'plotId':
-        return this.rig.plotId;
+        return rig.plotId;
       case 'unlocked':
-        return this.rig.unlocked;
+        return rig.unlocked;
       case 'gpus':
         return this.gpus;
       case 'gpuCount':
-        return countUnlockedGpusInRig(this.rig);
+        return countUnlockedGpusInRig(rig);
       case 'gpuCapacity':
-        return this.rig.gpus.length;
+        return rig.gpus.length;
       default:
         throw new ScriptError(`attributo "${name}" non disponibile per un rig.`, line);
     }
@@ -41,6 +48,6 @@ export class RigScriptObject implements ScriptObject {
   }
 
   toDisplayString(): string {
-    return `Rig(${this.rig.id})`;
+    return `Rig(${this.rigId})`;
   }
 }

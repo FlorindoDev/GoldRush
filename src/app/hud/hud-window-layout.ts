@@ -69,6 +69,20 @@ export class HudWindowLayout {
     this.activeWindow.set(name);
   }
 
+  fitWindowToViewport(name: WindowName, element: HTMLElement): void {
+    if (element.hidden) return;
+    const bounds = element.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+
+    const x = this.clamp(bounds.left, 8, Math.max(8, window.innerWidth - bounds.width - 8));
+    const y = this.clamp(bounds.top, 8, Math.max(8, window.innerHeight - bounds.height - 8));
+    if (x === bounds.left && y === bounds.top) return;
+
+    element.style.right = 'auto';
+    element.style.bottom = 'auto';
+    this.setWindowPosition(name, { x, y });
+  }
+
   forgetEditor(name: string): void {
     if (name === 'editor') {
       this.editorPosition.set(null);

@@ -46,9 +46,9 @@ export type Statement =
   | { kind: 'while'; condition: Expression; body: Statement[]; line: number }
   | {
       kind: 'for';
-      initializer: Statement;
+      initializers: Statement[];
       condition: Expression;
-      increment: Statement;
+      increments: Statement[];
       body: Statement[];
       line: number;
     }

@@ -171,15 +171,24 @@ class Parser {
 
   private parseForStatement(line: number): Statement {
     this.expect('(');
-    const initializer = this.parseSimpleStatement();
+    const sharedDeclaration = this.current.text === 'let';
+    const initializers = this.parseForClause(sharedDeclaration);
     this.expect(';');
     const condition = this.parseExpression();
     this.expect(';');
-    const increment = this.parseSimpleStatement();
+    const increments = this.parseForClause();
     this.expect(')');
     const body = this.parseBlock();
 
-    return { kind: 'for', initializer, condition, increment, body, line };
+    return { kind: 'for', initializers, condition, increments, body, line };
+  }
+
+  private parseForClause(sharedDeclaration = false): Statement[] {
+    const statements = [this.parseSimpleStatement()];
+    while (this.match(',')) {
+      statements.push(this.parseSimpleStatement(sharedDeclaration));
+    }
+    return statements;
   }
 
   private readName(kind: string): string {
@@ -190,9 +199,9 @@ class Parser {
     return token.text;
   }
 
-  private parseSimpleStatement(): Statement {
+  private parseSimpleStatement(declareFromFor = false): Statement {
     const line = this.current.line;
-    const declare = this.match('let');
+    const declare = declareFromFor || this.match('let');
     if (
       declare ||
       (this.current.kind === 'word' &&

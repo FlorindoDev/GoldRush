@@ -36,9 +36,10 @@ export class WalletComponent implements OnDestroy {
     })).filter((crypto) => crypto.quantity > 0),
   );
   readonly formatQuantity = (amount: number) => quantities.format(amount);
-  private clockUpdatedAt = performance.now();
+  private clockUpdatedAt = this.game.activeTimeNow();
   private readonly clockTimer = setInterval(() => {
-    const now = performance.now();
+    if (this.game.paused()) return;
+    const now = this.game.activeTimeNow();
     this.game.advanceGameTime(now - this.clockUpdatedAt);
     this.clockUpdatedAt = now;
   }, CLOCK_REFRESH_MS);

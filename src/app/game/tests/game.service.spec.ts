@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { GameService } from '../game.service';
 
 async function waitForPause(game: GameService): Promise<void> {
@@ -23,6 +23,39 @@ function createGame(code: string): GameService {
 }
 
 describe('GameService script controls', () => {
+  it('keeps game time frozen through a pause, even between clock ticks', () => {
+    let now = 1000;
+    const clock = vi.spyOn(performance, 'now').mockImplementation(() => now);
+    try {
+      const game = createGame('');
+      now = 1100;
+      game.setPaused(true);
+      now = 1500;
+      expect(game.activeTimeNow()).toBe(1100);
+      game.advanceGameTime(400);
+      expect(game.gameElapsedMinutes()).toBe(0);
+
+      game.setPaused(false);
+      now = 1600;
+      expect(game.activeTimeNow()).toBe(1200);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it('does not finish a wait while the game is paused', async () => {
+    const game = createGame('wait(40); print("done");');
+    const execution = game.run();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    game.setPaused(true);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(output(game)).toEqual([]);
+
+    game.setPaused(false);
+    await execution;
+    expect(output(game)).toEqual(['done']);
+  });
+
   it('executes one statement at a time and pauses before the next', async () => {
     const game = createGame('print("first");\nprint("second");');
     const execution = game.step();

@@ -53,6 +53,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
     effect(() => {
       const world = this.game.world();
       const mining = this.game.mining();
+      const paused = this.game.paused();
       const activeGpuIds = this.game.activeGpuIds();
       const inspectedGpuId = this.game.inspectedGpuId();
       const inspectedRigId = this.game.inspectedRigId();
@@ -62,14 +63,17 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
       const cameraPreset = this.cameraPreset();
       const selectedToolStationId = this.selectedToolStationId();
       const computerOpen = this.game.computerOpen();
-      const running = this.game.running();
       const menu = this.contextMenu();
       const targetUnavailable =
-        menu !== null && (!isGpuUnlocked(world, menu.id) || getGpu(world, menu.id).onWorkbench);
-      if (running || targetUnavailable) this.closeContextMenu();
+        menu !== null &&
+        (!isGpuUnlocked(world, menu.id) ||
+          getGpu(world, menu.id).onWorkbench ||
+          this.game.isGpuMining(menu.id));
+      if (targetUnavailable) this.closeContextMenu();
       this.scene?.update(
         world,
         mining,
+        paused,
         inspectedGpuId,
         inspectedRigId,
         viewedPlotId,
@@ -123,6 +127,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
       this.scene.update(
         this.game.world(),
         this.game.mining(),
+        this.game.paused(),
         this.game.inspectedGpuId(),
         this.game.inspectedRigId(),
         this.game.viewedPlotId(),
@@ -173,7 +178,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
     const world = this.game.world();
     const { target } = request;
     if (
-      this.game.running() ||
+      this.game.isGpuMining(target.id) ||
       !menu ||
       menu.kind !== target.kind ||
       menu.id !== target.id ||
@@ -208,7 +213,7 @@ export class SceneComponent implements AfterViewInit, OnDestroy {
     const world = this.game.world();
     if (
       !target ||
-      this.game.running() ||
+      this.game.isGpuMining(target.id) ||
       !isGpuUnlocked(world, target.id) ||
       getGpu(world, target.id).onWorkbench
     )

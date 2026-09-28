@@ -10,7 +10,7 @@ export class PlotScriptObject implements ScriptObject {
 
   constructor(
     private readonly plot: MiningPlot,
-    controls: GpuScriptControls,
+    private readonly controls: GpuScriptControls,
   ) {
     this.rigs = new VectorValue(
       plot.rigs.map((rig) => new RigScriptObject(rig, controls)),
@@ -27,9 +27,15 @@ export class PlotScriptObject implements ScriptObject {
       case 'rigCount':
         return this.plot.rigs.length;
       case 'gpuCount':
-        return this.plot.rigs.reduce((count, rig) => count + countUnlockedGpusInRig(rig), 0);
+        return this.plot.rigs.reduce(
+          (count, rig) => count + countUnlockedGpusInRig(this.controls.getRig(rig.id)),
+          0,
+        );
       case 'gpuCapacity':
-        return this.plot.rigs.reduce((count, rig) => count + rig.gpus.length, 0);
+        return this.plot.rigs.reduce(
+          (count, rig) => count + this.controls.getRig(rig.id).gpus.length,
+          0,
+        );
       default:
         throw new ScriptError(`attributo "${name}" non disponibile per un plot.`, line);
     }

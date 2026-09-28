@@ -11,7 +11,7 @@
   <app-scene-context-menu
     [context]="contextMenu()"
     [world]="game.world()"
-    [disabled]="game.running()"
+    [disabled]="game.isGpuMining(contextMenu()?.id ?? -1)"
     [feedback]="contextFeedback()"
     (close)="closeContextMenu($event)"
     (action)="handleContextAction($event)"

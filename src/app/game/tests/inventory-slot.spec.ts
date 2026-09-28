@@ -47,19 +47,17 @@ describe('Exact inventory slot integration', () => {
     expect(world.inventory.items).toHaveLength(2);
   });
 
-  it('passes the selected slot through the service and blocks changes while running', () => {
+  it('passes the selected slot through the service while another GPU in the RIG mines', () => {
     const game = new GameService();
     game.world.set(storeGpu(storeGpu(withUnlockedGpus(createWorld(), 3), 1), 2));
-    const before = game.world();
     game.running.set(true);
+    game.miningActions.set([{ gpuId: 3, startedAt: 0, durationMs: 1000, pauseDurationAtStart: 0 }]);
 
-    expect(() => game.mountStockGpu(1, 1, 2)).toThrow('Ferma');
-    expect(game.world()).toBe(before);
-
-    game.running.set(false);
     game.mountStockGpu(1, 1, 2);
     expect(getGpu(game.world(), 1).unlocked).toBe(false);
     expect(getGpu(game.world(), 2).unlocked).toBe(true);
+    expect(getGpu(game.world(), 3).unlocked).toBe(true);
+    expect(game.isGpuMining(3)).toBe(true);
     expect(game.world().inventory.items.map((item) => item.id)).toEqual([2]);
   });
 });

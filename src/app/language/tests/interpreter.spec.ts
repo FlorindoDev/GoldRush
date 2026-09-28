@@ -80,6 +80,8 @@ print(coda.peek()[0]);
           .flatMap((plot) => plot.rigs)
           .flatMap((rig) => rig.gpus)
           .find((gpu) => gpu.id === id)!,
+      getRig: (id: number) =>
+        world.plots.flatMap((plot) => plot.rigs).find((rig) => rig.id === id)!,
     } as GpuScriptControls;
     f.host.globals = {
       plots: new VectorValue(

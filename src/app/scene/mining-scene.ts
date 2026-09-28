@@ -91,6 +91,7 @@ export class MiningScene {
   private previewRigId: number | null = null;
   private previewRigSetupKey = '';
   private isMining = false;
+  private isPaused = false;
   private activeGpuIds: readonly number[] = [];
   private disposed = false;
   private lastFrame = 0;
@@ -151,6 +152,7 @@ export class MiningScene {
   update(
     world: MiningWorld,
     mining: boolean,
+    paused: boolean,
     inspectedGpuId: number | null,
     inspectedRigId: number | null,
     viewedPlotId: number,
@@ -175,6 +177,7 @@ export class MiningScene {
     this.inspectedGpuId = inspection;
     this.selectedGpuId = selectedGpuId;
     this.isMining = mining;
+    this.isPaused = paused;
     this.activeGpuIds = activeGpuIds;
     this.viewedPlotId = viewedPlotId;
     this.viewedRigId = viewedRigId;
@@ -534,7 +537,9 @@ export class MiningScene {
   private animate(time: number): void {
     const delta = Math.min((time - this.lastFrame) / 1000, 0.05);
     this.lastFrame = time;
-    this.gpuVisuals.update(delta, this.isMining, this.reducedMotion.matches, this.activeGpuIds);
+    if (!this.isPaused) {
+      this.gpuVisuals.update(delta, this.isMining, this.reducedMotion.matches, this.activeGpuIds);
+    }
     if (this.currentWorld) {
       if (this.previewRigId !== null) {
         this.syncRigWorkbench(this.currentWorld, this.selectedToolStationId, this.previewRigId);
@@ -543,7 +548,7 @@ export class MiningScene {
     }
     this.cameraController.update(delta);
     this.particles.visible = this.isMining;
-    if (this.isMining) {
+    if (this.isMining && !this.isPaused) {
       this.animateParticles(delta);
       if (!this.reducedMotion.matches) {
         this.rigs.forEach((rig) =>

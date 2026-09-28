@@ -2,7 +2,7 @@ import { ScriptError, type ScriptObject, type Value } from '../../language/synta
 import { isGpuOperational } from '../gpu-operation';
 import type { GpuTelemetry } from '../gpu-telemetry';
 import type { CryptoId } from '../../config/crypto-config';
-import type { MiningGpu } from '../mining-world';
+import type { MiningGpu, MiningRig } from '../mining-world';
 import { requireArguments } from './script-api-utils';
 import { requireVector } from '../../language/collections/vector';
 import type { MiningEstimate } from '../mining-estimate';
@@ -11,6 +11,7 @@ import { MiningEstimateScriptObject } from './mining-estimate-script-object';
 /** Accesso allo stato corrente: gli oggetti script non conservano snapshot della GPU. */
 export interface GpuScriptControls {
   getGpu(id: number): MiningGpu;
+  getRig(id: number): MiningRig;
   getTelemetry(id: number): GpuTelemetry;
   getCryptoProgress(cryptoId: CryptoId): number;
   estimateMining(id: number, crypto?: string, frequencyGhz?: number): MiningEstimate;
@@ -44,7 +45,6 @@ export class GpuScriptObject implements ScriptObject {
 
   constructor(
     private readonly id: number,
-    private readonly rigUnlocked: boolean,
     private readonly controls: GpuScriptControls,
   ) {}
 
@@ -175,7 +175,8 @@ export class GpuScriptObject implements ScriptObject {
   }
 
   private isAvailable(): boolean {
-    return this.rigUnlocked && this.controls.getGpu(this.id).unlocked;
+    const gpu = this.controls.getGpu(this.id);
+    return this.controls.getRig(gpu.rigId).unlocked && gpu.unlocked;
   }
 }
 

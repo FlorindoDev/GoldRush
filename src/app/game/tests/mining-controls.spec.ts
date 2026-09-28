@@ -30,6 +30,35 @@ afterEach(() => {
 });
 
 describe('Mining controls through MineScript', () => {
+  it('sees GPU and RIG hardware mounted while a script is running', async () => {
+    const game = createGame(`wait(100);
+      print(plots[0].rigs[0].gpuCount);
+      print(plots[0].gpuCount);
+      print(plots[0].rigs[1].unlocked);
+      print(plots[0].rigs[1].gpus[0].unlocked);`);
+    game.world.update((world) => ({ ...world, cashEur: 2000 }));
+    game.buyCart([
+      { productId: 'gpu-passive', quantity: 2 },
+      { productId: 'rig-gameplay', quantity: 1 },
+    ]);
+    const gpuStockIds = game
+      .world()
+      .inventory.items.filter((item) => item.gpu)
+      .map((item) => item.id);
+    const rigStockId = game.world().inventory.items.find((item) => item.rig)!.id;
+
+    const run = game.run();
+    await vi.advanceTimersByTimeAsync(25);
+    expect(game.running()).toBe(true);
+    game.mountStockGpu(gpuStockIds[0], 1, 3);
+    game.mountStockRig(rigStockId, 2);
+    game.mountStockGpu(gpuStockIds[1], 2, 5);
+
+    await vi.runAllTimersAsync();
+    await run;
+    expect(output(game)).toEqual(['3', '4', 'true', 'true']);
+  });
+
   it('reads live clock, stop state, wear and electricity through retained script objects', async () => {
     const game = createGame(`let gpu = plots[0].rigs[0].gpus[0];
       gpu.setFrequencyGhz(2);
