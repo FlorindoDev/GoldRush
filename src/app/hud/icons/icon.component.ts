@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DOCUMENT, inject, input } from '@angular/core';
 
 const PATHS: Record<string, string | readonly string[]> = {
   monitor: 'M3 3h18v13H3V3Zm5 18h8m-4-5v5',
@@ -55,12 +55,13 @@ const PATHS: Record<string, string | readonly string[]> = {
 };
 
 const SVG_ASSETS: Record<string, string> = {
-  cart: '/assets/icons/shopping-cart.svg',
-  box: '/assets/icons/box.svg',
-  gpu: '/assets/icons/cpu.svg',
-  cpu: '/assets/icons/cpu.svg',
-  archive: '/assets/icons/archive.svg',
-  replace: '/assets/icons/arrow-left-right.svg',
+  tree: 'assets/icons/research-tree.svg',
+  cart: 'assets/icons/shopping-cart.svg',
+  box: 'assets/icons/box.svg',
+  gpu: 'assets/icons/cpu.svg',
+  cpu: 'assets/icons/cpu.svg',
+  archive: 'assets/icons/archive.svg',
+  replace: 'assets/icons/arrow-left-right.svg',
 };
 
 @Component({
@@ -70,10 +71,12 @@ const SVG_ASSETS: Record<string, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IconComponent {
+  private readonly document = inject(DOCUMENT);
   readonly name = input('cube');
 
   assetUrl(): string | null {
-    return SVG_ASSETS[this.name()] ?? null;
+    const path = SVG_ASSETS[this.name()];
+    return path ? new URL(path, this.document.baseURI).href : null;
   }
 
   paths(): readonly string[] {

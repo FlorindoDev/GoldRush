@@ -1,12 +1,7 @@
-@if (name() === 'tree') {
-  <span
-    class="research-tree-icon"
-    aria-hidden="true"
-  ></span>
-} @else if (assetUrl(); as src) {
+@if (assetUrl(); as src) {
   <span
     class="svg-asset-icon"
-    [style.--svg-asset]="'url(' + src + ')'"
+    [style.--svg-asset]="'url(&quot;' + src + '&quot;)'"
     aria-hidden="true"
   ></span>
 } @else {
